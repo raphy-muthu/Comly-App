@@ -8,7 +8,6 @@
 -- ════════════════════════════════════════════════════════════════════════════
 
 -- Extensions ------------------------------------------------------------------
-create extension if not exists "uuid-ossp";
 
 -- Enums -----------------------------------------------------------------------
 create type user_role as enum ('customer', 'helper');
@@ -65,7 +64,7 @@ create table verification_status (
 
 -- ── jobs ────────────────────────────────────────────────────────────────────
 create table jobs (
-  id                  uuid primary key default uuid_generate_v4(),
+  id                  uuid primary key default gen_random_uuid(),
   customer_id         uuid not null references profiles (id) on delete cascade,
   category            job_category not null,
   title               text not null check (char_length(title) between 3 and 120),
@@ -91,7 +90,7 @@ create index jobs_created_idx on jobs (created_at desc);
 
 -- ── applications ────────────────────────────────────────────────────────────
 create table applications (
-  id            uuid primary key default uuid_generate_v4(),
+  id            uuid primary key default gen_random_uuid(),
   job_id        uuid not null references jobs (id) on delete cascade,
   helper_id     uuid not null references profiles (id) on delete cascade,
   message       text not null default '',
@@ -108,7 +107,7 @@ create index applications_helper_idx on applications (helper_id);
 
 -- ── conversations & messages (schema only; UI deferred) ─────────────────────
 create table conversations (
-  id           uuid primary key default uuid_generate_v4(),
+  id           uuid primary key default gen_random_uuid(),
   job_id       uuid references jobs (id) on delete set null,
   customer_id  uuid not null references profiles (id) on delete cascade,
   helper_id    uuid not null references profiles (id) on delete cascade,
@@ -117,7 +116,7 @@ create table conversations (
 );
 
 create table messages (
-  id               uuid primary key default uuid_generate_v4(),
+  id               uuid primary key default gen_random_uuid(),
   conversation_id  uuid not null references conversations (id) on delete cascade,
   sender_id        uuid not null references profiles (id) on delete cascade,
   body             text not null default '',
@@ -130,7 +129,7 @@ create index messages_conversation_idx on messages (conversation_id, created_at)
 
 -- ── reviews ─────────────────────────────────────────────────────────────────
 create table reviews (
-  id               uuid primary key default uuid_generate_v4(),
+  id               uuid primary key default gen_random_uuid(),
   job_id           uuid not null references jobs (id) on delete cascade,
   reviewer_id      uuid not null references profiles (id) on delete cascade,
   reviewee_id      uuid not null references profiles (id) on delete cascade,
@@ -147,7 +146,7 @@ create index reviews_reviewee_idx on reviews (reviewee_id);
 
 -- ── reputation_events (audit feeding reputation_score) ──────────────────────
 create table reputation_events (
-  id          uuid primary key default uuid_generate_v4(),
+  id          uuid primary key default gen_random_uuid(),
   user_id     uuid not null references profiles (id) on delete cascade,
   event_type  text not null,
   weight      numeric(5,2) not null default 0,
@@ -158,7 +157,7 @@ create index reputation_events_user_idx on reputation_events (user_id);
 
 -- ── notifications ───────────────────────────────────────────────────────────
 create table notifications (
-  id          uuid primary key default uuid_generate_v4(),
+  id          uuid primary key default gen_random_uuid(),
   user_id     uuid not null references profiles (id) on delete cascade,
   type        notification_type not null,
   title       text not null,

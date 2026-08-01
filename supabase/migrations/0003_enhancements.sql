@@ -80,7 +80,7 @@ alter table jobs add column if not exists deleted_at timestamptz;
 
 -- ── reports ──────────────────────────────────────────────────────────────────
 create table if not exists reports (
-  id                uuid primary key default uuid_generate_v4(),
+  id                uuid primary key default gen_random_uuid(),
   reporter_id       uuid not null references profiles (id) on delete cascade,
   reported_user_id  uuid references profiles (id) on delete set null,
   job_id            uuid references jobs (id) on delete set null,
@@ -97,7 +97,7 @@ create index if not exists reports_status_idx on reports (status, created_at des
 
 -- ── support_tickets ──────────────────────────────────────────────────────────
 create table if not exists support_tickets (
-  id          uuid primary key default uuid_generate_v4(),
+  id          uuid primary key default gen_random_uuid(),
   user_id     uuid not null references profiles (id) on delete cascade,
   category    text not null,
   subject     text not null,

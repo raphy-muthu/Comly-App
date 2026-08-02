@@ -3,7 +3,7 @@
  * proposed pay, availability, trust badge, and accept/decline actions.
  */
 
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -82,21 +82,22 @@ export function JobApplicationsScreen() {
         </Text>
       )}
 
-      <ScrollView
+      <FlatList
+        data={applications ?? []}
+        keyExtractor={(app) => app.id}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
-      >
-        {!isLoading && applications && applications.length === 0 && (
-          <EmptyState
-            icon="people-outline"
-            title="No applications yet"
-            message="When neighbors apply, you'll see them here."
-          />
-        )}
-
-        {applications?.map((app) => (
+        ListEmptyComponent={
+          !isLoading ? (
+            <EmptyState
+              icon="people-outline"
+              title="No applications yet"
+              message="When neighbors apply, you'll see them here."
+            />
+          ) : null
+        }
+        renderItem={({ item: app }) => (
           <ApplicationCard
-            key={app.id}
             application={app}
             jobDecided={jobDecided}
             busy={accept.isPending || decline.isPending}
@@ -106,8 +107,8 @@ export function JobApplicationsScreen() {
               navigation.navigate('HelperProfile', { userId: app.helperId })
             }
           />
-        ))}
-      </ScrollView>
+        )}
+      />
     </SafeAreaView>
   );
 }

@@ -6,6 +6,7 @@
 
 import { useMemo, useState } from 'react';
 import {
+  FlatList,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -122,28 +123,30 @@ export function JobFeedScreen() {
       </ScrollView>
 
       {/* List */}
-      <ScrollView
+      <FlatList
+        data={visible}
+        keyExtractor={(job) => job.id}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={isRefetching} onRefresh={refetch} />
         }
-      >
-        {!isLoading && visible.length === 0 && (
-          <EmptyState
-            icon="search-outline"
-            title="No matching jobs"
-            message="Try a different filter or search term."
-          />
-        )}
-        {visible.map((job) => (
+        ListEmptyComponent={
+          !isLoading ? (
+            <EmptyState
+              icon="search-outline"
+              title="No matching jobs"
+              message="Try a different filter or search term."
+            />
+          ) : null
+        }
+        renderItem={({ item: job }) => (
           <JobCard
-            key={job.id}
             job={job}
             onPress={() => navigation.navigate('JobDetail', { jobId: job.id })}
           />
-        ))}
-      </ScrollView>
+        )}
+      />
     </SafeAreaView>
   );
 }

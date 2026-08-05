@@ -38,10 +38,11 @@
           "imageWidth": 200
         }
       ],
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "expo-web-browser"
     ],
     "extra": {
-      "useMocks": true
+      "useMocks": false
     }
   }
 }

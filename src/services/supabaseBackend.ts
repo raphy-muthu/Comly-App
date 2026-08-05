@@ -82,6 +82,15 @@ function mapJob(row: any): Job {
     photos: row.photos ?? [],
     applicantsCount: row.applications?.[0]?.count ?? 0,
     createdWithSeniorMode: !!row.created_with_senior_mode,
+    familyContact:
+      row.family_contact_name || row.family_contact_phone || row.family_contact_email
+        ? {
+            name: row.family_contact_name ?? undefined,
+            phone: row.family_contact_phone ?? undefined,
+            email: row.family_contact_email ?? undefined,
+            notify: !!row.notify_family_contact,
+          }
+        : undefined,
     isPaused: row.status === 'paused',
     deletedAt: row.deleted_at ?? null,
     contactUnlockedAt: row.contact_unlocked_at ?? null,
@@ -126,11 +135,11 @@ function mapProfile(row: any): UserProfile {
       parentApproved: !!v.parent_approved,
     },
     parentApprovalStatus: row.parent_approval_status ?? 'not_required',
-    parentName: row.parent_name ?? undefined,
-    parentEmail: row.parent_email ?? undefined,
-    schoolEmail: row.school_email ?? undefined,
-    phoneNumber: row.phone_number ?? undefined,
-    preferredContactMethod: row.preferred_contact_method ?? undefined,
+    // parentName/parentEmail/schoolEmail/phoneNumber/preferredContactMethod are
+    // deliberately absent here: migration 0004 moved them to profiles_private,
+    // and only getProfile (owner-only) merges them back in. Reading them off a
+    // public `profiles` row would always yield undefined and invites someone to
+    // "fix" it by re-exposing the columns.
     skills: row.skills ?? [],
     preferredCategories: row.preferred_categories ?? [],
     resumeSummary: row.resume_summary ?? undefined,
@@ -265,6 +274,13 @@ export const supabaseBackend: DataBackend = {
         estimated_duration: input.estimatedDuration,
         photos: input.photos ?? [],
         created_with_senior_mode: input.createdWithSeniorMode ?? false,
+        // Senior Help Mode's optional family contact. Columns exist since
+        // migration 0003; omitting them here silently discarded the one piece
+        // of data that flow asks a senior to enter.
+        family_contact_name: input.familyContact?.name || null,
+        family_contact_phone: input.familyContact?.phone || null,
+        family_contact_email: input.familyContact?.email || null,
+        notify_family_contact: input.familyContact?.notify ?? false,
       })
       .select(JOB_SELECT)
       .single();
@@ -455,18 +471,49 @@ export const supabaseBackend: DataBackend = {
     if (error) throw error;
 
     // Private PII goes to profiles_private (owner-only RLS).
-    const { error: privError } = await sb().from('profiles_private').upsert({
-      user_id: me,
-      phone_number: patch.phoneNumber ?? null,
-      preferred_contact_method: patch.preferredContactMethod ?? null,
-      school_email: patch.schoolEmail ?? null,
-    });
-    if (privError) throw privError;
+    //
+    // Only send keys the caller actually supplied. Coalescing absent fields to
+    // null would make any partial edit (say, just the bio) silently erase the
+    // user's phone number and school email, since `patch` is a Partial.
+    const priv: Record<string, unknown> = { user_id: me };
+    if ('phoneNumber' in patch) priv.phone_number = patch.phoneNumber ?? null;
+    if ('preferredContactMethod' in patch)
+      priv.preferred_contact_method = patch.preferredContactMethod ?? null;
+    if ('schoolEmail' in patch) priv.school_email = patch.schoolEmail ?? null;
+
+    if (Object.keys(priv).length > 1) {
+      const { error: privError } = await sb()
+        .from('profiles_private')
+        .upsert(priv, { onConflict: 'user_id' });
+      if (privError) throw privError;
+    }
+
+    // Verification flags derived from what the user just supplied. The server
+    // owns the attested badges (email/school/parent — see migration 0005), but
+    // "has a photo"/"has a phone" are simple facts about this row.
+    if (patch.verification) {
+      const { error: verError } = await sb()
+        .from('verification_status')
+        .update({
+          photo_added: patch.verification.photoAdded,
+          phone_added: patch.verification.phoneAdded,
+        })
+        .eq('user_id', me);
+      if (verError) throw verError;
+    }
 
     const profile = mapProfile(data);
-    profile.phoneNumber = patch.phoneNumber;
-    profile.preferredContactMethod = patch.preferredContactMethod;
-    profile.schoolEmail = patch.schoolEmail;
+    if ('phoneNumber' in patch) profile.phoneNumber = patch.phoneNumber;
+    if ('preferredContactMethod' in patch)
+      profile.preferredContactMethod = patch.preferredContactMethod;
+    if ('schoolEmail' in patch) profile.schoolEmail = patch.schoolEmail;
+    if (patch.verification) {
+      profile.verification = {
+        ...profile.verification,
+        photoAdded: patch.verification.photoAdded,
+        phoneAdded: patch.verification.phoneAdded,
+      };
+    }
     return profile;
   },
 

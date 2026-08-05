@@ -265,15 +265,19 @@ export const mockBackend: DataBackend = {
     const accepted = db.applications.find((a) => a.id === applicationId);
     if (!accepted || accepted.jobId !== jobId)
       throw new Error('Application not found');
+    if (accepted.status !== 'pending')
+      throw new Error('That application is no longer pending.');
 
     accepted.status = 'accepted';
     job.status = 'accepted';
     job.assignedHelperId = accepted.helperId;
     job.contactUnlockedAt = new Date().toISOString();
 
-    // Everyone else for this job is not selected.
+    // Everyone else still *pending* is not selected. Applications the owner
+    // already declined, or the helper withdrew, keep their outcome — matching
+    // the accept_application RPC, which only touches status = 'pending'.
     db.applications
-      .filter((a) => a.jobId === jobId && a.id !== applicationId)
+      .filter((a) => a.jobId === jobId && a.id !== applicationId && a.status === 'pending')
       .forEach((a) => {
         a.status = 'not_selected';
         pushNotification(

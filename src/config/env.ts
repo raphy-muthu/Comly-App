@@ -15,12 +15,17 @@ const truthy = (v: string | undefined): boolean =>
 
 /**
  * When true, all services resolve to in-memory mock implementations seeded with
- * demo data. Defaults to true unless explicitly disabled, so the app is always
- * runnable out of the box.
+ * demo data — useful for offline demos and for running the UI without a
+ * backend.
+ *
+ * Defaults to FALSE: demo mode must be opted into explicitly. Defaulting the
+ * other way meant a build with a missing or mistyped .env would silently ship
+ * seeded fake data and an auth screen that accepts any password, with nothing
+ * on screen to indicate it.
  */
 export const USE_MOCKS: boolean = process.env.EXPO_PUBLIC_USE_MOCKS
   ? truthy(process.env.EXPO_PUBLIC_USE_MOCKS)
-  : extra.useMocks ?? true;
+  : extra.useMocks ?? false;
 
 export const env = {
   useMocks: USE_MOCKS,

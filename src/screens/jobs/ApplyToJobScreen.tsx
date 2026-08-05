@@ -15,6 +15,7 @@ import { colors, radius, spacing } from '@/theme';
 import { Button, Card, Chip, IconButton, Input, Text, useToast } from '@/components/ui';
 import { SafetyBadge, EquipmentBadge } from '@/components/trust';
 import { useApplyToJob, useJob } from '@/hooks';
+import { useRoleTheme } from '@/hooks/useRoleTheme';
 import { ai, PaySuggestion } from '@/services/ai';
 import { formatPayShort } from '@/lib/format';
 import { eligibilityFor, JOB_CATEGORIES } from '@/types/domain';
@@ -25,6 +26,9 @@ type Nav = NativeStackNavigationProp<AppStackParamList>;
 type Rt = RouteProp<AppStackParamList, 'ApplyToJob'>;
 
 export function ApplyToJobScreen() {
+  // Helper-only screen, so it must render in the helper's green, not the
+  // customer violet these accents were hardcoded to.
+  const role = useRoleTheme();
   const navigation = useNavigation<Nav>();
   const { params } = useRoute<Rt>();
   const { data: job } = useJob(params.jobId);
@@ -48,9 +52,13 @@ export function ApplyToJobScreen() {
   useEffect(() => {
     if (!job) return;
     let active = true;
-    ai.suggestPay(job.category, job.title).then((s) => {
-      if (active) setSuggestion(s);
-    });
+    ai.suggestPay(job.category, job.title)
+      .then((s) => {
+        if (active) setSuggestion(s);
+      })
+      .catch(() => {
+        // Suggestion is a convenience; the offer field works without it.
+      });
     return () => {
       active = false;
     };
@@ -100,11 +108,11 @@ export function ApplyToJobScreen() {
         {/* Job summary */}
         <Card padded style={styles.summary}>
           <View style={styles.summaryRow}>
-            <View style={styles.thumb}>
+            <View style={[styles.thumb, { backgroundColor: role.accentSoft }]}>
               <Ionicons
                 name={JOB_CATEGORIES[job.category].icon as any}
                 size={22}
-                color={colors.primary}
+                color={role.accent}
               />
             </View>
             <View style={styles.summaryInfo}>

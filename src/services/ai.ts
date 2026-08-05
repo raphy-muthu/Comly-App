@@ -147,10 +147,22 @@ const mockAI: AIService = {
   },
 };
 
-// Real implementation arrives in Phase 8; fall back to mock for now.
+// The edge-function-backed implementation is not wired up yet, so real mode
+// still resolves to the deterministic keyword classifier below.
+//
+// This matters more than a normal TODO: `safetyReview` is a child-safety
+// control. Shipping with mocks off would present keyword matching as though it
+// were AI review, with no signal that it is. Warn loudly so this cannot slip
+// into production unnoticed — services/index.ts warns the same way when
+// Supabase credentials are missing.
 function resolveAI(): AIService {
   if (USE_MOCKS) return mockAI;
-  // TODO(phase-8): return an edge-function-backed AIService.
+  console.warn(
+    '[Comly] AI is running on the built-in keyword classifier, not a model. ' +
+      'Safety review, pay suggestions, and resume summaries are heuristics. ' +
+      'Wire up the ai-safety-review / ai-job-assistant edge functions before ' +
+      'relying on these in production.'
+  );
   return mockAI;
 }
 

@@ -126,13 +126,22 @@ function StandardFlow() {
     Promise.all([
       ai.suggestPay(category, title),
       ai.safetyReview(title, description),
-    ]).then(([p, s]) => {
-      if (!active) return;
-      setPaySuggestion(p);
-      setSafety(s);
-      if (!pay) setPay(String(p.recommended));
-      setAiLoading(false);
-    });
+    ])
+      .then(([p, s]) => {
+        if (!active) return;
+        setPaySuggestion(p);
+        setSafety(s);
+        if (!pay) setPay(String(p.recommended));
+      })
+      .catch(() => {
+        // Without this the Continue button stays disabled forever on a failed
+        // review, stranding the user mid-flow with no way back or forward.
+        if (!active) return;
+        toast.error('Could not run the AI review. You can still post — a human will re-check the safety label.');
+      })
+      .finally(() => {
+        if (active) setAiLoading(false);
+      });
     return () => {
       active = false;
     };
@@ -141,8 +150,13 @@ function StandardFlow() {
 
   const improveDescription = async () => {
     setImproving(true);
-    setDescription(await ai.improveDescription(description, category));
-    setImproving(false);
+    try {
+      setDescription(await ai.improveDescription(description, category));
+    } catch {
+      toast.error('Could not rewrite the description. Your text is unchanged.');
+    } finally {
+      setImproving(false);
+    }
   };
 
   const toggleTag = (t: CommunityTag) =>
@@ -169,8 +183,12 @@ function StandardFlow() {
         isTimeFlexible: flexible,
         durationMinutes,
         estimatedDuration: durationLabel,
-        safetyTier: (safety?.tier ?? 'teen_safe') as SafetyTier,
-        safetyNotes: safety?.note,
+        // If the review never returned, fall back to 'caution', not
+        // 'teen_safe'. Both let a teen apply, but 'teen_safe' is a positive
+        // claim that this task is appropriate for a minor — never assert that
+        // on the strength of a request that failed.
+        safetyTier: (safety?.tier ?? 'caution') as SafetyTier,
+        safetyNotes: safety?.note ?? 'Awaiting safety review.',
         requiresAdultSupervision: safety?.tier === 'adult_supervision',
         equipmentStatus: equipment,
         equipmentDetails: equipmentDetails.trim() || undefined,
@@ -590,9 +608,14 @@ function SeniorFlow() {
   useEffect(() => {
     if (!preset) return;
     let active = true;
-    ai.suggestPay(preset.category, preset.label).then((p) => {
-      if (active && !pay) setPay(String(p.recommended));
-    });
+    ai.suggestPay(preset.category, preset.label)
+      .then((p) => {
+        if (active && !pay) setPay(String(p.recommended));
+      })
+      .catch(() => {
+        // A missing suggestion just means the field stays empty — the user
+        // types their own amount. Nothing to surface.
+      });
     return () => {
       active = false;
     };
@@ -602,7 +625,19 @@ function SeniorFlow() {
   const post = async () => {
     if (!preset || posting) return;
     setPosting(true);
-    const safety = await ai.safetyReview(preset.label, '');
+    // A thrown review would otherwise leave `posting` stuck true, permanently
+    // disabling the only button on this screen. Seniors get the least
+    // recoverable UI, so this flow must not dead-end.
+    let safety: SafetyResult;
+    try {
+      safety = await ai.safetyReview(preset.label, '');
+    } catch {
+      safety = {
+        safe: true,
+        tier: 'caution',
+        note: 'Awaiting safety review.',
+      };
+    }
     createJob.mutate(
       {
         category: preset.category,

@@ -41,6 +41,14 @@ describe('mock backend marketplace loop', () => {
     expect(contact?.phoneNumber).toBe('(610) 555-0188');
   });
 
+  it('leaves an already-declined application declined after acceptance', async () => {
+    // app_3 was declined before app_2 was accepted; acceptance sweeps only
+    // still-pending applicants, so its outcome must survive (mirrors the
+    // accept_application RPC, which filters on status = 'pending').
+    const apps = await mockBackend.listApplicationsForJob('j_snow_sarah');
+    expect(apps.find((a) => a.id === 'app_3')?.status).toBe('declined');
+  });
+
   it('refuses to accept twice', async () => {
     await expect(
       mockBackend.acceptApplication('j_snow_sarah', 'app_1')

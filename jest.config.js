@@ -16,6 +16,10 @@ module.exports = {
     '^@/(.*)$': '<rootDir>/src/$1',
     // env.ts imports expo-constants (a native module); stub it for node.
     '^expo-constants$': '<rootDir>/src/__tests__/stubs/expo-constants.js',
+    // auth.ts imports these for the OAuth redirect flow; both ship as ESM and
+    // need a native runtime, neither of which the node test env provides.
+    '^expo-linking$': '<rootDir>/src/__tests__/stubs/expo-native.js',
+    '^expo-web-browser$': '<rootDir>/src/__tests__/stubs/expo-native.js',
   },
   transform: {
     '^.+\\.[tj]sx?$': [

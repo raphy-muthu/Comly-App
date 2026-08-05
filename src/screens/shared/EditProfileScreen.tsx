@@ -55,19 +55,28 @@ export function EditProfileScreen() {
   if (!user) return null;
 
   const pickPhoto = async () => {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      toast.error('Photo library access is needed to set a profile picture.');
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.7,
-    });
-    if (!result.canceled && result.assets[0]) {
-      setAvatarUrl(result.assets[0].uri);
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        toast.error('Photo library access is needed to set a profile picture.');
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.7,
+      });
+      if (!result.canceled && result.assets[0]) {
+        // NOTE: this is a local file:// URI, valid only on this device. It
+        // renders correctly for the owner but is meaningless to anyone else,
+        // so avatars will appear broken to other users until this is uploaded
+        // to Supabase Storage and the public URL stored instead. See the audit
+        // notes — this needs a storage bucket before real accounts exist.
+        setAvatarUrl(result.assets[0].uri);
+      }
+    } catch {
+      toast.error('Could not open the photo library.');
     }
   };
 

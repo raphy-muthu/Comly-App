@@ -40,8 +40,13 @@ export function YouthSkillsCard({ profile, canGenerate }: YouthSkillsCardProps) 
 
   const generate = async () => {
     setGenerating(true);
-    setSummary(await ai.generateResumeSummary(profile));
-    setGenerating(false);
+    try {
+      setSummary(await ai.generateResumeSummary(profile));
+    } catch {
+      // Leave any existing summary intact; the button resets so it's retryable.
+    } finally {
+      setGenerating(false);
+    }
   };
 
   const share = () => {

@@ -1,5 +1,5 @@
 /**
- * Log In — email/password plus social options. Mock mode signs in the demo user.
+ * Log In — email/password against Supabase Auth, plus social sign-in.
  */
 
 import { useState } from 'react';
@@ -9,7 +9,11 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { colors, spacing } from '@/theme';
 import { Button, IconButton, Input, Screen, Text, useToast } from '@/components/ui';
 import { useAuthStore } from '@/stores/authStore';
-import { OAuthProvider, signInWithProvider } from '@/services/auth';
+import {
+  OAuthProvider,
+  sendPasswordReset,
+  signInWithProvider,
+} from '@/services/auth';
 import { PublicStackParamList } from '@/navigation/types';
 
 type Props = NativeStackScreenProps<PublicStackParamList, 'Login'>;
@@ -17,23 +21,51 @@ type Props = NativeStackScreenProps<PublicStackParamList, 'Login'>;
 export function LoginScreen({ navigation }: Props) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [submitting, setSubmitting] = useState(false);
   const [oauthPending, setOauthPending] = useState<OAuthProvider | null>(null);
 
   const signIn = useAuthStore((s) => s.signIn);
-  const completeOnboarding = useAuthStore((s) => s.completeOnboarding);
+  const adoptSession = useAuthStore((s) => s.adoptSession);
   const toast = useToast();
 
-  const authenticate = () => {
-    completeOnboarding();
-    signIn();
+  const busy = submitting || oauthPending !== null;
+  const canSubmit = email.trim().length > 0 && password.length > 0 && !busy;
+
+  const authenticate = async () => {
+    if (!canSubmit) return;
+    setSubmitting(true);
+    const result = await signIn(email, password);
+    setSubmitting(false);
+    // On success the root navigator swaps to the app stack on its own — there
+    // is nothing to navigate to here.
+    if (!result.ok) toast.error(result.message);
   };
 
   const oauth = async (provider: OAuthProvider) => {
     setOauthPending(provider);
     const result = await signInWithProvider(provider);
+    if (!result.ok) {
+      setOauthPending(null);
+      toast.error(result.message);
+      return;
+    }
+    // The browser flow established a session; load the profile behind it.
+    const adopted = await adoptSession();
     setOauthPending(null);
-    if (result.ok) authenticate();
-    else toast.error(result.message);
+    if (!adopted.ok) toast.error(adopted.message);
+  };
+
+  const forgotPassword = async () => {
+    if (!email.trim()) {
+      toast.info('Enter your email address first, then tap “Forgot password?”.');
+      return;
+    }
+    const result = await sendPasswordReset(email);
+    if (result.ok) {
+      toast.success('Password reset link sent — check your inbox.');
+    } else {
+      toast.error(result.message);
+    }
   };
 
   return (
@@ -56,34 +88,40 @@ export function LoginScreen({ navigation }: Props) {
         placeholder="you@neighborhood.com"
         keyboardType="email-address"
         autoCapitalize="none"
+        autoComplete="email"
+        textContentType="emailAddress"
         value={email}
         onChangeText={setEmail}
+        editable={!busy}
         containerStyle={styles.input}
       />
       <Input
         label="Password"
         placeholder="Your password"
         secureTextEntry
+        autoComplete="current-password"
+        textContentType="password"
         value={password}
         onChangeText={setPassword}
+        editable={!busy}
+        onSubmitEditing={authenticate}
+        returnKeyType="go"
         containerStyle={styles.input}
       />
 
-      <Pressable
-        hitSlop={8}
-        style={styles.forgot}
-        onPress={() =>
-          toast.info(
-            'Demo mode: any email and password work. Password reset arrives with live accounts.'
-          )
-        }
-      >
+      <Pressable hitSlop={8} style={styles.forgot} onPress={forgotPassword}>
         <Text variant="labelMd" color="textLink">
           Forgot password?
         </Text>
       </Pressable>
 
-      <Button title="Log In" onPress={authenticate} style={styles.cta} />
+      <Button
+        title="Log In"
+        onPress={authenticate}
+        loading={submitting}
+        disabled={!canSubmit}
+        style={styles.cta}
+      />
 
       <View style={styles.dividerRow}>
         <View style={styles.line} />
@@ -99,7 +137,7 @@ export function LoginScreen({ navigation }: Props) {
         icon="logo-google"
         onPress={() => oauth('google')}
         loading={oauthPending === 'google'}
-        disabled={oauthPending !== null}
+        disabled={busy}
         style={styles.social}
       />
       <Button
@@ -108,13 +146,14 @@ export function LoginScreen({ navigation }: Props) {
         icon="logo-apple"
         onPress={() => oauth('apple')}
         loading={oauthPending === 'apple'}
-        disabled={oauthPending !== null}
+        disabled={busy}
       />
 
       <Pressable
         onPress={() => navigation.navigate('SignUp')}
         style={styles.signupRow}
         hitSlop={8}
+        disabled={busy}
       >
         <Text variant="bodyMd" color="textSecondary">
           New to Comly?{' '}

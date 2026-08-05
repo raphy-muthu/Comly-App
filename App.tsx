@@ -19,7 +19,7 @@ import { ErrorBoundary, ToastProvider } from '@/components/ui';
 import { RootNavigator } from '@/navigation/RootNavigator';
 
 export default function App() {
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     PlusJakartaSans_400Regular,
     PlusJakartaSans_500Medium,
     PlusJakartaSans_600SemiBold,
@@ -28,8 +28,11 @@ export default function App() {
   });
 
   // Keep the native splash up until fonts are ready; avoids a flash of the
-  // system font on first paint.
-  if (!fontsLoaded) {
+  // system font on first paint. If loading *fails* (offline first launch, CDN
+  // hiccup) we must still render — gating on `fontsLoaded` alone would leave
+  // the user staring at a permanently blank screen. System fonts are a fine
+  // fallback; a missing typeface is not worth a dead app.
+  if (!fontsLoaded && !fontError) {
     return null;
   }
 

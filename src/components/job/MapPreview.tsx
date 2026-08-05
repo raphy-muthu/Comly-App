@@ -27,7 +27,14 @@ export interface MapPreviewProps {
   neighborhood: string;
 }
 
+/** `#rrggbb` → `rgba(r,g,b,a)`; react-native-maps won't take an 8-digit hex. */
+function withAlpha(hex: string, alpha: number): string {
+  const n = parseInt(hex.replace('#', ''), 16);
+  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
+}
+
 function LiveMap({ lat, lng }: { lat: number; lng: number }) {
+  const role = useRoleTheme();
   return (
     <MapView
       style={styles.map}
@@ -47,8 +54,8 @@ function LiveMap({ lat, lng }: { lat: number; lng: number }) {
       <Circle
         center={{ latitude: lat, longitude: lng }}
         radius={420}
-        strokeColor="rgba(0,109,68,0.6)"
-        fillColor="rgba(0,109,68,0.15)"
+        strokeColor={withAlpha(role.accent, 0.6)}
+        fillColor={withAlpha(role.accent, 0.15)}
       />
     </MapView>
   );

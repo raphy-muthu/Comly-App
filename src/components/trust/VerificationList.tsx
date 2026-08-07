@@ -4,7 +4,7 @@
  * intentionally not part of Comly.
  */
 
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, radius, spacing } from '@/theme';
 import { Text } from '@/components/ui/Text';
@@ -18,6 +18,13 @@ export interface VerificationListProps {
   status: VerificationStatus;
   /** Hide rows that don't apply (e.g. parent approval for adults). */
   hide?: VerificationKey[];
+  /**
+   * Called when an unverified row's "Add" is tapped. Optional: without it,
+   * "Add" renders as plain non-interactive text rather than a dead-looking
+   * link — a caller with nowhere to send the tap should omit this prop
+   * entirely rather than wire it to a no-op.
+   */
+  onAddPress?: (key: VerificationKey) => void;
 }
 
 const ORDER: VerificationKey[] = [
@@ -28,7 +35,11 @@ const ORDER: VerificationKey[] = [
   'parentApproved',
 ];
 
-export function VerificationList({ status, hide = [] }: VerificationListProps) {
+export function VerificationList({
+  status,
+  hide = [],
+  onAddPress,
+}: VerificationListProps) {
   return (
     <View>
       {ORDER.filter((k) => !hide.includes(k)).map((key) => {
@@ -56,10 +67,12 @@ export function VerificationList({ status, hide = [] }: VerificationListProps) {
                 {meta.description}
               </Text>
             </View>
-            {!done && (
-              <Text variant="labelMd" color="textLink">
-                Add
-              </Text>
+            {!done && onAddPress && (
+              <Pressable onPress={() => onAddPress(key)} hitSlop={8}>
+                <Text variant="labelMd" color="textLink">
+                  Add
+                </Text>
+              </Pressable>
             )}
           </View>
         );

@@ -20,6 +20,8 @@ module.exports = {
     // need a native runtime, neither of which the node test env provides.
     '^expo-linking$': '<rootDir>/src/__tests__/stubs/expo-native.js',
     '^expo-web-browser$': '<rootDir>/src/__tests__/stubs/expo-native.js',
+    // supabaseClient.ts imports secureStorage.ts, which imports this.
+    '^expo-secure-store$': '<rootDir>/src/__tests__/stubs/expo-secure-store.js',
   },
   transform: {
     '^.+\\.[tj]sx?$': [

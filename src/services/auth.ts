@@ -103,6 +103,13 @@ export async function signUpWithEmail(params: SignUpParams): Promise<AuthResult>
     email: params.email.trim(),
     password: params.password,
     options: {
+      // Without this the confirmation email links to Supabase's default Site
+      // URL (http://localhost:3000 until configured otherwise) — dead end on
+      // a phone. This routes it back into the app's own scheme instead. Also
+      // requires "comly://auth-callback" to be allow-listed under Supabase
+      // dashboard → Auth → URL Configuration → Redirect URLs, or Supabase
+      // rejects the redirect and falls back to the default anyway.
+      emailRedirectTo: Linking.createURL('auth-callback'),
       // Consumed by the handle_new_user trigger to provision profiles,
       // profiles_private and verification_status in one transaction.
       data: {

@@ -31,37 +31,48 @@ export function PhoneVerifyScreen({ navigation }: Props) {
   const adoptSession = useAuthStore((s) => s.adoptSession);
   const toast = useToast();
 
+  // Both handlers reset their pending flag in `finally` — an unexpected
+  // rejection must not leave the button spinning with no way to retry.
   const sendCode = async () => {
     if (sending) return;
     setSending(true);
-    const result = await sendPhoneCode(phone);
-    setSending(false);
-
-    if (!result.ok) {
-      toast.error(result.message);
-      return;
+    try {
+      const result = await sendPhoneCode(phone);
+      if (!result.ok) {
+        toast.error(result.message);
+        return;
+      }
+      setStep('code');
+      setCode('');
+      setTimeout(() => codeRef.current?.focus(), 250);
+    } catch (err) {
+      console.warn('[Comly] Sending the code failed:', err);
+      toast.error('Could not send the code. Please try again.');
+    } finally {
+      setSending(false);
     }
-    setStep('code');
-    setCode('');
-    setTimeout(() => codeRef.current?.focus(), 250);
   };
 
   const verify = async () => {
     if (verifying) return;
     setVerifying(true);
-    const result = await verifyPhoneCode(phone, code);
+    try {
+      const result = await verifyPhoneCode(phone, code);
+      if (!result.ok) {
+        toast.error(result.message);
+        return;
+      }
 
-    if (!result.ok) {
+      // Verified: a session now exists, so load the profile behind it.
+      const adopted = await adoptSession();
+      if (!adopted.ok) toast.error(adopted.message);
+      // On success the root navigator swaps to the app stack.
+    } catch (err) {
+      console.warn('[Comly] Code verification failed:', err);
+      toast.error('Could not verify the code. Please try again.');
+    } finally {
       setVerifying(false);
-      toast.error(result.message);
-      return;
     }
-
-    // Verified: a session now exists, so load the profile behind it.
-    const adopted = await adoptSession();
-    setVerifying(false);
-    if (!adopted.ok) toast.error(adopted.message);
-    // On success the root navigator swaps to the app stack.
   };
 
   return (

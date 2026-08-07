@@ -18,6 +18,7 @@ import {
   Screen,
   SectionHeader,
   Text,
+  useToast,
 } from '@/components/ui';
 import {
   BadgeRow,
@@ -27,7 +28,7 @@ import {
   YouthSkillsCard,
 } from '@/components/trust';
 import { useAuthStore } from '@/stores/authStore';
-import { Role } from '@/types/domain';
+import { Role, VerificationKey } from '@/types/domain';
 import { AppStackParamList } from '@/navigation/types';
 
 type Nav = NativeStackNavigationProp<AppStackParamList>;
@@ -46,8 +47,22 @@ export function ProfileScreen() {
   const activeRole = useAuthStore((s) => s.activeRole);
   const setActiveRole = useAuthStore((s) => s.setActiveRole);
   const signOut = useAuthStore((s) => s.signOut);
+  const toast = useToast();
 
   if (!user) return null;
+
+  // phoneAdded/photoAdded/schoolEmailVerified are all fields the user can set
+  // themselves on Edit Profile. parentApproved is a guardian-completed
+  // attestation with no self-service screen — routing it to Edit Profile
+  // would just be a second, more misleading dead end, so it gets an honest
+  // explanation instead.
+  const handleVerificationAdd = (key: VerificationKey) => {
+    if (key === 'parentApproved') {
+      toast.info('Ask your parent or guardian to complete approval — this can’t be self-verified.');
+      return;
+    }
+    navigation.navigate('EditProfile');
+  };
 
   const hasBothRoles = user.roles.filter((r) => r !== 'admin').length > 1;
 
@@ -163,6 +178,7 @@ export function ProfileScreen() {
                 ? ['schoolEmailVerified', 'parentApproved']
                 : []
             }
+            onAddPress={handleVerificationAdd}
           />
         </Card>
       </View>

@@ -31,28 +31,41 @@ export function LoginScreen({ navigation }: Props) {
   const busy = submitting || oauthPending !== null;
   const canSubmit = email.trim().length > 0 && password.length > 0 && !busy;
 
+  // Every handler below resets its pending flag in `finally`. Without it an
+  // unexpected rejection leaves the button spinning forever with no way back.
   const authenticate = async () => {
     if (!canSubmit) return;
     setSubmitting(true);
-    const result = await signIn(email, password);
-    setSubmitting(false);
-    // On success the root navigator swaps to the app stack on its own — there
-    // is nothing to navigate to here.
-    if (!result.ok) toast.error(result.message);
+    try {
+      const result = await signIn(email, password);
+      // On success the root navigator swaps to the app stack on its own —
+      // there is nothing to navigate to here.
+      if (!result.ok) toast.error(result.message);
+    } catch (err) {
+      console.warn('[Comly] Sign-in failed:', err);
+      toast.error('Something went wrong signing in. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const oauth = async (provider: OAuthProvider) => {
     setOauthPending(provider);
-    const result = await signInWithProvider(provider);
-    if (!result.ok) {
+    try {
+      const result = await signInWithProvider(provider);
+      if (!result.ok) {
+        toast.error(result.message);
+        return;
+      }
+      // The browser flow established a session; load the profile behind it.
+      const adopted = await adoptSession();
+      if (!adopted.ok) toast.error(adopted.message);
+    } catch (err) {
+      console.warn('[Comly] OAuth sign-in failed:', err);
+      toast.error('Something went wrong signing in. Please try again.');
+    } finally {
       setOauthPending(null);
-      toast.error(result.message);
-      return;
     }
-    // The browser flow established a session; load the profile behind it.
-    const adopted = await adoptSession();
-    setOauthPending(null);
-    if (!adopted.ok) toast.error(adopted.message);
   };
 
   const forgotPassword = async () => {
@@ -60,11 +73,16 @@ export function LoginScreen({ navigation }: Props) {
       toast.info('Enter your email address first, then tap “Forgot password?”.');
       return;
     }
-    const result = await sendPasswordReset(email);
-    if (result.ok) {
-      toast.success('Password reset link sent — check your inbox.');
-    } else {
-      toast.error(result.message);
+    try {
+      const result = await sendPasswordReset(email);
+      if (result.ok) {
+        toast.success('Password reset link sent — check your inbox.');
+      } else {
+        toast.error(result.message);
+      }
+    } catch (err) {
+      console.warn('[Comly] Password reset failed:', err);
+      toast.error('Could not send the reset link. Please try again.');
     }
   };
 
@@ -72,7 +90,14 @@ export function LoginScreen({ navigation }: Props) {
     <Screen scroll>
       <IconButton
         icon="arrow-back"
-        onPress={() => navigation.goBack()}
+        // After any sign-out, PublicStack remounts with Login as its root
+        // screen (hasOnboarded stays true, so Splash/Welcome are skipped) —
+        // there is nothing to pop to. Falling back to Welcome keeps the
+        // button meaning "leave this screen" instead of silently doing
+        // nothing.
+        onPress={() =>
+          navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Welcome')
+        }
         style={styles.back}
       />
 

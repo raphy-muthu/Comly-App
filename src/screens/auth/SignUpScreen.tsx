@@ -79,39 +79,52 @@ export function SignUpScreen({ navigation }: Props) {
       return;
     }
 
+    // Pending flags reset in `finally` — an unexpected rejection must not leave
+    // the button spinning with no way to retry.
     setSubmitting(true);
-    const result = await signUp({
-      email,
-      password,
-      name,
-      neighborhood,
-      role,
-      ageGroup: ageGroup as AgeGroup,
-    });
-    setSubmitting(false);
+    try {
+      const result = await signUp({
+        email,
+        password,
+        name,
+        neighborhood,
+        role,
+        ageGroup: ageGroup as AgeGroup,
+      });
 
-    if (!result.ok) {
-      toast.error(result.message);
-      return;
+      if (!result.ok) {
+        toast.error(result.message);
+        return;
+      }
+      if (result.needsEmailConfirmation) {
+        toast.success('Account created — check your email to confirm, then log in.');
+        navigation.navigate('Login');
+      }
+      // Otherwise the session is live and the root navigator swaps stacks.
+    } catch (err) {
+      console.warn('[Comly] Sign-up failed:', err);
+      toast.error('Something went wrong creating your account. Please try again.');
+    } finally {
+      setSubmitting(false);
     }
-    if (result.needsEmailConfirmation) {
-      toast.success('Account created — check your email to confirm, then log in.');
-      navigation.navigate('Login');
-    }
-    // Otherwise the session is live and the root navigator swaps stacks.
   };
 
   const oauth = async (provider: OAuthProvider) => {
     setOauthPending(provider);
-    const result = await signInWithProvider(provider);
-    if (!result.ok) {
+    try {
+      const result = await signInWithProvider(provider);
+      if (!result.ok) {
+        toast.error(result.message);
+        return;
+      }
+      const adopted = await adoptSession();
+      if (!adopted.ok) toast.error(adopted.message);
+    } catch (err) {
+      console.warn('[Comly] OAuth sign-in failed:', err);
+      toast.error('Something went wrong signing in. Please try again.');
+    } finally {
       setOauthPending(null);
-      toast.error(result.message);
-      return;
     }
-    const adopted = await adoptSession();
-    setOauthPending(null);
-    if (!adopted.ok) toast.error(adopted.message);
   };
 
   return (

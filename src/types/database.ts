@@ -145,12 +145,9 @@ export interface Database {
       notifications: TableShape<NotificationRow>;
       verification_status: TableShape<VerificationRow>;
     };
-    Views: {
-      job_with_applicant_count: {
-        Row: JobRow & { applicants_count: number };
-        Relationships: [];
-      };
-    };
+    // job_with_applicant_count removed (migration 0009): unused, and it
+    // exposed jobs.lat/lng (exact coordinates) via a view that bypassed RLS.
+    Views: Record<string, never>;
     Functions: Record<string, never>;
     Enums: {
       user_role: UserRoleEnum;

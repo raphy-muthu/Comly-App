@@ -64,17 +64,71 @@ async function mockProfile(): Promise<UserProfile> {
 }
 
 /**
- * Loads the authenticated user's profile row.
- *
- * Signup inserts the profile via a database trigger in the same transaction as
- * the auth user, but replication to the API can lag by a few hundred ms on a
- * cold project — so a single miss is retried rather than reported as failure.
+ * Outcome of a profile fetch. "missing" and "error" must stay distinguishable:
+ * a genuinely absent profile row means the account is broken and the user gets
+ * signed out, whereas a transient fetch failure must never do that.
  */
-async function loadProfile(userId: string): Promise<UserProfile | null> {
-  const profile = await backend.getProfile(userId);
-  if (profile) return profile;
-  await new Promise((r) => setTimeout(r, 600));
-  return backend.getProfile(userId);
+type ProfileLoad =
+  | { status: 'ok'; profile: UserProfile }
+  | { status: 'missing' }
+  | { status: 'error'; error: unknown };
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * Loads the authenticated user's profile row, tolerating two distinct
+ * first-moment failures:
+ *
+ *  • Signup inserts the profile via a database trigger in the same transaction
+ *    as the auth user, but replication to the API can lag a few hundred ms on a
+ *    cold project — so an empty result is retried before being called missing.
+ *
+ *  • A token used in the instant after it is minted can be rejected outright
+ *    with PostgREST's "JWT issued at future" (PGRST303). Supabase Auth mints
+ *    the token and PostgREST validates it; they are separate services, and
+ *    sub-second clock drift between them is enough. It clears on its own within
+ *    a second, so a throw is retried rather than surfaced.
+ *
+ * Never throws — callers get a status instead, so no path can produce an
+ * unhandled rejection.
+ */
+async function loadProfile(userId: string): Promise<ProfileLoad> {
+  const ATTEMPTS = 3;
+  let lastError: unknown = null;
+
+  for (let attempt = 0; attempt < ATTEMPTS; attempt++) {
+    if (attempt > 0) await sleep(400 * attempt);
+    try {
+      const profile = await backend.getProfile(userId);
+      if (profile) return { status: 'ok', profile };
+      // Empty result — fall through and retry in case the trigger hasn't
+      // replicated yet.
+      lastError = null;
+    } catch (err) {
+      lastError = err;
+    }
+  }
+
+  return lastError ? { status: 'error', error: lastError } : { status: 'missing' };
+}
+
+/**
+ * Deduplicates concurrent loads for the same user.
+ *
+ * Sign-in drives two paths at once: the explicit adoptSession() call, and the
+ * SIGNED_IN event that Supabase emits into onAuthChange. Both want the profile.
+ * Letting them each issue their own request doubles the exposure to the
+ * first-moment failures above for no benefit.
+ */
+let inFlight: { userId: string; promise: Promise<ProfileLoad> } | null = null;
+
+function loadProfileOnce(userId: string): Promise<ProfileLoad> {
+  if (inFlight?.userId === userId) return inFlight.promise;
+  const promise = loadProfile(userId).finally(() => {
+    if (inFlight?.userId === userId) inFlight = null;
+  });
+  inFlight = { userId, promise };
+  return promise;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -93,14 +147,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const userId = await getCurrentUserId();
       if (userId) {
-        const profile = await loadProfile(userId);
-        if (profile) {
+        const result = await loadProfileOnce(userId);
+        if (result.status === 'ok') {
           set({
-            user: profile,
+            user: result.profile,
             isAuthenticated: true,
             hasOnboarded: true,
-            activeRole: startingRole(profile.roles),
+            activeRole: startingRole(result.profile.roles),
           });
+        } else if (result.status === 'error') {
+          console.warn('[Comly] Could not load profile on restore:', result.error);
         }
       }
     } catch (err) {
@@ -112,20 +168,33 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
 
     // Keep local state in step with the server for the life of the app.
+    //
+    // This callback is fire-and-forget — Supabase does not await it and nothing
+    // upstream can catch it, so it must swallow its own failures. An escaping
+    // rejection here surfaces as a full-screen red error over a working app.
     onAuthChange(async (userId) => {
-      if (!userId) {
-        set({ user: null, isAuthenticated: false, activeRole: 'customer' });
-        return;
-      }
-      if (get().isAuthenticated) return; // already in sync
-      const profile = await loadProfile(userId);
-      if (profile) {
-        set({
-          user: profile,
-          isAuthenticated: true,
-          hasOnboarded: true,
-          activeRole: startingRole(profile.roles),
-        });
+      try {
+        if (!userId) {
+          set({ user: null, isAuthenticated: false, activeRole: 'customer' });
+          return;
+        }
+        if (get().isAuthenticated) return; // already in sync
+
+        // Shares the in-flight request with adoptSession() when both fire for
+        // the same sign-in.
+        const result = await loadProfileOnce(userId);
+        // adoptSession() may have finished while this was awaiting; re-check
+        // rather than clobbering state it already set.
+        if (result.status === 'ok' && !get().isAuthenticated) {
+          set({
+            user: result.profile,
+            isAuthenticated: true,
+            hasOnboarded: true,
+            activeRole: startingRole(result.profile.roles),
+          });
+        }
+      } catch (err) {
+        console.warn('[Comly] Auth state sync failed:', err);
       }
     });
   },
@@ -170,8 +239,20 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       return { ok: false, message: 'Sign-in did not complete. Please try again.' };
     }
 
-    const profile = await loadProfile(userId);
-    if (!profile) {
+    const result = await loadProfileOnce(userId);
+
+    if (result.status === 'error') {
+      // The session is valid; we just couldn't read the profile. Keep the user
+      // signed in at the server and let them retry — signing them out here
+      // would turn a dropped connection into "your account is broken".
+      console.warn('[Comly] Could not load profile after sign-in:', result.error);
+      return {
+        ok: false,
+        message: 'Signed in, but your profile could not be loaded. Please try again.',
+      };
+    }
+
+    if (result.status === 'missing') {
       // Authenticated but no profile row — the account exists in a broken
       // state. Signing back out is safer than an app running on a null user.
       await signOutEverywhere();
@@ -182,10 +263,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
 
     set({
-      user: profile,
+      user: result.profile,
       isAuthenticated: true,
       hasOnboarded: true,
-      activeRole: startingRole(profile.roles),
+      activeRole: startingRole(result.profile.roles),
     });
     return { ok: true };
   },

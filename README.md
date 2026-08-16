@@ -2,7 +2,7 @@
 
 A neighborhood services marketplace that connects residents who need help with trusted local helpers (primarily teens and young adults). Comly is a **matchmaking platform** — customers post jobs, helpers apply, and the two connect. **Payment is arranged off-platform**, so there is no in-app payment, escrow, or subscription.
 
-Built with React Native + Expo, TypeScript, React Navigation, React Query, Zustand, and Supabase. AI features (job assistant, safety review, recommendations) run as Supabase Edge Functions backed by OpenAI.
+Built with React Native + Expo, TypeScript, React Navigation, React Query, Zustand, and Supabase. AI features (job assistant, safety review) run as Supabase Edge Functions backed by Gemini; recommendations use a deterministic scoring function, no model call.
 
 ---
 
@@ -30,7 +30,7 @@ Mock mode is controlled by `EXPO_PUBLIC_USE_MOCKS=true` in `.env` (already set).
 - **Safety & Support** — in-app reporting with AI risk triage, Safety Center (tips, report history, block list), Help & Support tickets, and a minimal admin console (reports + tickets moderation).
 - **Community Impact** — a public impact dashboard (jobs completed, seniors/families helped, teen-safe tasks, trust score — deliberately non-monetary) plus an About page with the community mission.
 - **Listing integrity** — 3 active-listing limit, 5-per-hour rate limit, soft deletes, database as the single source of truth.
-- **AI** — fair-pay suggestions with low-pay warnings, description polishing, safety review, resume summaries (mock locally; OpenAI via edge functions in production).
+- **AI** — fair-pay suggestions with low-pay warnings, description polishing, safety review, resume summaries (mock locally; Gemini via edge functions in production).
 
 > Messaging and in-app payments are intentionally out of scope: Comly is a matchmaking platform, and neighbors coordinate pay off-app (contact unlocks after acceptance). The database includes `conversations`/`messages` tables for a future chat feature, but no chat UI is built.
 
@@ -45,7 +45,7 @@ Mock mode is controlled by `EXPO_PUBLIC_USE_MOCKS=true` in `.env` (already set).
 | Server state | TanStack React Query |
 | Client state | Zustand |
 | Backend | Supabase (Auth, Postgres, Storage, Realtime, Edge Functions) |
-| AI | OpenAI (via Edge Functions) |
+| AI | Gemini (via Edge Functions) |
 | Maps | Google Maps (location preview) |
 | Notifications | Expo Push Notifications |
 | Fonts | Plus Jakarta Sans |
@@ -94,7 +94,7 @@ comly/
 
 - **Backend abstraction.** Screens never call Supabase directly. They use React Query hooks → `services/index.ts`, which resolves to either `mockBackend` or `supabaseBackend` based on config. Both implement the same `DataBackend` interface (`services/types.ts`), so the UI is identical in either mode.
 - **Mock toggle.** `EXPO_PUBLIC_USE_MOCKS` (with `expo.extra.useMocks` as fallback) decides the backend. If real mode is requested but credentials are missing, the app logs a warning and safely falls back to mock data.
-- **Server secrets stay server-side.** The OpenAI key and Supabase service-role key live only as Supabase Edge Function secrets — never in the client bundle.
+- **Server secrets stay server-side.** The Gemini key and Supabase service-role key live only as Supabase Edge Function secrets — never in the client bundle.
 
 ---
 
@@ -103,7 +103,7 @@ comly/
 See [DEPLOYMENT.md](./DEPLOYMENT.md) for full steps. In short:
 
 1. **Supabase** — create a project, run the SQL in `supabase/migrations/`, then set `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` in `.env`.
-2. **OpenAI** — `supabase secrets set OPENAI_API_KEY=sk-...` and deploy the edge functions.
+2. **Gemini** — `supabase secrets set GEMINI_API_KEY=...` and deploy the edge functions.
 3. **Google Maps** — set `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY`.
 4. Set `EXPO_PUBLIC_USE_MOCKS=false` and restart.
 5. Regenerate DB types: `npx supabase gen types typescript --linked > src/types/database.ts`.
@@ -125,7 +125,7 @@ npx expo export --platform ios   # produce a production JS bundle (CI check)
 ## What you'll need before going to production
 
 - A Supabase project (free tier is fine to start)
-- An OpenAI API key (for AI features)
+- A Gemini API key (for AI features)
 - A Google Maps API key (for the location preview)
 - An Expo account (for EAS builds & push)
 - Apple Developer + Google Play accounts (for store submission)

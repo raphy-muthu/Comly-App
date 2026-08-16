@@ -11,10 +11,17 @@
 // "adults_only", which exists in neither.
 
 import { corsHeaders, json } from '../_shared/cors.ts';
-import { chat } from '../_shared/openai.ts';
+import { chat } from '../_shared/gemini.ts';
+import { isAuthenticatedUser } from '../_shared/auth.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+
+  // Billed Gemini call — signed-in users only. The public anon key alone is
+  // not sufficient; see _shared/auth.ts.
+  if (!isAuthenticatedUser(req)) {
+    return json({ error: 'Sign in required' }, 401);
+  }
 
   try {
     const { title, description } = await req.json();

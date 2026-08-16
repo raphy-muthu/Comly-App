@@ -52,7 +52,10 @@ export function ApplyToJobScreen() {
   useEffect(() => {
     if (!job) return;
     let active = true;
-    ai.suggestPay(job.category, job.title)
+    // Matches how the job is actually being paid, not always 'fixed' — this
+    // screen shows a helper's proposed-offer suggestion, so it needs the same
+    // fixed-vs-hourly distinction the posting side does.
+    ai.suggestPay(job.category, job.title, job.payType)
       .then((s) => {
         if (active) setSuggestion(s);
       })

@@ -8,7 +8,7 @@
  *    large task presets, optional family contact, and plain language.
  */
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -119,12 +119,16 @@ function StandardFlow() {
   const stepIndex = STEPS.indexOf(step);
   const canContinue = title.trim().length > 2 && location.trim().length > 0;
 
+  // Guards the payType-refetch effect below from also firing on the very
+  // first entry into this step, which the combined fetch already covers.
+  const hasFetchedAiRef = useRef(false);
+
   useEffect(() => {
     if (step !== 'ai') return;
     let active = true;
     setAiLoading(true);
     Promise.all([
-      ai.suggestPay(category, title),
+      ai.suggestPay(category, title, payType),
       ai.safetyReview(title, description),
     ])
       .then(([p, s]) => {
@@ -132,6 +136,7 @@ function StandardFlow() {
         setPaySuggestion(p);
         setSafety(s);
         if (!pay) setPay(String(p.recommended));
+        hasFetchedAiRef.current = true;
       })
       .catch(() => {
         // Without this the Continue button stays disabled forever on a failed
@@ -147,6 +152,24 @@ function StandardFlow() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step]);
+
+  // The Fixed/Per-hour toggle lives on this same step, after the suggestion
+  // above has already been fetched — so without this, switching it left the
+  // displayed range (and its "$X-Y" rationale text) stuck on whichever type
+  // was selected at the moment the step was first entered. Refetches just the
+  // pay suggestion, not the safety review, since payType has no bearing on
+  // whether a task is safe.
+  useEffect(() => {
+    if (step !== 'ai' || !hasFetchedAiRef.current) return;
+    let active = true;
+    ai.suggestPay(category, title, payType).then((p) => {
+      if (active) setPaySuggestion(p);
+    });
+    return () => {
+      active = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [payType]);
 
   const improveDescription = async () => {
     setImproving(true);
@@ -299,8 +322,17 @@ function StandardFlow() {
 
             <Card style={styles.field} padded>
               <FieldLabel>SCHEDULE</FieldLabel>
+              {/* Stacked, not side-by-side: iOS's native spinner picker renders
+                  at its own intrinsic width regardless of the parent's flex
+                  constraint, so two half-width columns caused the open picker
+                  to overlap its sibling and run off the right edge of the
+                  screen. Full-width stacking (matching Senior Mode's
+                  single-column usage, which never had this bug) gives each
+                  picker the room it actually needs. */}
               <View style={styles.scheduleRow}>
                 <DateTimeField label="Date" mode="date" value={date} onChange={setDate} />
+              </View>
+              <View style={styles.scheduleRow}>
                 <DateTimeField label="Time" mode="time" value={time} onChange={setTime} />
               </View>
               <Pressable style={styles.flexToggle} onPress={() => setFlexible((f) => !f)}>
@@ -608,7 +640,9 @@ function SeniorFlow() {
   useEffect(() => {
     if (!preset) return;
     let active = true;
-    ai.suggestPay(preset.category, preset.label)
+    // Senior Help Mode always posts a fixed price (createJob below hardcodes
+    // payType: 'fixed'), so that's what's asked for here too.
+    ai.suggestPay(preset.category, preset.label, 'fixed')
       .then((p) => {
         if (active && !pay) setPay(String(p.recommended));
       })

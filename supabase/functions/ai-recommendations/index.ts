@@ -7,6 +7,12 @@
 // → { ranked: { id: string, score: number, reason: string }[] }
 
 import { corsHeaders, json } from '../_shared/cors.ts';
+import { isAuthenticatedUser } from '../_shared/auth.ts';
+
+// Ranking is O(n) over a caller-supplied array. No model is involved, so there
+// is no per-call bill, but an unbounded array is still free CPU/memory on our
+// account. A real feed page is tens of items.
+const MAX_CANDIDATES = 200;
 
 interface Candidate {
   id: string;
@@ -19,8 +25,18 @@ interface Candidate {
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
+  if (!isAuthenticatedUser(req)) {
+    return json({ error: 'Sign in required' }, 401);
+  }
+
   try {
     const { candidates, subject } = await req.json();
+    if (!Array.isArray(candidates)) {
+      return json({ error: 'candidates must be an array' }, 400);
+    }
+    if (candidates.length > MAX_CANDIDATES) {
+      return json({ error: `candidates exceeds ${MAX_CANDIDATES}` }, 413);
+    }
     const preferred: string[] = subject?.preferredCategories ?? [];
 
     const ranked = (candidates as Candidate[])

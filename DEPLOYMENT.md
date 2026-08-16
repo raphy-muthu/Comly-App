@@ -12,7 +12,7 @@ This guide takes Comly from **mock mode** (runs with zero config) to a **product
 - Expo account → `npx expo login`
 - EAS CLI → `npm i -g eas-cli` (or use `npx eas-cli`)
 - Apple Developer account (iOS) and/or Google Play Console account (Android)
-- A Supabase project, OpenAI API key, and Google Maps API key
+- A Supabase project, Gemini API key, and Google Maps API key
 
 ---
 
@@ -51,11 +51,11 @@ npx supabase gen types typescript --linked > src/types/database.ts
 
 ## 2. Edge Functions (AI + push)
 
-The OpenAI key lives **only** as a function secret — never in the client.
+The Gemini key lives **only** as a function secret — never in the client.
 
 ```bash
 # Secrets
-npx supabase secrets set OPENAI_API_KEY=sk-...
+npx supabase secrets set GEMINI_API_KEY=...
 
 # Deploy
 npx supabase functions deploy ai-job-assistant
@@ -162,7 +162,7 @@ Have ready: app screenshots, privacy policy URL, store descriptions, and (for iO
 - [ ] Bundle id changed from `com.comly.app`
 - [ ] Supabase migrations applied + RLS verified
 - [ ] `database.ts` regenerated from the live schema
-- [ ] Edge functions deployed + `OPENAI_API_KEY` secret set
+- [ ] Edge functions deployed + `GEMINI_API_KEY` secret set
 - [ ] `.env` / EAS secrets set with `EXPO_PUBLIC_USE_MOCKS=false`
 - [ ] Real app icon + splash assets
 - [ ] Push credentials configured (APNs / FCM)

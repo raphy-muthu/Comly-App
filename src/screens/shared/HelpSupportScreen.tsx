@@ -6,6 +6,8 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { colors, spacing } from '@/theme';
 import {
@@ -13,6 +15,7 @@ import {
   Card,
   Chip,
   Divider,
+  IconButton,
   Input,
   Screen,
   SectionHeader,
@@ -26,6 +29,9 @@ import {
   SupportStatus,
 } from '@/types/domain';
 import { timeAgo } from '@/lib/format';
+import { AppStackParamList } from '@/navigation/types';
+
+type Nav = NativeStackNavigationProp<AppStackParamList>;
 
 const FAQS: { q: string; a: string }[] = [
   {
@@ -59,6 +65,7 @@ const STATUS_TONE: Record<SupportStatus, 'info' | 'warning' | 'success'> = {
 const CATEGORY_KEYS = Object.keys(SUPPORT_CATEGORIES) as SupportCategory[];
 
 export function HelpSupportScreen() {
+  const navigation = useNavigation<Nav>();
   const createTicket = useCreateSupportTicket();
   const { data: myTickets } = useMySupportTickets();
   const toast = useToast();
@@ -85,6 +92,14 @@ export function HelpSupportScreen() {
 
   return (
     <Screen scroll>
+      {/* This screen was pushed onto a stack with real history behind it —
+          it simply never had a header, so there was nothing to tap to leave
+          it (mirrors the LoginScreen back-button gap fixed earlier: the fix
+          there was routing a dead button; here there was no button at all). */}
+      <View style={styles.header}>
+        <IconButton icon="arrow-back" onPress={() => navigation.goBack()} />
+        <View style={styles.headerSpacer} />
+      </View>
       <SectionHeader title="Help & Support" />
 
       {/* FAQ */}
@@ -190,6 +205,13 @@ export function HelpSupportScreen() {
 }
 
 const styles = StyleSheet.create({
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.base,
+  },
+  headerSpacer: { width: 40 },
   faqCard: { marginBottom: spacing.base },
   faqRow: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
   faqHeader: {

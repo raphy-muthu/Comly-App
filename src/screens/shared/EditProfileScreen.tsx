@@ -1,11 +1,12 @@
 /**
  * Edit Profile — persists changes through the backend (mock or Supabase) and
- * syncs the auth store. Profile photo uses expo-image-picker; the local URI is
- * stored directly in mock mode (production would upload to Supabase Storage).
+ * syncs the auth store. Profile photo uses expo-image-picker; in real mode the
+ * picked image is uploaded to the Supabase Storage `avatars` bucket (see
+ * migration 0012) and the public URL is stored, not the local device path.
  */
 
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useNavigation } from '@react-navigation/native';
@@ -25,6 +26,8 @@ import {
 } from '@/components/ui';
 import { useUpdateProfile } from '@/hooks';
 import { useAuthStore } from '@/stores/authStore';
+import { hasSupabaseConfig } from '@/config/env';
+import { getSupabase } from '@/services/supabaseClient';
 import { JobCategory, JOB_CATEGORIES } from '@/types/domain';
 import { AppStackParamList } from '@/navigation/types';
 
@@ -41,6 +44,7 @@ export function EditProfileScreen() {
 
   const [name, setName] = useState(user?.name ?? '');
   const [avatarUrl, setAvatarUrl] = useState<string | null>(user?.avatarUrl ?? null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [phone, setPhone] = useState(user?.phoneNumber ?? '');
   const [neighborhood, setNeighborhood] = useState(user?.neighborhood ?? '');
   const [bio, setBio] = useState(user?.bio ?? '');
@@ -67,16 +71,46 @@ export function EditProfileScreen() {
         aspect: [1, 1],
         quality: 0.7,
       });
-      if (!result.canceled && result.assets[0]) {
-        // NOTE: this is a local file:// URI, valid only on this device. It
-        // renders correctly for the owner but is meaningless to anyone else,
-        // so avatars will appear broken to other users until this is uploaded
-        // to Supabase Storage and the public URL stored instead. See the audit
-        // notes — this needs a storage bucket before real accounts exist.
-        setAvatarUrl(result.assets[0].uri);
+      if (result.canceled || !result.assets[0]) return;
+      const asset = result.assets[0];
+
+      // Mock mode has no Storage to upload to — the local URI is fine for
+      // pure UI testing, same as before.
+      if (!hasSupabaseConfig) {
+        setAvatarUrl(asset.uri);
+        return;
       }
-    } catch {
-      toast.error('Could not open the photo library.');
+
+      setUploadingPhoto(true);
+      try {
+        const mimeType = asset.mimeType ?? 'image/jpeg';
+        const ext = mimeType.split('/')[1] ?? 'jpg';
+        // One fixed filename per user (not one per upload) so re-uploading a
+        // photo overwrites the old object instead of accumulating orphaned
+        // files nothing ever deletes.
+        const path = `${user.id}/avatar.${ext}`;
+
+        // React Native's fetch() resolves file:// URIs and its Response
+        // implements arrayBuffer(), so this needs no extra file-system
+        // dependency to get the picked image's bytes.
+        const bytes = await fetch(asset.uri).then((r) => r.arrayBuffer());
+
+        const { error: uploadError } = await getSupabase()
+          .storage.from('avatars')
+          .upload(path, bytes, { contentType: mimeType, upsert: true });
+        if (uploadError) throw uploadError;
+
+        const { data } = getSupabase().storage.from('avatars').getPublicUrl(path);
+        // Cache-bust: the path is stable per user, so without this a second
+        // upload keeps the same URL and RN's image cache keeps showing the
+        // old photo.
+        setAvatarUrl(`${data.publicUrl}?t=${Date.now()}`);
+      } finally {
+        setUploadingPhoto(false);
+      }
+    } catch (err) {
+      console.warn('[Comly] Avatar upload failed:', err);
+      toast.error('Could not upload that photo. Please try again.');
     }
   };
 
@@ -129,13 +163,25 @@ export function EditProfileScreen() {
         keyboardShouldPersistTaps="handled"
       >
         {/* Photo */}
-        <Pressable style={styles.photoWrap} onPress={pickPhoto}>
+        <Pressable
+          style={styles.photoWrap}
+          onPress={pickPhoto}
+          disabled={uploadingPhoto}
+        >
           <Avatar uri={avatarUrl} name={name} size={96} />
           <View style={[styles.photoBadge, { backgroundColor: role.accent }]}>
-            <Ionicons name="camera" size={14} color={role.onAccent} />
+            {uploadingPhoto ? (
+              <ActivityIndicator size="small" color={role.onAccent} />
+            ) : (
+              <Ionicons name="camera" size={14} color={role.onAccent} />
+            )}
           </View>
           <Text variant="labelMd" color="textLink" style={styles.photoLabel}>
-            {avatarUrl ? 'Change photo' : 'Add a profile photo'}
+            {uploadingPhoto
+              ? 'Uploading…'
+              : avatarUrl
+                ? 'Change photo'
+                : 'Add a profile photo'}
           </Text>
           <Text variant="caption" color="outline" center>
             A real photo helps neighbors know who they're meeting.

@@ -39,12 +39,22 @@ describe('safetyReview tiers', () => {
 });
 
 describe('suggestPay', () => {
-  it('returns the category band with a midpoint recommendation', async () => {
-    const s = await ai.suggestPay('snow_removal', 'Shovel driveway');
+  it('returns the fixed-fee band with a midpoint recommendation', async () => {
+    const s = await ai.suggestPay('snow_removal', 'Shovel driveway', 'fixed');
     expect(s.min).toBe(35);
     expect(s.max).toBe(45);
     expect(s.recommended).toBe(40);
     expect(s.rationale.length).toBeGreaterThan(0);
+  });
+
+  it('returns a materially different, lower range for hourly than fixed', async () => {
+    // This is the actual bug report: the two payTypes used to return the
+    // identical range, so an hourly job showed a whole-job flat-fee number.
+    const fixed = await ai.suggestPay('lawn_care', 'Mow the lawn', 'fixed');
+    const hourly = await ai.suggestPay('lawn_care', 'Mow the lawn', 'hourly');
+    expect(hourly.min).not.toBe(fixed.min);
+    expect(hourly.max).not.toBe(fixed.max);
+    expect(hourly.rationale).not.toBe(fixed.rationale);
   });
 });
 

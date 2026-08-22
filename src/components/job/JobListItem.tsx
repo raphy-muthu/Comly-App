@@ -21,6 +21,7 @@ const STATUS_TONE: Record<JobStatus, ChipTone> = {
   reviewing: 'success',
   accepted: 'success',
   in_progress: 'info',
+  pending_confirmation: 'warning',
   completed: 'success',
   paused: 'neutral',
   filled: 'neutral',

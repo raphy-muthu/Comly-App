@@ -5,7 +5,7 @@
  */
 
 import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -48,6 +48,7 @@ export function ApplyToJobScreen() {
   const [availability, setAvailability] = useState('');
   const [offer, setOffer] = useState('');
   const [suggestion, setSuggestion] = useState<PaySuggestion | null>(null);
+  const [drafting, setDrafting] = useState(false);
 
   useEffect(() => {
     if (!job) return;
@@ -79,6 +80,34 @@ export function ApplyToJobScreen() {
       </SafeAreaView>
     );
   }
+
+  /**
+   * Fills the message field with a draft the helper then edits. Deliberately
+   * not auto-submitted and not auto-run on mount — same "suggestion you accept"
+   * pattern as the pay chip above it.
+   */
+  const draftMessage = async () => {
+    if (!job || !user) return;
+    setDrafting(true);
+    try {
+      const text = await ai.suggestApplicationMessage({
+        jobTitle: job.title,
+        category: job.category,
+        jobDescription: job.description,
+        neighborhood: user.neighborhood || job.neighborhood,
+        helperName: user.name,
+        helperSkills: user.skills,
+        helperJobsCount: user.jobsCount,
+        equipmentProvided:
+          job.equipmentStatus === 'yes' || job.equipmentStatus === 'some',
+      });
+      setMessage(text);
+    } catch {
+      toast.error('Could not draft a message. Type your own and try again later.');
+    } finally {
+      setDrafting(false);
+    }
+  };
 
   const submit = () => {
     apply.mutate(
@@ -175,14 +204,36 @@ export function ApplyToJobScreen() {
           </Card>
         )}
 
+        <View style={styles.messageHeader}>
+          <Text variant="labelMd" color="textSecondary">
+            SHORT MESSAGE TO CUSTOMER
+          </Text>
+          <Pressable
+            style={styles.draftBtn}
+            onPress={draftMessage}
+            disabled={drafting}
+            hitSlop={6}
+            accessibilityRole="button"
+            accessibilityLabel="Draft a message with AI"
+          >
+            {drafting ? (
+              <ActivityIndicator size="small" color={role.accent} />
+            ) : (
+              <Ionicons name="sparkles" size={14} color={role.accent} />
+            )}
+            <Text variant="labelMd" style={{ marginLeft: 4, color: role.accent }}>
+              {drafting ? 'Writing…' : message ? 'Rewrite' : 'Draft for me'}
+            </Text>
+          </Pressable>
+        </View>
         <Input
-          label="Short message to customer"
           placeholder="Hi! I live nearby and can bring my own shovel and salt…"
           value={message}
           onChangeText={setMessage}
           multiline
           numberOfLines={4}
           style={styles.multiline}
+          hint="AI drafts are a starting point — edit it so it sounds like you."
           containerStyle={styles.field}
         />
 
@@ -276,6 +327,13 @@ const styles = StyleSheet.create({
   aiHeader: { flexDirection: 'row', gap: spacing.base },
   aiText: { flex: 1 },
   suggestChip: { marginTop: spacing.sm },
+  messageHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.base,
+  },
+  draftBtn: { flexDirection: 'row', alignItems: 'center' },
   field: { marginBottom: spacing.md },
   multiline: { minHeight: 96, textAlignVertical: 'top', paddingTop: 12 },
   footer: {

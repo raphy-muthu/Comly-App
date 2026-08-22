@@ -29,7 +29,7 @@ import {
 } from '@/components/trust';
 import { useProfile, useUserReviews } from '@/hooks';
 import { useAuthStore } from '@/stores/authStore';
-import { Review, ReviewCategory } from '@/types/domain';
+import { NO_SHOW_POLICY, Review, ReviewCategory } from '@/types/domain';
 import { timeAgo } from '@/lib/format';
 import { AppStackParamList } from '@/navigation/types';
 
@@ -103,6 +103,21 @@ export function HelperProfileScreen() {
                 <Text variant="caption" color="textSecondary" style={styles.previewText}>
                   This is your public profile — exactly what neighbors see.
                   Private details (phone, family contacts) are never shown here.
+                </Text>
+              </View>
+            </Card>
+          )}
+
+          {/* Reliability caution. Only at the warning threshold — surfacing a
+              single confirmed strike publicly would let one bad report do
+              disproportionate damage. */}
+          {profile.strikes >= NO_SHOW_POLICY.warningThreshold && (
+            <Card padded style={styles.strikeCard}>
+              <View style={styles.previewRow}>
+                <Ionicons name="alert-circle" size={16} color={colors.warning} />
+                <Text variant="caption" color="textSecondary" style={styles.previewText}>
+                  This neighbor has {profile.strikes} confirmed no-shows. Consider
+                  confirming plans before the job.
                 </Text>
               </View>
             </Card>
@@ -247,6 +262,11 @@ const styles = StyleSheet.create({
   },
   bio: { marginTop: spacing.sm },
   badges: { marginTop: spacing.sm, alignItems: 'center' },
+  strikeCard: {
+    marginTop: spacing.sm,
+    backgroundColor: colors.warningContainer,
+    borderColor: '#fde68a',
+  },
   previewNote: {
     marginTop: spacing.sm,
     backgroundColor: colors.infoSoft,

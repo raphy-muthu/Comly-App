@@ -29,7 +29,7 @@ import {
 } from '@/components/ui';
 import { SafetyBadge } from '@/components/trust';
 import { useCreateJob } from '@/hooks';
-import { ai, PaySuggestion, SafetyResult } from '@/services/ai';
+import { ai, PaySuggestion, RealismResult, SafetyResult } from '@/services/ai';
 import {
   CommunityTag,
   COMMUNITY_TAGS,
@@ -42,6 +42,13 @@ import {
 } from '@/types/domain';
 import { useAuthStore } from '@/stores/authStore';
 import { formatPayShort } from '@/lib/format';
+import {
+  durationBoundsError,
+  MAX_DURATION_MINUTES,
+  MIN_DURATION_MINUTES,
+  scheduleInPast,
+  wageGuidance,
+} from '@/lib/wage';
 import { AppStackParamList } from '@/navigation/types';
 
 type Nav = NativeStackNavigationProp<AppStackParamList>;
@@ -113,11 +120,25 @@ function StandardFlow() {
 
   const [paySuggestion, setPaySuggestion] = useState<PaySuggestion | null>(null);
   const [safety, setSafety] = useState<SafetyResult | null>(null);
+  const [realism, setRealism] = useState<RealismResult | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [improving, setImproving] = useState(false);
 
   const stepIndex = STEPS.indexOf(step);
-  const canContinue = title.trim().length > 2 && location.trim().length > 0;
+
+  // A job can't be scheduled in the past. The date picker already floors at
+  // today, but "today at 9 AM" chosen at 6 PM slips through that — the whole
+  // date+time pair has to be checked together.
+  const pastSchedule = !flexible && scheduleInPast(date, time);
+  const durationError = durationBoundsError(
+    durationLabel === 'Custom' && customDuration ? Number(customDuration) : undefined
+  );
+
+  const canContinue =
+    title.trim().length > 2 &&
+    location.trim().length > 0 &&
+    !pastSchedule &&
+    !durationError;
 
   // Guards the payType-refetch effect below from also firing on the very
   // first entry into this step, which the combined fetch already covers.
@@ -171,6 +192,36 @@ function StandardFlow() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [payType]);
 
+  // Realism runs off the pay the user has actually typed, so it re-runs as
+  // they edit it — debounced, because it's keystroke-driven unlike the
+  // one-shot fetches above.
+  useEffect(() => {
+    if (step !== 'ai') return;
+    let active = true;
+    const handle = setTimeout(() => {
+      ai.checkRealism({
+        category,
+        title,
+        description,
+        pay: Number(pay) || 0,
+        payType,
+        durationMinutes,
+        location,
+      })
+        .then((r) => {
+          if (active) setRealism(r);
+        })
+        .catch(() => {
+          // Advisory only — a failure here must not block posting.
+        });
+    }, 500);
+    return () => {
+      active = false;
+      clearTimeout(handle);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, pay, payType, durationMinutes, category]);
+
   const improveDescription = async () => {
     setImproving(true);
     try {
@@ -191,6 +242,10 @@ function StandardFlow() {
 
   const payNum = Number(pay) || 0;
   const lowPay = !!paySuggestion && payNum > 0 && payNum < paySuggestion.min;
+  // Separate from `lowPay`: "below the local going rate" and "below minimum
+  // wage once you divide by the hours" are different claims, and the second is
+  // the one worth stating in dollars-per-hour.
+  const wage = wageGuidance(payNum, payType, durationMinutes, location);
 
   const post = () => {
     createJob.mutate(
@@ -330,10 +385,27 @@ function StandardFlow() {
                   single-column usage, which never had this bug) gives each
                   picker the room it actually needs. */}
               <View style={styles.scheduleRow}>
-                <DateTimeField label="Date" mode="date" value={date} onChange={setDate} />
+                <DateTimeField
+                  label="Date"
+                  mode="date"
+                  value={date}
+                  onChange={setDate}
+                  error={pastSchedule && !time ? 'Pick today or a future date.' : undefined}
+                />
               </View>
               <View style={styles.scheduleRow}>
-                <DateTimeField label="Time" mode="time" value={time} onChange={setTime} />
+                <DateTimeField
+                  label="Time"
+                  mode="time"
+                  value={time}
+                  onChange={setTime}
+                  onDate={date}
+                  error={
+                    pastSchedule && !!time
+                      ? 'That time has already passed today.'
+                      : undefined
+                  }
+                />
               </View>
               <Pressable style={styles.flexToggle} onPress={() => setFlexible((f) => !f)}>
                 <Ionicons
@@ -377,6 +449,12 @@ function StandardFlow() {
                     setCustomDuration(v);
                     setDurationMinutes(Number(v) || 0);
                   }}
+                  error={durationError ?? undefined}
+                  hint={
+                    durationError
+                      ? undefined
+                      : `Between ${MIN_DURATION_MINUTES} minutes and ${MAX_DURATION_MINUTES / 60} hours.`
+                  }
                   containerStyle={styles.topGap}
                 />
               )}
@@ -545,6 +623,9 @@ function StandardFlow() {
                 ))}
               </View>
             </View>
+            <Text variant="caption" color="textSecondary" style={styles.wageHint}>
+              {wage.hint}
+            </Text>
             {lowPay && (
               <View style={styles.warnRow}>
                 <Ionicons name="alert-circle" size={16} color={colors.warning} />
@@ -553,6 +634,29 @@ function StandardFlow() {
                   it to attract reliable helpers and support fair compensation.
                 </Text>
               </View>
+            )}
+
+            {/* Realism check — pay ÷ time and category-typical duration. Never
+                blocks the post; posting stays the customer's call. */}
+            {realism && realism.warnings.length > 0 && (
+              <Card padded style={styles.realismCard}>
+                <View style={styles.aiInline}>
+                  <Ionicons name="time-outline" size={16} color={colors.warning} />
+                  <Text variant="labelMd" color="warning" style={{ marginLeft: 6 }}>
+                    Double-check this listing
+                  </Text>
+                </View>
+                {realism.warnings.map((w) => (
+                  <Text
+                    key={w}
+                    variant="caption"
+                    color="textSecondary"
+                    style={styles.realismLine}
+                  >
+                    • {w}
+                  </Text>
+                ))}
+              </Card>
             )}
           </View>
         )}
@@ -585,6 +689,27 @@ function StandardFlow() {
                 <ReviewMeta icon="construct-outline" label={EQUIPMENT_LABELS[equipment]} />
               </View>
             </Card>
+
+            {realism && realism.warnings.length > 0 && (
+              <Card padded style={styles.realismCard}>
+                <View style={styles.aiInline}>
+                  <Ionicons name="alert-circle-outline" size={16} color={colors.warning} />
+                  <Text variant="labelMd" color="warning" style={{ marginLeft: 6 }}>
+                    Before you post
+                  </Text>
+                </View>
+                {realism.warnings.map((w) => (
+                  <Text
+                    key={w}
+                    variant="caption"
+                    color="textSecondary"
+                    style={styles.realismLine}
+                  >
+                    • {w}
+                  </Text>
+                ))}
+              </Card>
+            )}
           </View>
         )}
       </ScrollView>
@@ -907,6 +1032,13 @@ const styles = StyleSheet.create({
   payRow: { flexDirection: 'row', gap: spacing.sm, alignItems: 'flex-start' },
   payToggle: { flexDirection: 'row', gap: spacing.base, paddingTop: 4 },
   warnRow: { flexDirection: 'row', alignItems: 'flex-start', marginTop: spacing.sm },
+  wageHint: { marginTop: spacing.sm },
+  realismCard: {
+    marginTop: spacing.sm,
+    backgroundColor: colors.warningContainer,
+    borderColor: '#fde68a',
+  },
+  realismLine: { marginTop: 4 },
   // Review
   reviewHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.sm },
   reviewTitle: { marginBottom: spacing.base },

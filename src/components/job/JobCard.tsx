@@ -10,8 +10,9 @@ import { Card, Text } from '@/components/ui';
 import { ScoreRing } from '@/components/trust';
 import { SafetyBadge } from '@/components/trust/SafetyBadge';
 import { EquipmentBadge } from '@/components/trust/EquipmentBadge';
+import { PremiumBadge } from '@/components/trust/PremiumBadge';
 import { useRoleTheme } from '@/hooks/useRoleTheme';
-import { Job } from '@/types/domain';
+import { boostActive, Job } from '@/types/domain';
 import { formatPayShort, postedAgo } from '@/lib/format';
 
 export interface JobCardProps {
@@ -59,6 +60,13 @@ export function JobCard({ job, onPress, showSafety = true }: JobCardProps) {
           {showSafety && (
             <View style={styles.tagRow}>
               <EquipmentBadge status={job.equipmentStatus} />
+              {/* Says why this listing is near the top. Boost outranks the
+                  plan badge, so only one shows. */}
+              {boostActive(job) ? (
+                <PremiumBadge kind="boosted" />
+              ) : job.customer.isCustomerPlus ? (
+                <PremiumBadge kind="customer_plus" />
+              ) : null}
             </View>
           )}
 

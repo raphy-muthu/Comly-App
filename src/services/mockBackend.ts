@@ -9,11 +9,18 @@
 import {
   ACTIVE_JOB_STATUSES,
   Application,
+  compareApplications,
+  compareFeedJobs,
   ImpactStats,
   Job,
+  JobInvite,
   JobStatus,
+  NoShowEvent,
+  NO_SHOW_POLICY,
   NotificationType,
+  PRIORITY_REASON_PRO_HELPER,
   Report,
+  Review,
   SupportTicket,
   UserProfile,
 } from '@/types/domain';
@@ -32,10 +39,14 @@ import {
   ApplyToJobInput,
   CreateJobInput,
   CreateReportInput,
+  CreateReviewInput,
   CreateSupportTicketInput,
   DataBackend,
+  InviteHelperInput,
   JobUpdateInput,
   LimitError,
+  ReportNoShowInput,
+  WorkflowError,
 } from './types';
 
 // Mutable session state (cloned so we never mutate the seed module).
@@ -48,6 +59,8 @@ const db = {
   reviews: [...seedReviews],
   reports: seedReports.map((r) => ({ ...r })),
   tickets: seedTickets.map((t) => ({ ...t })),
+  noShows: [] as NoShowEvent[],
+  invites: [] as JobInvite[],
   blocked: new Set<string>(),
 };
 
@@ -77,6 +90,12 @@ function pushNotification(
   });
 }
 
+function requireJob(id: string): Job {
+  const job = db.jobs.find((j) => j.id === id && !j.deletedAt);
+  if (!job) throw new Error('Job not found');
+  return job;
+}
+
 const FREE_ACTIVE_LIMIT = 3;
 const RATE_LIMIT_PER_HOUR = 5;
 
@@ -92,13 +111,9 @@ export const mockBackend: DataBackend = {
           !j.deletedAt &&
           !db.blocked.has(j.customerId)
       )
-      .sort((a, b) => {
-        const ms = (b.matchScore ?? 0) - (a.matchScore ?? 0);
-        if (ms !== 0) return ms;
-        if (a.distanceMiles !== b.distanceMiles)
-          return a.distanceMiles - b.distanceMiles;
-        return newest(a, b);
-      });
+      // Boosted → Comly Plus → match score → distance → newest. Free
+      // listings are never excluded, only outranked.
+      .sort((a, b) => compareFeedJobs(a, b));
     return delay(feed);
   },
 
@@ -165,6 +180,12 @@ export const mockBackend: DataBackend = {
       applicantsCount: 0,
       createdWithSeniorMode: input.createdWithSeniorMode ?? false,
       familyContact: input.familyContact,
+      // A Plus customer's listings are boosted on posting; the boost is a
+      // visibility perk of the plan, not a separate purchase.
+      isBoosted: sessionUser.isCustomerPlus,
+      boostedUntil: sessionUser.isCustomerPlus
+        ? new Date(Date.now() + 7 * 24 * 3600_000).toISOString()
+        : null,
       isPaused: false,
       createdAt: new Date().toISOString(),
     };
@@ -204,14 +225,8 @@ export const mockBackend: DataBackend = {
   async listApplicationsForJob(jobId) {
     const apps = db.applications
       .filter((a) => a.jobId === jobId)
-      .sort((a, b) => {
-        // Accepted first, then by helper rating, then newest.
-        if (a.status === 'accepted' && b.status !== 'accepted') return -1;
-        if (b.status === 'accepted' && a.status !== 'accepted') return 1;
-        if (b.helper.rating !== a.helper.rating)
-          return b.helper.rating - a.helper.rating;
-        return newest(a, b);
-      });
+      // Accepted → Pro Helper priority → rating → completed jobs → earliest.
+      .sort(compareApplications);
     return delay(apps);
   },
 
@@ -237,6 +252,12 @@ export const mockBackend: DataBackend = {
       proposedPay: input.proposedPay,
       availability: input.availability,
       status: 'pending',
+      // Derived from the applicant's plan, never taken from client input —
+      // otherwise priority is just a field anyone can set on themselves.
+      isPriority: sessionUser.isHelperPro,
+      priorityReason: sessionUser.isHelperPro
+        ? PRIORITY_REASON_PRO_HELPER
+        : undefined,
       createdAt: new Date().toISOString(),
     };
     db.applications.unshift(app);
@@ -338,6 +359,116 @@ export const mockBackend: DataBackend = {
     return delay(undefined);
   },
 
+  // ── Completion (mutual confirmation) ──
+  async requestJobCompletion(jobId) {
+    const job = requireJob(jobId);
+    if (job.customerId !== sessionUser.id)
+      throw new WorkflowError('Only the job owner can mark a job complete.');
+    if (!['accepted', 'in_progress'].includes(job.status))
+      throw new WorkflowError('Only an accepted job can be marked complete.');
+    if (!job.assignedHelperId)
+      throw new WorkflowError('This job has no accepted helper yet.');
+
+    job.status = 'pending_confirmation';
+    job.completionRequestedAt = new Date().toISOString();
+    pushNotification(
+      job.assignedHelperId,
+      'completion_requested',
+      'Confirm the job is done',
+      `${sessionUser.name} marked "${job.title}" complete. Confirm so you can both leave reviews.`
+    );
+    return delay(job);
+  },
+
+  async confirmJobCompletion(jobId) {
+    const job = requireJob(jobId);
+    if (job.assignedHelperId !== sessionUser.id)
+      throw new WorkflowError('Only the accepted helper can confirm completion.');
+    if (job.status !== 'pending_confirmation')
+      throw new WorkflowError('This job is not awaiting your confirmation.');
+
+    job.status = 'completed';
+    job.completedAt = new Date().toISOString();
+    pushNotification(
+      job.customerId,
+      'completion_confirmed',
+      'Job confirmed complete',
+      `${sessionUser.name} confirmed "${job.title}" is done. Leave a review to build their reputation.`
+    );
+    pushNotification(
+      sessionUser.id,
+      'completion_confirmed',
+      'Job complete',
+      `"${job.title}" is complete. Leave a review for the customer.`
+    );
+    return delay(job);
+  },
+
+  async disputeJobCompletion(jobId, reason) {
+    const job = requireJob(jobId);
+    if (job.assignedHelperId !== sessionUser.id)
+      throw new WorkflowError('Only the accepted helper can dispute completion.');
+    if (job.status !== 'pending_confirmation')
+      throw new WorkflowError('This job is not awaiting your confirmation.');
+
+    // Back to in_progress rather than straight to a report: most disputes are
+    // "we're not finished yet", not abuse. Either side can still file a real
+    // report from the job screen.
+    job.status = 'in_progress';
+    job.completionRequestedAt = null;
+    pushNotification(
+      job.customerId,
+      'completion_requested',
+      'Completion not confirmed',
+      `${sessionUser.name} says "${job.title}" isn't finished yet: ${reason}`
+    );
+    return delay(job);
+  },
+
+  // ── Invites ──
+  async inviteHelper(input: InviteHelperInput) {
+    const job = requireJob(input.jobId);
+    if (job.customerId !== sessionUser.id)
+      throw new WorkflowError('You can only invite helpers to your own jobs.');
+    if (job.status !== 'open' && job.status !== 'reviewing')
+      throw new WorkflowError('You can only invite helpers to an open listing.');
+    if (db.blocked.has(input.helperId))
+      throw new WorkflowError('You have blocked this helper.');
+
+    const existing = db.invites.find(
+      (i) => i.jobId === input.jobId && i.helperId === input.helperId
+    );
+    if (existing) throw new WorkflowError('You already invited this helper.');
+
+    const invite: JobInvite = {
+      id: uid('inv'),
+      jobId: job.id,
+      jobTitle: job.title,
+      customerId: sessionUser.id,
+      helperId: input.helperId,
+      status: 'sent',
+      createdAt: new Date().toISOString(),
+    };
+    db.invites.unshift(invite);
+    pushNotification(
+      input.helperId,
+      'job_invite',
+      'You were invited to apply',
+      `${sessionUser.name} thinks you'd be a good fit for "${job.title}". Open it to apply.`
+    );
+    return delay(invite);
+  },
+
+  async listMyInvites() {
+    return delay(
+      db.invites.filter((i) => i.helperId === sessionUser.id).sort(newest)
+    );
+  },
+
+  async listInvitesForJob(jobId) {
+    return delay(db.invites.filter((i) => i.jobId === jobId).sort(newest));
+  },
+
   // ── People ──
   async getProfile(id) {
     if (id === sessionUser.id) return delay(sessionUser);
@@ -361,6 +492,142 @@ export const mockBackend: DataBackend = {
       .filter((r) => r.revieweeId === userId)
       .sort(newest);
     return delay(list);
+  },
+
+  async listReviewsForJob(jobId) {
+    return delay(db.reviews.filter((r) => r.jobId === jobId).sort(newest));
+  },
+
+  async createReview(input: CreateReviewInput) {
+    const job = requireJob(input.jobId);
+    if (job.status !== 'completed')
+      throw new WorkflowError('You can only review after a job is complete.');
+
+    // Both parties of THIS job, and only about each other — a review outside a
+    // real working relationship is the main way a reputation system gets gamed.
+    const parties = [job.customerId, job.assignedHelperId].filter(Boolean);
+    if (!parties.includes(sessionUser.id))
+      throw new WorkflowError('You were not part of this job.');
+    if (input.revieweeId === sessionUser.id)
+      throw new WorkflowError('You cannot review yourself.');
+    if (!parties.includes(input.revieweeId))
+      throw new WorkflowError('That person was not part of this job.');
+
+    const already = db.reviews.find(
+      (r) => r.jobId === input.jobId && r.reviewerId === sessionUser.id
+    );
+    if (already) throw new WorkflowError('You already reviewed this job.');
+
+    const review: Review = {
+      id: uid('rev'),
+      jobId: input.jobId,
+      reviewerId: sessionUser.id,
+      revieweeId: input.revieweeId,
+      ratings: input.ratings,
+      comment: input.comment,
+      createdAt: new Date().toISOString(),
+    };
+    db.reviews.unshift(review);
+
+    // Keep the reviewee's headline rating consistent with the reviews on screen.
+    const target = db.users.find((u) => u.id === input.revieweeId);
+    if (target) {
+      const theirs = db.reviews.filter((r) => r.revieweeId === target.id);
+      const avg =
+        theirs.reduce((sum, r) => {
+          const vals = Object.values(r.ratings);
+          return sum + vals.reduce((a, b) => a + b, 0) / vals.length;
+        }, 0) / theirs.length;
+      target.rating = Math.round(avg * 10) / 10;
+      if (target.id === sessionUser.id) sessionUser = target;
+    }
+
+    pushNotification(
+      input.revieweeId,
+      'review_received',
+      'New review',
+      `${sessionUser.name} left you a review for "${job.title}".`
+    );
+    return delay(review);
+  },
+
+  // ── No-show strikes ──
+  async reportNoShow(input: ReportNoShowInput) {
+    const job = requireJob(input.jobId);
+    const parties = [job.customerId, job.assignedHelperId].filter(Boolean);
+    if (!parties.includes(sessionUser.id))
+      throw new WorkflowError('You were not part of this job.');
+    if (input.reportedUserId === sessionUser.id)
+      throw new WorkflowError('You cannot report yourself.');
+    if (!parties.includes(input.reportedUserId))
+      throw new WorkflowError('That person was not part of this job.');
+    if (!['accepted', 'in_progress', 'pending_confirmation'].includes(job.status))
+      throw new WorkflowError('No-shows can only be reported on an accepted job.');
+
+    const duplicate = db.noShows.find(
+      (e) => e.jobId === input.jobId && e.reporterId === sessionUser.id
+    );
+    if (duplicate)
+      throw new WorkflowError('You already reported a no-show for this job.');
+
+    const event: NoShowEvent = {
+      id: uid('ns'),
+      jobId: job.id,
+      jobTitle: job.title,
+      reportedUserId: input.reportedUserId,
+      reporterId: sessionUser.id,
+      note: input.note,
+      // Pending, not an instant strike: an unreviewed accusation is exactly
+      // what a retaliating user would weaponize.
+      status: 'pending',
+      createdAt: new Date().toISOString(),
+    };
+    db.noShows.unshift(event);
+    pushNotification(
+      input.reportedUserId,
+      'report_update',
+      'A no-show was reported',
+      `A no-show was reported for "${job.title}". An admin reviews it before any strike applies. ${NO_SHOW_POLICY.appealNote}`
+    );
+    return delay(event);
+  },
+
+  async listNoShowEventsForUser(userId) {
+    return delay(
+      db.noShows.filter((e) => e.reportedUserId === userId).sort(newest)
+    );
+  },
+
+  async listAllNoShowEvents() {
+    return delay([...db.noShows].sort(newest));
+  },
+
+  async resolveNoShowEvent(id, patch) {
+    const event = db.noShows.find((e) => e.id === id);
+    if (!event) throw new Error('No-show report not found');
+    const wasConfirmed = event.status === 'confirmed';
+    event.status = patch.status;
+    if (patch.adminNotes !== undefined) event.adminNotes = patch.adminNotes;
+
+    // Strikes follow confirmations in BOTH directions, so reversing an admin
+    // decision actually returns the strike instead of leaving it stuck on.
+    const target = db.users.find((u) => u.id === event.reportedUserId);
+    if (target) {
+      if (!wasConfirmed && patch.status === 'confirmed') {
+        target.strikes += 1;
+        pushNotification(
+          target.id,
+          'report_update',
+          'No-show strike applied',
+          `A no-show strike was applied for "${event.jobTitle ?? 'a job'}". You now have ${target.strikes}. ${NO_SHOW_POLICY.appealNote}`
+        );
+      } else if (wasConfirmed && patch.status !== 'confirmed') {
+        target.strikes = Math.max(0, target.strikes - 1);
+      }
+      target.isSuspended = target.strikes >= NO_SHOW_POLICY.suspensionThreshold;
+      if (target.id === sessionUser.id) sessionUser = target;
+    }
+    return delay(event);
   },
 
   async updateProfile(patch) {

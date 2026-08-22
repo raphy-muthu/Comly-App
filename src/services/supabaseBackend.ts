@@ -14,8 +14,12 @@
 import {
   Application,
   AppNotification,
+  compareApplications,
+  compareFeedJobs,
   ImpactStats,
   Job,
+  JobInvite,
+  NoShowEvent,
   Report,
   Review,
   SupportTicket,
@@ -27,9 +31,12 @@ import {
   ApplyToJobInput,
   CreateJobInput,
   CreateReportInput,
+  CreateReviewInput,
   CreateSupportTicketInput,
   DataBackend,
+  InviteHelperInput,
   JobUpdateInput,
+  ReportNoShowInput,
 } from './types';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -37,7 +44,8 @@ import {
 // types. Mappers below restore type-safety at the domain boundary.
 const sb = () => getSupabase() as any;
 
-const PROFILE_REF = 'id, name, avatar_url, rating, jobs_count, is_trusted';
+const PROFILE_REF =
+  'id, name, avatar_url, rating, jobs_count, is_trusted, is_customer_plus, is_helper_pro';
 const JOB_SELECT = `*, customer:profiles!jobs_customer_id_fkey(${PROFILE_REF}), applications(count)`;
 
 function mapRef(row: any): UserRef {
@@ -48,6 +56,8 @@ function mapRef(row: any): UserRef {
     rating: Number(row.rating ?? 0),
     jobsCount: row.jobs_count ?? 0,
     isTrusted: !!row.is_trusted,
+    isCustomerPlus: !!row.is_customer_plus,
+    isHelperPro: !!row.is_helper_pro,
   };
 }
 
@@ -57,7 +67,16 @@ function mapJob(row: any): Job {
     customerId: row.customer_id,
     customer: row.customer
       ? mapRef(row.customer)
-      : { id: row.customer_id, name: '', avatarUrl: null, rating: 0, jobsCount: 0, isTrusted: false },
+      : {
+          id: row.customer_id,
+          name: '',
+          avatarUrl: null,
+          rating: 0,
+          jobsCount: 0,
+          isTrusted: false,
+          isCustomerPlus: false,
+          isHelperPro: false,
+        },
     category: row.category,
     customCategoryText: row.custom_category_text ?? undefined,
     title: row.title,
@@ -82,6 +101,8 @@ function mapJob(row: any): Job {
     photos: row.photos ?? [],
     applicantsCount: row.applications?.[0]?.count ?? 0,
     createdWithSeniorMode: !!row.created_with_senior_mode,
+    isBoosted: !!row.is_boosted,
+    boostedUntil: row.boosted_until ?? null,
     familyContact:
       row.family_contact_name || row.family_contact_phone || row.family_contact_email
         ? {
@@ -94,6 +115,8 @@ function mapJob(row: any): Job {
     isPaused: row.status === 'paused',
     deletedAt: row.deleted_at ?? null,
     contactUnlockedAt: row.contact_unlocked_at ?? null,
+    completionRequestedAt: row.completion_requested_at ?? null,
+    completedAt: row.completed_at ?? null,
     createdAt: row.created_at,
   };
 }
@@ -105,11 +128,22 @@ function mapApplication(row: any): Application {
     helperId: row.helper_id,
     helper: row.helper
       ? mapRef(row.helper)
-      : { id: row.helper_id, name: '', avatarUrl: null, rating: 0, jobsCount: 0, isTrusted: false },
+      : {
+          id: row.helper_id,
+          name: '',
+          avatarUrl: null,
+          rating: 0,
+          jobsCount: 0,
+          isTrusted: false,
+          isCustomerPlus: false,
+          isHelperPro: false,
+        },
     message: row.message ?? '',
     proposedPay: row.proposed_pay ?? undefined,
     availability: row.availability ?? undefined,
     status: row.status,
+    isPriority: !!row.is_priority,
+    priorityReason: row.priority_reason ?? undefined,
     createdAt: row.created_at,
   };
 }
@@ -127,6 +161,10 @@ function mapProfile(row: any): UserProfile {
     jobsCount: row.jobs_count ?? 0,
     reputationScore: row.reputation_score ?? 0,
     isTrusted: !!row.is_trusted,
+    strikes: row.strikes ?? 0,
+    isSuspended: !!row.is_suspended,
+    isCustomerPlus: !!row.is_customer_plus,
+    isHelperPro: !!row.is_helper_pro,
     verification: {
       emailVerified: !!v.email_verified,
       phoneAdded: !!v.phone_added,
@@ -162,6 +200,32 @@ function mapReview(row: any): Review {
       professionalism: row.professionalism,
     },
     comment: row.comment ?? '',
+    createdAt: row.created_at,
+  };
+}
+
+function mapNoShow(row: any): NoShowEvent {
+  return {
+    id: row.id,
+    jobId: row.job_id,
+    jobTitle: row.job?.title ?? undefined,
+    reportedUserId: row.reported_user_id,
+    reporterId: row.reporter_id,
+    note: row.note ?? '',
+    status: row.status,
+    adminNotes: row.admin_notes ?? undefined,
+    createdAt: row.created_at,
+  };
+}
+
+function mapInvite(row: any): JobInvite {
+  return {
+    id: row.id,
+    jobId: row.job_id,
+    jobTitle: row.job?.title ?? undefined,
+    customerId: row.customer_id,
+    helperId: row.helper_id,
+    status: row.status,
     createdAt: row.created_at,
   };
 }
@@ -206,6 +270,17 @@ function mapTicket(row: any): SupportTicket {
   };
 }
 
+/**
+ * Re-reads a job after an RPC changed it. The RPCs return void, and the caller
+ * wants the fresh row — a missing job here means the RPC succeeded against
+ * something that has since disappeared, which is an error, not a null.
+ */
+async function reloadJob(be: DataBackend, jobId: string): Promise<Job> {
+  const job = await be.getJob(jobId);
+  if (!job) throw new Error('Job not found after update');
+  return job;
+}
+
 async function uid(): Promise<string> {
   const { data } = await getSupabase().auth.getUser();
   if (!data.user) throw new Error('Not authenticated');
@@ -223,7 +298,10 @@ export const supabaseBackend: DataBackend = {
       .neq('customer_id', me)
       .order('created_at', { ascending: false });
     if (error) throw error;
-    return (data ?? []).map(mapJob);
+    // The full precedence keys off the *joined* customer's plan and an
+    // expiry-aware boost, neither of which PostgREST can order by, so the
+    // final sort happens here against the same comparator the mock uses.
+    return (data ?? []).map(mapJob).sort((a: Job, b: Job) => compareFeedJobs(a, b));
   },
 
   async listMyJobs() {
@@ -336,7 +414,7 @@ export const supabaseBackend: DataBackend = {
       .eq('job_id', jobId)
       .order('created_at', { ascending: false });
     if (error) throw error;
-    return (data ?? []).map(mapApplication);
+    return (data ?? []).map(mapApplication).sort(compareApplications);
   },
 
   async listMyApplications() {
@@ -403,6 +481,65 @@ export const supabaseBackend: DataBackend = {
     if (error) throw error;
   },
 
+  // ── Completion (mutual confirmation) ──
+  //
+  // All three go through SECURITY DEFINER RPCs (migration 0013). The helper
+  // has no UPDATE grant on `jobs` at all — only the customer does — so a
+  // direct table write here would fail for exactly the party that needs to
+  // confirm. The RPCs also make the status change + notification atomic.
+  async requestJobCompletion(jobId) {
+    const { error } = await sb().rpc('request_job_completion', { p_job_id: jobId });
+    if (error) throw error;
+    return reloadJob(this, jobId);
+  },
+
+  async confirmJobCompletion(jobId) {
+    const { error } = await sb().rpc('confirm_job_completion', { p_job_id: jobId });
+    if (error) throw error;
+    return reloadJob(this, jobId);
+  },
+
+  async disputeJobCompletion(jobId, reason) {
+    const { error } = await sb().rpc('dispute_job_completion', {
+      p_job_id: jobId,
+      p_reason: reason,
+    });
+    if (error) throw error;
+    return reloadJob(this, jobId);
+  },
+
+  // ── Invites ──
+  async inviteHelper(input: InviteHelperInput) {
+    const { data, error } = await sb().rpc('invite_helper_to_job', {
+      p_job_id: input.jobId,
+      p_helper_id: input.helperId,
+    });
+    if (error) throw error;
+    const row = Array.isArray(data) ? data[0] : data;
+    return mapInvite(row);
+  },
+
+  async listMyInvites() {
+    const me = await uid();
+    const { data, error } = await sb()
+      .from('job_invites')
+      .select('*, job:jobs(title)')
+      .eq('helper_id', me)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map(mapInvite);
+  },
+
+  async listInvitesForJob(jobId) {
+    const { data, error } = await sb()
+      .from('job_invites')
+      .select('*, job:jobs(title)')
+      .eq('job_id', jobId)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map(mapInvite);
+  },
+
   async getProfile(id) {
     const { data, error } = await sb()
       .from('profiles')
@@ -450,6 +587,84 @@ export const supabaseBackend: DataBackend = {
       .order('created_at', { ascending: false });
     if (error) throw error;
     return (data ?? []).map(mapReview);
+  },
+
+  async listReviewsForJob(jobId) {
+    const { data, error } = await sb()
+      .from('reviews')
+      .select('*')
+      .eq('job_id', jobId)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map(mapReview);
+  },
+
+  async createReview(input: CreateReviewInput) {
+    const me = await uid();
+    // The columns are flat smallints in the schema, not a jsonb blob.
+    const { data, error } = await sb()
+      .from('reviews')
+      .insert({
+        job_id: input.jobId,
+        reviewer_id: me,
+        reviewee_id: input.revieweeId,
+        reliability: input.ratings.reliability,
+        quality: input.ratings.quality,
+        communication: input.ratings.communication,
+        professionalism: input.ratings.professionalism,
+        comment: input.comment,
+      })
+      .select('*')
+      .single();
+    if (error) throw error;
+    return mapReview(data);
+  },
+
+  // ── No-show strikes ──
+  async reportNoShow(input: ReportNoShowInput) {
+    // RPC, not a plain insert: it validates that both people were actually on
+    // the job and blocks duplicate reports, which RLS alone can't express.
+    const { data, error } = await sb().rpc('report_no_show', {
+      p_job_id: input.jobId,
+      p_reported_user_id: input.reportedUserId,
+      p_note: input.note,
+    });
+    if (error) throw error;
+    const row = Array.isArray(data) ? data[0] : data;
+    return mapNoShow(row);
+  },
+
+  async listNoShowEventsForUser(userId) {
+    const { data, error } = await sb()
+      .from('no_show_events')
+      .select('*, job:jobs(title)')
+      .eq('reported_user_id', userId)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map(mapNoShow);
+  },
+
+  async listAllNoShowEvents() {
+    const { data, error } = await sb()
+      .from('no_show_events')
+      .select('*, job:jobs(title)')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map(mapNoShow);
+  },
+
+  async resolveNoShowEvent(id, patch) {
+    // Strike bookkeeping (increment/decrement + suspension threshold) is
+    // server-owned — `profiles.strikes` is pinned against self-service writes
+    // by the 0005 guard trigger, so an admin's UI action has to land here.
+    const { data, error } = await sb().rpc('resolve_no_show_event', {
+      p_event_id: id,
+      p_status: patch.status,
+      p_admin_notes: patch.adminNotes ?? null,
+    });
+    if (error) throw error;
+    const row = Array.isArray(data) ? data[0] : data;
+    return mapNoShow(row);
   },
 
   async updateProfile(patch) {

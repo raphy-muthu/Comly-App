@@ -21,7 +21,7 @@ import {
   Text,
   useToast,
 } from '@/components/ui';
-import { TrustBadge } from '@/components/trust';
+import { PremiumBadge, TrustBadge } from '@/components/trust';
 import {
   useAcceptApplication,
   useDeclineApplication,
@@ -76,10 +76,18 @@ export function JobApplicationsScreen() {
       </View>
 
       {job && (
-        <Text variant="bodyMd" color="textSecondary" style={styles.subtitle}>
-          {job.title} · {applications?.length ?? 0} applicant
-          {(applications?.length ?? 0) === 1 ? '' : 's'}
-        </Text>
+        <>
+          <Text variant="bodyMd" color="textSecondary" style={styles.subtitle}>
+            {job.title} · {applications?.length ?? 0} applicant
+            {(applications?.length ?? 0) === 1 ? '' : 's'}
+          </Text>
+          {applications?.some((a) => a.isPriority) && (
+            <Text variant="caption" color="outline" style={styles.sortNote}>
+              Pro Helper applications sort first. Everyone who applied is still
+              listed below — ratings and completed jobs decide the rest.
+            </Text>
+          )}
+        </>
       )}
 
       <FlatList
@@ -150,6 +158,11 @@ function ApplicationCard({
         <View style={styles.helperInfo}>
           <Text variant="bodyLg">{helper.name}</Text>
           <Rating value={helper.rating} count={helper.jobsCount} />
+          {application.isPriority && (
+            <View style={styles.priorityRow}>
+              <PremiumBadge kind="helper_pro" label={application.priorityReason} />
+            </View>
+          )}
         </View>
         {statusChip ? (
           <Chip label={statusChip.label} tone={statusChip.tone} />
@@ -215,6 +228,8 @@ const styles = StyleSheet.create({
   },
   headerSpacer: { width: 40 },
   subtitle: { paddingHorizontal: spacing.marginMobile, marginTop: spacing.base },
+  sortNote: { paddingHorizontal: spacing.marginMobile, marginTop: 4 },
+  priorityRow: { marginTop: 4 },
   list: {
     paddingHorizontal: spacing.marginMobile,
     paddingTop: spacing.md,

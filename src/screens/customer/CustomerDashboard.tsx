@@ -3,6 +3,7 @@
  * recommended helpers.
  */
 
+import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -20,6 +21,7 @@ import {
 } from '@/components/ui';
 import { JobListItem } from '@/components/job/JobListItem';
 import { HelperRow } from '@/components/people/HelperRow';
+import { InviteHelperSheet } from '@/components/people/InviteHelperSheet';
 import { useMyJobs, useRecommendedHelpers } from '@/hooks';
 import { useAuthStore } from '@/stores/authStore';
 import { greeting } from '@/lib/greeting';
@@ -32,6 +34,9 @@ export function CustomerDashboard() {
   const user = useAuthStore((s) => s.user);
   const { data: myJobs } = useMyJobs();
   const { data: helpers } = useRecommendedHelpers();
+  const [inviting, setInviting] = useState<{ id: string; name: string } | null>(
+    null
+  );
 
   const firstName = user?.name.split(' ')[0] ?? 'there';
 
@@ -139,9 +144,19 @@ export function CustomerDashboard() {
             onPress={() =>
               navigation.navigate('HelperProfile', { userId: helper.id })
             }
+            onInvite={() => setInviting({ id: helper.id, name: helper.name })}
           />
         ))}
       </View>
+
+      {inviting && (
+        <InviteHelperSheet
+          visible
+          helperId={inviting.id}
+          helperName={inviting.name}
+          onClose={() => setInviting(null)}
+        />
+      )}
     </Screen>
   );
 }

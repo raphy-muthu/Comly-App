@@ -13,6 +13,7 @@ import { useRoleTheme } from '@/hooks/useRoleTheme';
 import {
   Avatar,
   Card,
+  Chip,
   Divider,
   Rating,
   Screen,
@@ -22,13 +23,16 @@ import {
 } from '@/components/ui';
 import {
   BadgeRow,
+  PremiumBadge,
   ScoreRing,
   TrustBadge,
   VerificationList,
   YouthSkillsCard,
 } from '@/components/trust';
+import { useUserNoShows } from '@/hooks';
 import { useAuthStore } from '@/stores/authStore';
-import { Role, VerificationKey } from '@/types/domain';
+import { NO_SHOW_POLICY, NO_SHOW_STATUS_LABELS, Role, strikeTone, VerificationKey } from '@/types/domain';
+import { timeAgo } from '@/lib/format';
 import { AppStackParamList } from '@/navigation/types';
 
 type Nav = NativeStackNavigationProp<AppStackParamList>;
@@ -48,6 +52,8 @@ export function ProfileScreen() {
   const setActiveRole = useAuthStore((s) => s.setActiveRole);
   const signOut = useAuthStore((s) => s.signOut);
   const toast = useToast();
+  // Hook order is fixed, so this can't sit behind the `!user` early return.
+  const { data: noShows } = useUserNoShows(user?.id ?? '');
 
   if (!user) return null;
 
@@ -85,6 +91,8 @@ export function ProfileScreen() {
         <View style={styles.identityMeta}>
           <Rating value={user.rating} count={user.jobsCount} />
           <TrustBadge trusted={user.isTrusted} />
+          {user.isCustomerPlus && <PremiumBadge kind="customer_plus" />}
+          {user.isHelperPro && <PremiumBadge kind="helper_pro" />}
         </View>
         <View style={styles.badges}>
           <BadgeRow profile={user} />
@@ -160,6 +168,51 @@ export function ProfileScreen() {
         </View>
       </Card>
 
+      {/* Reliability record — shown to the affected user even at zero strikes,
+          so the system is visible before it ever bites. */}
+      {(user.strikes > 0 || (noShows?.length ?? 0) > 0) && (
+        <Card padded style={styles.block}>
+          <View style={styles.strikeHeader}>
+            <Text variant="bodyLg" style={{ fontWeight: '700' }}>
+              Reliability record
+            </Text>
+            <Chip
+              label={`${user.strikes} strike${user.strikes === 1 ? '' : 's'}`}
+              tone={
+                strikeTone(user.strikes) === 'danger'
+                  ? 'danger'
+                  : strikeTone(user.strikes) === 'warning'
+                    ? 'warning'
+                    : 'neutral'
+              }
+            />
+          </View>
+          <Text variant="caption" color="textSecondary">
+            A strike is applied only after an admin confirms a reported no-show.
+            {' '}
+            {user.strikes >= NO_SHOW_POLICY.warningThreshold
+              ? `At ${NO_SHOW_POLICY.suspensionThreshold} strikes an account can be suspended. `
+              : ''}
+            {NO_SHOW_POLICY.appealNote}
+          </Text>
+          {noShows?.map((e) => (
+            <View key={e.id} style={styles.strikeRow}>
+              <Text variant="caption" color="textSecondary" style={{ flex: 1 }}>
+                {e.jobTitle ?? 'A job'} · {timeAgo(e.createdAt)}
+              </Text>
+              <Text variant="caption" color="outline">
+                {NO_SHOW_STATUS_LABELS[e.status]}
+              </Text>
+            </View>
+          ))}
+          {user.isSuspended && (
+            <Text variant="caption" color="danger" style={styles.strikeRow}>
+              Your account is suspended pending review.
+            </Text>
+          )}
+        </Card>
+      )}
+
       {/* Youth skills (helpers) */}
       {user.roles.includes('helper') && (
         <View style={styles.block}>
@@ -190,6 +243,21 @@ export function ProfileScreen() {
             icon="person-outline"
             label="Edit profile"
             onPress={() => navigation.navigate('EditProfile')}
+          />
+          <Divider inset />
+          {/* Both entries show for both roles: plenty of neighbors post a job
+              one week and help with one the next, and hiding a role's list
+              behind the role switcher was the actual gap here. */}
+          <SettingsRow
+            icon="clipboard-outline"
+            label="My listings"
+            onPress={() => navigation.navigate('MyListings')}
+          />
+          <Divider inset />
+          <SettingsRow
+            icon="briefcase-outline"
+            label="My jobs & applications"
+            onPress={() => navigation.navigate('MyApplications')}
           />
           <Divider inset />
           <SettingsRow
@@ -286,6 +354,18 @@ const styles = StyleSheet.create({
     borderRadius: radius.full,
   },
   block: { marginTop: spacing.md },
+  strikeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.base,
+  },
+  strikeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.base,
+    marginTop: spacing.base,
+  },
   repRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   repInfo: { flex: 1 },
   factors: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },

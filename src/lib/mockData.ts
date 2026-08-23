@@ -20,7 +20,6 @@ import {
 const hoursAgo = (h: number): string =>
   new Date(Date.now() - h * 3600_000).toISOString();
 const daysAgo = (d: number): string => hoursAgo(d * 24);
-const daysFromNow = (d: number): string => hoursAgo(-d * 24);
 
 // ── Users ────────────────────────────────────────────────────────────────────
 export const currentUser: UserProfile = {
@@ -34,10 +33,6 @@ export const currentUser: UserProfile = {
   jobsCount: 12,
   reputationScore: 94,
   isTrusted: true,
-  strikes: 0,
-  isSuspended: false,
-  isCustomerPlus: true,
-  isHelperPro: false,
   verification: {
     emailVerified: true,
     phoneAdded: true,
@@ -68,10 +63,6 @@ export const users: UserProfile[] = [
     jobsCount: 87,
     reputationScore: 96,
     isTrusted: true,
-    strikes: 0,
-    isSuspended: false,
-    isCustomerPlus: false,
-    isHelperPro: true,
     verification: {
       emailVerified: true,
       phoneAdded: true,
@@ -97,10 +88,6 @@ export const users: UserProfile[] = [
     jobsCount: 120,
     reputationScore: 98,
     isTrusted: true,
-    strikes: 0,
-    isSuspended: false,
-    isCustomerPlus: false,
-    isHelperPro: true,
     verification: {
       emailVerified: true,
       phoneAdded: true,
@@ -126,10 +113,6 @@ export const users: UserProfile[] = [
     jobsCount: 14,
     reputationScore: 88,
     isTrusted: true,
-    strikes: 0,
-    isSuspended: false,
-    isCustomerPlus: false,
-    isHelperPro: false,
     verification: {
       emailVerified: true,
       phoneAdded: true,
@@ -159,10 +142,6 @@ export const users: UserProfile[] = [
     jobsCount: 9,
     reputationScore: 86,
     isTrusted: false,
-    strikes: 0,
-    isSuspended: false,
-    isCustomerPlus: false,
-    isHelperPro: false,
     verification: {
       emailVerified: true,
       phoneAdded: true,
@@ -189,10 +168,6 @@ export const users: UserProfile[] = [
     jobsCount: 6,
     reputationScore: 88,
     isTrusted: true,
-    strikes: 0,
-    isSuspended: false,
-    isCustomerPlus: false,
-    isHelperPro: false,
     verification: {
       emailVerified: true,
       phoneAdded: true,
@@ -218,10 +193,6 @@ export const users: UserProfile[] = [
     jobsCount: 9,
     reputationScore: 90,
     isTrusted: true,
-    strikes: 0,
-    isSuspended: false,
-    isCustomerPlus: false,
-    isHelperPro: false,
     verification: {
       emailVerified: true,
       phoneAdded: true,
@@ -247,10 +218,6 @@ export const users: UserProfile[] = [
     jobsCount: 4,
     reputationScore: 92,
     isTrusted: true,
-    strikes: 0,
-    isSuspended: false,
-    isCustomerPlus: false,
-    isHelperPro: false,
     verification: {
       emailVerified: true,
       phoneAdded: true,
@@ -275,8 +242,6 @@ export const userRef = (u: UserProfile): UserRef => ({
   rating: u.rating,
   jobsCount: u.jobsCount,
   isTrusted: u.isTrusted,
-  isCustomerPlus: u.isCustomerPlus,
-  isHelperPro: u.isHelperPro,
 });
 
 const byId = (id: string): UserProfile =>
@@ -311,7 +276,6 @@ export const jobs: Job[] = [
     photos: [],
     applicantsCount: 3,
     createdWithSeniorMode: false,
-    isBoosted: false,
     isPaused: false,
     createdAt: hoursAgo(5),
   },
@@ -340,7 +304,6 @@ export const jobs: Job[] = [
     photos: [],
     applicantsCount: 1,
     createdWithSeniorMode: false,
-    isBoosted: false,
     isPaused: false,
     createdAt: daysAgo(1),
   },
@@ -373,8 +336,6 @@ export const jobs: Job[] = [
     applicantsCount: 2,
     createdWithSeniorMode: false,
     matchScore: 96,
-    isBoosted: true,
-    boostedUntil: daysFromNow(3),
     isPaused: false,
     createdAt: hoursAgo(2),
   },
@@ -404,7 +365,6 @@ export const jobs: Job[] = [
     applicantsCount: 1,
     createdWithSeniorMode: false,
     matchScore: 94,
-    isBoosted: false,
     isPaused: false,
     createdAt: hoursAgo(4),
   },
@@ -436,7 +396,6 @@ export const jobs: Job[] = [
     applicantsCount: 0,
     createdWithSeniorMode: false,
     matchScore: 82,
-    isBoosted: false,
     isPaused: false,
     createdAt: hoursAgo(6),
   },
@@ -468,7 +427,6 @@ export const jobs: Job[] = [
     applicantsCount: 0,
     createdWithSeniorMode: false,
     matchScore: 70,
-    isBoosted: false,
     isPaused: false,
     createdAt: hoursAgo(9),
   },
@@ -503,7 +461,6 @@ export const jobs: Job[] = [
       notify: true,
     },
     matchScore: 90,
-    isBoosted: false,
     isPaused: false,
     createdAt: hoursAgo(7),
   },
@@ -533,7 +490,6 @@ export const jobs: Job[] = [
     applicantsCount: 5,
     createdWithSeniorMode: false,
     matchScore: 87,
-    isBoosted: false,
     isPaused: false,
     createdAt: daysAgo(2),
   },
@@ -563,7 +519,6 @@ export const jobs: Job[] = [
     applicantsCount: 0,
     createdWithSeniorMode: true,
     matchScore: 85,
-    isBoosted: false,
     isPaused: false,
     createdAt: daysAgo(1),
   },
@@ -593,7 +548,6 @@ export const jobs: Job[] = [
     photos: [],
     applicantsCount: 3,
     createdWithSeniorMode: false,
-    isBoosted: false,
     isPaused: false,
     createdAt: daysAgo(8),
   },
@@ -611,7 +565,6 @@ export const applications: Application[] = [
     proposedPay: 35,
     availability: 'Today after 1 PM',
     status: 'pending',
-    isPriority: false,
     createdAt: hoursAgo(4),
   },
   {
@@ -624,7 +577,6 @@ export const applications: Application[] = [
     proposedPay: 40,
     availability: 'Today, anytime',
     status: 'pending',
-    isPriority: false,
     createdAt: hoursAgo(3),
   },
   {
@@ -635,7 +587,6 @@ export const applications: Application[] = [
     message: 'I can come by after school today. Parent-approved and reliable!',
     availability: 'Today after 3 PM',
     status: 'pending',
-    isPriority: false,
     createdAt: hoursAgo(2),
   },
 ];

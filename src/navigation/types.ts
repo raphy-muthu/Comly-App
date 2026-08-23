@@ -32,10 +32,6 @@ export type AppStackParamList = {
   ApplyToJob: { jobId: string };
   CreateJob: { seniorMode?: boolean } | undefined;
   EditJob: { jobId: string };
-  LeaveReview: { jobId: string };
-  ReportNoShow: { jobId: string };
-  MyListings: undefined;
-  MyApplications: undefined;
   HelperProfile: { userId: string };
   Report: { reportedUserId?: string; jobId?: string };
   SafetyCenter: undefined;

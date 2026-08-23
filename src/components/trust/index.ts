@@ -12,5 +12,3 @@ export { BadgeRow } from './BadgeRow';
 export type { BadgeRowProps } from './BadgeRow';
 export { YouthSkillsCard } from './YouthSkillsCard';
 export type { YouthSkillsCardProps } from './YouthSkillsCard';
-export { PremiumBadge } from './PremiumBadge';
-export type { PremiumBadgeProps, PremiumKind } from './PremiumBadge';

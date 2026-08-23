@@ -11,10 +11,6 @@ import { JobApplicationsScreen } from '@/screens/jobs/JobApplicationsScreen';
 import { ApplyToJobScreen } from '@/screens/jobs/ApplyToJobScreen';
 import { CreateJobScreen } from '@/screens/jobs/CreateJobScreen';
 import { EditJobScreen } from '@/screens/jobs/EditJobScreen';
-import { LeaveReviewScreen } from '@/screens/jobs/LeaveReviewScreen';
-import { ReportNoShowScreen } from '@/screens/jobs/ReportNoShowScreen';
-import { MyListingsScreen } from '@/screens/customer/MyListingsScreen';
-import { MyApplicationsScreen } from '@/screens/helper/MyApplicationsScreen';
 import { HelperProfileScreen } from '@/screens/shared/HelperProfileScreen';
 import { ReportScreen } from '@/screens/shared/ReportScreen';
 import { SafetyCenterScreen } from '@/screens/shared/SafetyCenterScreen';
@@ -47,18 +43,6 @@ export function AppStack() {
         component={EditJobScreen}
         options={{ presentation: 'modal' }}
       />
-      <Stack.Screen
-        name="LeaveReview"
-        component={LeaveReviewScreen}
-        options={{ presentation: 'modal' }}
-      />
-      <Stack.Screen
-        name="ReportNoShow"
-        component={ReportNoShowScreen}
-        options={{ presentation: 'modal' }}
-      />
-      <Stack.Screen name="MyListings" component={MyListingsScreen} />
-      <Stack.Screen name="MyApplications" component={MyApplicationsScreen} />
       <Stack.Screen name="HelperProfile" component={HelperProfileScreen} />
       <Stack.Screen
         name="Report"

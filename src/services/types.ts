@@ -16,14 +16,11 @@ import {
   Job,
   JobCategory,
   JobContact,
-  JobInvite,
   JobStatus,
-  NoShowEvent,
   PayType,
   Report,
   ReportCategory,
   Review,
-  ReviewCategory,
   SafetyTier,
   SupportCategory,
   SupportTicket,
@@ -89,33 +86,6 @@ export interface CreateSupportTicketInput {
   message: string;
 }
 
-export interface CreateReviewInput {
-  jobId: string;
-  revieweeId: string;
-  ratings: Record<ReviewCategory, number>;
-  comment: string;
-}
-
-export interface ReportNoShowInput {
-  jobId: string;
-  /** The other party on the job — never the reporter. */
-  reportedUserId: string;
-  note: string;
-}
-
-export interface InviteHelperInput {
-  jobId: string;
-  helperId: string;
-}
-
-/** Thrown when a review/completion action is attempted out of order. */
-export class WorkflowError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'WorkflowError';
-  }
-}
-
 export interface DataBackend {
   // ── Jobs ──
   listFeedJobs(): Promise<Job[]>;
@@ -135,26 +105,10 @@ export interface DataBackend {
   /** The other party's contact card — only for the job's matched pair. */
   getJobContact(jobId: string): Promise<JobContact | null>;
 
-  // ── Completion (mutual confirmation) ──
-  /** Owner marks the work done → job moves to `pending_confirmation`. */
-  requestJobCompletion(jobId: string): Promise<Job>;
-  /** Accepted helper agrees → job becomes `completed`. */
-  confirmJobCompletion(jobId: string): Promise<Job>;
-  /** Accepted helper disagrees → job returns to `in_progress`, owner notified. */
-  disputeJobCompletion(jobId: string, reason: string): Promise<Job>;
-
-  // ── Invites (safe pre-acceptance nudge; no contact info crosses over) ──
-  inviteHelper(input: InviteHelperInput): Promise<JobInvite>;
-  listMyInvites(): Promise<JobInvite[]>;
-  listInvitesForJob(jobId: string): Promise<JobInvite[]>;
-
   // ── People ──
   getProfile(id: string): Promise<UserProfile | null>;
   listRecommendedHelpers(): Promise<UserProfile[]>;
   listReviewsForUser(userId: string): Promise<Review[]>;
-  /** Reviews written about a single job — used to tell whether I already left one. */
-  listReviewsForJob(jobId: string): Promise<Review[]>;
-  createReview(input: CreateReviewInput): Promise<Review>;
   updateProfile(patch: Partial<UserProfile>): Promise<UserProfile>;
 
   // ── Notifications ──
@@ -178,15 +132,6 @@ export interface DataBackend {
     id: string,
     patch: { status: SupportTicket['status'] }
   ): Promise<SupportTicket>;
-
-  // ── No-show strikes ──
-  reportNoShow(input: ReportNoShowInput): Promise<NoShowEvent>;
-  listNoShowEventsForUser(userId: string): Promise<NoShowEvent[]>;
-  listAllNoShowEvents(): Promise<NoShowEvent[]>; // admin
-  resolveNoShowEvent(
-    id: string,
-    patch: { status: NoShowEvent['status']; adminNotes?: string }
-  ): Promise<NoShowEvent>;
 
   // ── Blocking ──
   listBlockedUserIds(): Promise<string[]>;

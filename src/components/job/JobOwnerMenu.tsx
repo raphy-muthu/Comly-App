@@ -1,19 +1,14 @@
 /**
  * JobOwnerMenu — bottom-sheet menu of management actions for a job's owner:
- * edit, pause/resume, mark as filled, request completion, cancel, delete
- * (soft). Rules follow the marketplace spec: open jobs are fully editable;
- * completed jobs are not.
- *
- * "Mark as completed" does NOT complete the job any more — it asks the helper
- * to confirm. Completion decides reviews and reputation for the person who did
- * the work, so it shouldn't be one party's unilateral call.
+ * edit, pause/resume, mark as filled, cancel, delete (soft). Rules follow the
+ * marketplace spec: open jobs are fully editable; completed jobs are not.
  */
 
 import { Modal, Pressable, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, radius, shadows, spacing } from '@/theme';
 import { Divider, Text, useToast } from '@/components/ui';
-import { useDeleteJob, useRequestJobCompletion, useSetJobStatus } from '@/hooks';
+import { useDeleteJob, useSetJobStatus } from '@/hooks';
 import { Job } from '@/types/domain';
 
 export interface JobOwnerMenuProps {
@@ -21,8 +16,6 @@ export interface JobOwnerMenuProps {
   visible: boolean;
   onClose: () => void;
   onEdit: () => void;
-  /** Opens the no-show report flow for this job's accepted helper. */
-  onReportNoShow: () => void;
   /** Called after the job is deleted (e.g. navigate back). */
   onDeleted: () => void;
 }
@@ -40,11 +33,9 @@ export function JobOwnerMenu({
   visible,
   onClose,
   onEdit,
-  onReportNoShow,
   onDeleted,
 }: JobOwnerMenuProps) {
   const setStatus = useSetJobStatus();
-  const requestCompletion = useRequestJobCompletion();
   const deleteJob = useDeleteJob();
   const toast = useToast();
 
@@ -99,41 +90,7 @@ export function JobOwnerMenu({
         key: 'complete',
         label: 'Mark as completed',
         icon: 'trophy-outline',
-        run: () => {
-          onClose();
-          requestCompletion.mutate(job.id, {
-            onSuccess: () =>
-              toast.success('Sent to your helper to confirm — then you can both review.'),
-            onError: (e) =>
-              toast.error(e instanceof Error ? e.message : 'Failed.'),
-          });
-        },
-      });
-    }
-    if (job.status === 'pending_confirmation') {
-      actions.push({
-        key: 'awaiting',
-        label: 'Waiting on helper confirmation',
-        icon: 'hourglass-outline',
-        run: () => {
-          onClose();
-          toast.info('Your helper still needs to confirm this job is finished.');
-        },
-      });
-    }
-    if (
-      job.assignedHelperId &&
-      ['accepted', 'in_progress', 'pending_confirmation'].includes(job.status)
-    ) {
-      actions.push({
-        key: 'no_show',
-        label: 'Report a no-show',
-        icon: 'person-remove-outline',
-        destructive: true,
-        run: () => {
-          onClose();
-          onReportNoShow();
-        },
+        run: () => change('completed', 'Job completed — nice work!'),
       });
     }
     actions.push({

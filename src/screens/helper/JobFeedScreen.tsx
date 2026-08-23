@@ -22,7 +22,7 @@ import { colors, radius, spacing, typography } from '@/theme';
 import { Chip, EmptyState, Text } from '@/components/ui';
 import { JobCard } from '@/components/job/JobCard';
 import { useFeedJobs } from '@/hooks';
-import { Job, JOB_CATEGORIES } from '@/types/domain';
+import { boostActive, Job, JOB_CATEGORIES } from '@/types/domain';
 import { AppStackParamList } from '@/navigation/types';
 
 type Nav = NativeStackNavigationProp<AppStackParamList>;
@@ -83,7 +83,16 @@ export function JobFeedScreen() {
         break;
       case 'nearby':
       default:
-        list.sort((a, b) => a.distanceMiles - b.distanceMiles);
+        // Boosted listings stay pinned above the distance sort. Without this
+        // the default chip silently re-sorted the feed and undid the ordering
+        // the backend just applied. "Highest pay" deliberately does NOT do
+        // this: that chip is an explicit request from the helper, and a paid
+        // boost shouldn't outrank what they actually asked to see.
+        list.sort((a, b) => {
+          const boost = Number(boostActive(b)) - Number(boostActive(a));
+          if (boost !== 0) return boost;
+          return a.distanceMiles - b.distanceMiles;
+        });
     }
     return list;
   }, [jobs, query, filter]);

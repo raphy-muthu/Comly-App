@@ -1,5 +1,9 @@
 /**
  * My Jobs — list of the jobs the current user has posted (customer Jobs tab).
+ *
+ * `embedded` drops the SafeAreaView and the section header so MyListingsScreen
+ * can push the same list under its own header without a doubled title or a
+ * second top inset.
  */
 
 import { FlatList, StyleSheet, View } from 'react-native';
@@ -16,19 +20,22 @@ import { AppStackParamList } from '@/navigation/types';
 
 type Nav = NativeStackNavigationProp<AppStackParamList>;
 
-export function MyJobsScreen() {
+export interface MyJobsScreenProps {
+  embedded?: boolean;
+}
+
+export function MyJobsScreen({ embedded }: MyJobsScreenProps = {}) {
   const navigation = useNavigation<Nav>();
   const { data: jobs, isLoading } = useMyJobs();
 
-  return (
-    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
-      <FlatList
+  const list = (
+    <FlatList
         data={jobs ?? []}
         keyExtractor={(job: Job) => job.id}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
-        ListHeaderComponent={<SectionHeader title="My Jobs" />}
+        ListHeaderComponent={embedded ? null : <SectionHeader title="My Jobs" />}
         ListEmptyComponent={
           !isLoading ? (
             <EmptyState
@@ -57,7 +64,14 @@ export function MyJobsScreen() {
             </View>
           ) : null
         }
-      />
+    />
+  );
+
+  if (embedded) return list;
+
+  return (
+    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
+      {list}
     </SafeAreaView>
   );
 }

@@ -5,7 +5,12 @@
  * Supabase row types. The UI never depends directly on the database shape.
  *
  * Comly is a *matchmaking* marketplace: payment is arranged off-platform, so
- * pay fields are informational. No premium/subscription concepts exist.
+ * pay fields are informational.
+ *
+ * Premium here means *visibility only* — Comly Plus (customers) and Pro Helper
+ * (helpers) change where something sorts and add a badge. There is deliberately
+ * no purchase flow, subscription table, or billing integration, because the app
+ * handles no money at all; the flags are server-owned and granted out of band.
  */
 
 // ── Roles ────────────────────────────────────────────────────────────────────
@@ -206,6 +211,7 @@ export type JobStatus =
   | 'reviewing'
   | 'accepted'
   | 'in_progress'
+  | 'pending_confirmation'
   | 'completed'
   | 'paused'
   | 'filled'
@@ -216,6 +222,7 @@ export const JOB_STATUS_LABELS: Record<JobStatus, string> = {
   reviewing: 'Reviewing',
   accepted: 'Accepted',
   in_progress: 'In Progress',
+  pending_confirmation: 'Awaiting Confirmation',
   completed: 'Completed',
   paused: 'Paused',
   filled: 'Filled',
@@ -227,6 +234,8 @@ export const ACTIVE_JOB_STATUSES: JobStatus[] = [
   'open',
   'reviewing',
   'accepted',
+  'in_progress',
+  'pending_confirmation',
   'paused',
 ];
 
@@ -247,6 +256,10 @@ export interface UserRef {
   rating: number;
   jobsCount: number;
   isTrusted: boolean;
+  /** Comly Plus (customer side) — shown as a badge on their listings. */
+  isCustomerPlus?: boolean;
+  /** Pro Helper — shown as a badge on their applications. */
+  isHelperPro?: boolean;
 }
 
 export interface UserProfile {
@@ -260,6 +273,17 @@ export interface UserProfile {
   jobsCount: number; // jobs posted (customer) or completed (helper)
   reputationScore: number; // 0–100, shown as "Trust Score"
   isTrusted: boolean;
+  /**
+   * Confirmed no-show strikes. Server-owned (never self-asserted) and shown to
+   * the affected user for transparency — see NO_SHOW_POLICY.
+   */
+  strikes: number;
+  /** Set by an admin once strikes reach the suspension threshold. */
+  isSuspended: boolean;
+  /** Comly Plus: listing boost + priority matching. Server-owned. */
+  isCustomerPlus: boolean;
+  /** Pro Helper: application priority + profile visibility. Server-owned. */
+  isHelperPro: boolean;
   verification: VerificationStatus;
   parentApprovalStatus: ParentApprovalStatus;
   parentName?: string;
@@ -308,9 +332,16 @@ export interface Job {
   familyContact?: FamilyContact; // private, never shown publicly
   /** AI match score for the viewing helper (0–100), when available. */
   matchScore?: number;
+  /** Boosted listings sort above the rest of the feed until boostedUntil. */
+  isBoosted: boolean;
+  boostedUntil?: string | null;
   isPaused: boolean;
   deletedAt?: string | null;
   contactUnlockedAt?: string | null;
+  /** Set when the customer marks the job done and awaits helper confirmation. */
+  completionRequestedAt?: string | null;
+  /** Set once BOTH sides have confirmed the job is finished. */
+  completedAt?: string | null;
   createdAt: string;
 }
 
@@ -330,6 +361,10 @@ export interface Application {
   proposedPay?: number;
   availability?: string;
   status: ApplicationStatus;
+  /** Pro Helper applications sort above regular ones. Set server-side. */
+  isPriority: boolean;
+  /** Why it was prioritized, shown on the badge so the reason is never hidden. */
+  priorityReason?: string;
   createdAt: string;
 }
 
@@ -456,6 +491,9 @@ export type NotificationType =
   | 'review_received'
   | 'verification'
   | 'report_update'
+  | 'job_invite'
+  | 'completion_requested'
+  | 'completion_confirmed'
   | 'safety';
 
 export interface AppNotification {
@@ -492,6 +530,134 @@ export interface ImpactStats {
   repeatCustomers: number;
   activeTeenHelpers: number;
   topCategories: { label: string; count: number }[];
+}
+
+// ── No-show strikes ──────────────────────────────────────────────────────────
+/**
+ * Written policy for the strike system (item 3 of the open-items list). Kept in
+ * code so the UI, the admin console, and the docs can't drift apart.
+ *
+ * What counts as a no-show: the *other* party on an accepted job reports that
+ * the person never showed up. It is never auto-detected from a passing
+ * scheduled time — a job can legitimately be rescheduled between neighbors.
+ *
+ * Consequences are graduated and auditable: every strike is a row in
+ * `no_show_events` with a reporter, a job, and an admin resolution, so a strike
+ * can be reviewed and reversed. Reports start as `pending`; only an admin
+ * confirming one turns it into a strike.
+ */
+export const NO_SHOW_POLICY = {
+  /** Strikes at or above this show a public "recent no-shows" caution. */
+  warningThreshold: 2,
+  /** Strikes at or above this let an admin suspend the account. */
+  suspensionThreshold: 3,
+  appealNote:
+    'Think a strike is wrong? Open Help & Support and choose "Account help" — an admin reviews every appeal.',
+} as const;
+
+export type NoShowStatus = 'pending' | 'confirmed' | 'dismissed';
+
+export const NO_SHOW_STATUS_LABELS: Record<NoShowStatus, string> = {
+  pending: 'Under review',
+  confirmed: 'Strike applied',
+  dismissed: 'Dismissed',
+};
+
+export interface NoShowEvent {
+  id: string;
+  jobId: string;
+  jobTitle?: string;
+  /** The person accused of not showing up. */
+  reportedUserId: string;
+  reporterId: string;
+  note: string;
+  status: NoShowStatus;
+  adminNotes?: string;
+  createdAt: string;
+}
+
+/** Whether `strikes` should surface a caution on a public profile. */
+export function strikeTone(strikes: number): 'neutral' | 'warning' | 'danger' {
+  if (strikes >= NO_SHOW_POLICY.suspensionThreshold) return 'danger';
+  if (strikes >= NO_SHOW_POLICY.warningThreshold) return 'warning';
+  return 'neutral';
+}
+
+// ── Job invites (safe alternative to pre-acceptance contact) ─────────────────
+/**
+ * "Invite to apply" — a customer can nudge a recommended helper toward one of
+ * their open jobs. Deliberately NOT a contact channel: no phone number, email,
+ * or free-text message crosses over. The helper still applies through the
+ * normal flow, so the teen-safety gate and the contact-unlock-after-acceptance
+ * rule both stay intact.
+ */
+export type JobInviteStatus = 'sent' | 'applied' | 'dismissed';
+
+export interface JobInvite {
+  id: string;
+  jobId: string;
+  jobTitle?: string;
+  customerId: string;
+  helperId: string;
+  status: JobInviteStatus;
+  createdAt: string;
+}
+
+// ── Premium visibility ───────────────────────────────────────────────────────
+/**
+ * Premium improves visibility; it never hides free listings. Everything still
+ * appears in the feed — a boost only changes the order, and the badge says why.
+ */
+export const PRIORITY_REASON_PRO_HELPER = 'Pro Helper — priority application';
+
+/** A boost only counts while it hasn't expired. */
+export function boostActive(
+  job: Pick<Job, 'isBoosted' | 'boostedUntil'>,
+  now: number = Date.now()
+): boolean {
+  if (!job.isBoosted) return false;
+  if (!job.boostedUntil) return true;
+  return new Date(job.boostedUntil).getTime() > now;
+}
+
+/**
+ * Helper job-feed ordering, in the documented precedence:
+ * boosted → Comly Plus customer → AI match score → distance → newest.
+ */
+export function compareFeedJobs(a: Job, b: Job, now: number = Date.now()): number {
+  const boost = Number(boostActive(b, now)) - Number(boostActive(a, now));
+  if (boost !== 0) return boost;
+
+  const plus =
+    Number(!!b.customer.isCustomerPlus) - Number(!!a.customer.isCustomerPlus);
+  if (plus !== 0) return plus;
+
+  const match = (b.matchScore ?? 0) - (a.matchScore ?? 0);
+  if (match !== 0) return match;
+
+  if (a.distanceMiles !== b.distanceMiles) return a.distanceMiles - b.distanceMiles;
+  return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+}
+
+/**
+ * Customer applications ordering:
+ * accepted → priority (Pro Helper) → rating → completed jobs → earliest applied.
+ *
+ * Earliest-first at the tail, not newest: among otherwise equal applicants the
+ * one who responded first has the better claim.
+ */
+export function compareApplications(a: Application, b: Application): number {
+  const accepted =
+    Number(b.status === 'accepted') - Number(a.status === 'accepted');
+  if (accepted !== 0) return accepted;
+
+  const priority = Number(!!b.isPriority) - Number(!!a.isPriority);
+  if (priority !== 0) return priority;
+
+  if (b.helper.rating !== a.helper.rating) return b.helper.rating - a.helper.rating;
+  if (b.helper.jobsCount !== a.helper.jobsCount)
+    return b.helper.jobsCount - a.helper.jobsCount;
+  return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
 }
 
 // ── Derivations ──────────────────────────────────────────────────────────────

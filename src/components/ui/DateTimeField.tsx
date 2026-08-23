@@ -20,6 +20,14 @@ export interface DateTimeFieldProps {
   onChange: (d: Date) => void;
   placeholder?: string;
   minimumDate?: Date;
+  /**
+   * Time mode only: the calendar day the time will land on. When that day is
+   * today, the picker floors at the current clock time — without it "3 PM" is
+   * selectable at 6 PM and produces a listing scheduled in the past.
+   */
+  onDate?: Date | null;
+  /** Inline validation message rendered under the field. */
+  error?: string;
 }
 
 export function DateTimeField({
@@ -29,8 +37,15 @@ export function DateTimeField({
   onChange,
   placeholder,
   minimumDate,
+  onDate,
+  error,
 }: DateTimeFieldProps) {
   const [open, setOpen] = useState(false);
+
+  const isToday =
+    !!onDate && new Date(onDate).toDateString() === new Date().toDateString();
+  const resolvedMinimum =
+    mode === 'date' ? minimumDate ?? new Date() : isToday ? new Date() : undefined;
 
   const display =
     value == null
@@ -53,7 +68,10 @@ export function DateTimeField({
       </Text>
       {/* Toggle: on iOS the inline spinner stays open, so tapping the field
           again is how it closes — without this the picker was un-dismissable. */}
-      <Pressable style={styles.field} onPress={() => setOpen((o) => !o)}>
+      <Pressable
+        style={[styles.field, !!error && styles.fieldError]}
+        onPress={() => setOpen((o) => !o)}
+      >
         <Ionicons
           name={mode === 'date' ? 'calendar-outline' : 'time-outline'}
           size={18}
@@ -72,7 +90,7 @@ export function DateTimeField({
         <DateTimePicker
           mode={mode}
           value={value ?? new Date()}
-          minimumDate={mode === 'date' ? minimumDate ?? new Date() : undefined}
+          minimumDate={resolvedMinimum}
           display={Platform.OS === 'ios' ? 'spinner' : 'default'}
           onChange={(event: DateTimePickerEvent, selected?: Date) => {
             // Android closes on selection; iOS stays open until tapped away.
@@ -80,6 +98,12 @@ export function DateTimeField({
             if (event.type === 'set' && selected) onChange(selected);
           }}
         />
+      )}
+
+      {!!error && (
+        <Text variant="caption" color="danger" style={styles.error}>
+          {error}
+        </Text>
       )}
     </View>
   );
@@ -98,4 +122,6 @@ const styles = StyleSheet.create({
     gap: spacing.base,
   },
   value: { flex: 1 },
+  fieldError: { borderWidth: 1, borderColor: colors.error },
+  error: { marginTop: 4 },
 });

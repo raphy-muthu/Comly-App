@@ -13,7 +13,7 @@
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 import { USE_MOCKS, hasSupabaseConfig } from '@/config/env';
-import { AgeGroup, Role } from '@/types/domain';
+import { Role } from '@/types/domain';
 import { getSupabase } from './supabaseClient';
 
 export type OAuthProvider = 'google' | 'apple';
@@ -29,11 +29,12 @@ export interface SignUpParams {
   neighborhood: string;
   role: Role;
   /**
-   * Drives the teen-safety gate. Server-owned after signup (migration 0005
-   * pins `age_group`), so this is the one moment it can be set from the client
-   * — which is exactly why it is a required field, not an optional one.
+   * ISO date (YYYY-MM-DD). The single source of truth for the teen-safety gate:
+   * migration 0013 derives both `age_bracket` and `age_group` from it and
+   * refuses the signup outright below the minimum age, so the app no longer
+   * sends a self-reported age group at all. Server-owned once set.
    */
-  ageGroup: AgeGroup;
+  dateOfBirth: string;
 }
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -74,6 +75,13 @@ export function friendlyError(raw: string): string {
   }
   if (m.includes('network') || m.includes('fetch')) {
     return 'Can’t reach the server. Check your connection and try again.';
+  }
+  // Migration 0013's signup gate raises when the date of birth is missing,
+  // unparseable, or below the minimum age. GoTrue usually collapses a trigger
+  // exception into this one opaque string, which would otherwise leave the
+  // user staring at "Database error" with nothing to act on.
+  if (m.includes('database error saving new user')) {
+    return 'We couldn’t create your account. Please check your date of birth and try again.';
   }
   return raw;
 }
@@ -116,7 +124,9 @@ export async function signUpWithEmail(params: SignUpParams): Promise<AuthResult>
         name: params.name.trim(),
         neighborhood: params.neighborhood.trim(),
         roles: [params.role],
-        age_group: params.ageGroup,
+        // age_group is deliberately not sent: 0013 derives it from this date,
+        // so a client-supplied value would be ignored anyway.
+        date_of_birth: params.dateOfBirth,
       },
     },
   });

@@ -4,6 +4,7 @@
  */
 
 import {
+  bracketFromDateOfBirth,
   categoryLabel,
   deriveBadges,
   eligibilityFor,
@@ -16,6 +17,46 @@ const verified = (parentApproved: boolean): VerificationStatus => ({
   photoAdded: true,
   schoolEmailVerified: false,
   parentApproved,
+});
+
+describe('bracketFromDateOfBirth (age floor)', () => {
+  // A fixed reference date keeps these assertions stable as real time passes.
+  const TODAY = new Date('2026-08-25T12:00:00Z');
+
+  it('rejects anyone under 13', () => {
+    // 12 years and 364 days old — one day short of the floor.
+    expect(bracketFromDateOfBirth('2013-08-26', TODAY)).toBeNull();
+  });
+
+  it('admits a 13-year-old on their birthday, as under_14', () => {
+    expect(bracketFromDateOfBirth('2013-08-25', TODAY)).toBe('under_14');
+  });
+
+  it('brackets 14- and 15-year-olds together', () => {
+    expect(bracketFromDateOfBirth('2012-08-25', TODAY)).toBe('fourteen_fifteen');
+    expect(bracketFromDateOfBirth('2010-08-26', TODAY)).toBe('fourteen_fifteen');
+  });
+
+  it('brackets 16- and 17-year-olds together', () => {
+    expect(bracketFromDateOfBirth('2010-08-25', TODAY)).toBe('sixteen_seventeen');
+    expect(bracketFromDateOfBirth('2008-08-26', TODAY)).toBe('sixteen_seventeen');
+  });
+
+  it('treats 18 and over as adult', () => {
+    expect(bracketFromDateOfBirth('2008-08-25', TODAY)).toBe('adult');
+    expect(bracketFromDateOfBirth('1985-03-14', TODAY)).toBe('adult');
+  });
+
+  it('rejects unparseable input rather than defaulting to adult', () => {
+    // NaN comparisons are all false, so an unguarded ladder would fall
+    // through to 'adult' and hand full privileges to garbage input.
+    expect(bracketFromDateOfBirth('not-a-date', TODAY)).toBeNull();
+    expect(bracketFromDateOfBirth('', TODAY)).toBeNull();
+  });
+
+  it('rejects a future date of birth', () => {
+    expect(bracketFromDateOfBirth('2030-01-01', TODAY)).toBeNull();
+  });
 });
 
 describe('eligibilityFor (teen-safety gate)', () => {

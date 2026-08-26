@@ -20,6 +20,11 @@ export interface DateTimeFieldProps {
   onChange: (d: Date) => void;
   placeholder?: string;
   minimumDate?: Date;
+  /**
+   * Upper bound for date mode. Needed for backward-looking dates such as a
+   * date of birth, where the default "no past dates" floor is inverted.
+   */
+  maximumDate?: Date;
 }
 
 export function DateTimeField({
@@ -29,6 +34,7 @@ export function DateTimeField({
   onChange,
   placeholder,
   minimumDate,
+  maximumDate,
 }: DateTimeFieldProps) {
   const [open, setOpen] = useState(false);
 
@@ -73,6 +79,7 @@ export function DateTimeField({
           mode={mode}
           value={value ?? new Date()}
           minimumDate={mode === 'date' ? minimumDate ?? new Date() : undefined}
+          maximumDate={mode === 'date' ? maximumDate : undefined}
           display={Platform.OS === 'ios' ? 'spinner' : 'default'}
           onChange={(event: DateTimePickerEvent, selected?: Date) => {
             // Android closes on selection; iOS stays open until tapped away.

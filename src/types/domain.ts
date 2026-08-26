@@ -14,6 +14,50 @@ export type Role = 'customer' | 'helper' | 'admin';
 /** Coarse age bracket — drives teen-safety gating, not an exact birth date. */
 export type AgeGroup = 'teen' | 'adult';
 
+/**
+ * Fine-grained age bracket derived from a date of birth. FLSA hazardous-work
+ * and hours rules draw their lines at 14, 16 and 18, which a plain teen/adult
+ * split cannot express.
+ */
+export type AgeBracket = 'under_14' | 'fourteen_fifteen' | 'sixteen_seventeen' | 'adult';
+
+/** Comly's minimum signup age. Below this there is no valid bracket. */
+export const MIN_SIGNUP_AGE = 13;
+
+/**
+ * Completed years between two dates. Subtracting calendar years alone
+ * overstates age by one until the birthday has actually passed this year.
+ */
+function yearsBetween(from: Date, to: Date): number {
+  let years = to.getUTCFullYear() - from.getUTCFullYear();
+  const monthDiff = to.getUTCMonth() - from.getUTCMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && to.getUTCDate() < from.getUTCDate())) {
+    years -= 1;
+  }
+  return years;
+}
+
+/**
+ * Derives an age bracket from a date of birth, or null if the person is below
+ * MIN_SIGNUP_AGE. Pass `today` explicitly to keep callers deterministic.
+ */
+export function bracketFromDateOfBirth(
+  dateOfBirth: string,
+  today: Date
+): AgeBracket | null {
+  const dob = new Date(dateOfBirth);
+  // Every NaN comparison is false, so an unguarded ladder would fall through
+  // to 'adult' and grant unrestricted access to unparseable input.
+  if (Number.isNaN(dob.getTime())) return null;
+
+  const age = yearsBetween(dob, today);
+  if (age < MIN_SIGNUP_AGE) return null;
+  if (age < 14) return 'under_14';
+  if (age < 16) return 'fourteen_fifteen';
+  if (age < 18) return 'sixteen_seventeen';
+  return 'adult';
+}
+
 export type ParentApprovalStatus = 'not_required' | 'pending' | 'approved';
 
 // ── Verification (government ID intentionally removed) ───────────────────────

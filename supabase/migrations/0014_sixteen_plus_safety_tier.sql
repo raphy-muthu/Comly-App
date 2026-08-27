@@ -1,0 +1,28 @@
+-- ════════════════════════════════════════════════════════════════════════════
+-- Comly — hazard classification: a real 16+ tier
+--
+-- 0013 gave the system a true age bracket ('under_14' | 'fourteen_fifteen' |
+-- 'sixteen_seventeen' | 'adult') derived from a stored date of birth. Nothing
+-- read it yet: the safety gate still resolved every minor to the coarse
+-- teen/adult `age_group`, so the two age lines that actually matter were
+-- inexpressible.
+--
+-- The concrete failure this closes: a job whose text mentions mowing was
+-- classified 'caution' — a warning label, applicable by a 13-year-old. Running
+-- a power-driven mower, trimmer or blower is prohibited below 16 under the
+-- federal hazardous-occupation rules, and unlike 'adult_supervision' it is not
+-- something guardian approval unlocks. Neither existing tier could say that:
+-- 'adult_supervision' is too weak (approval lifts it) and 'eighteen_plus_only'
+-- is too strong (it would bar 16- and 17-year-olds from ordinary lawn work).
+--
+-- So the tier is new vocabulary, not a re-labelling. The matching application
+-- logic lives in eligibilityFor() (src/types/domain.ts) and the keyword
+-- classifier in src/services/ai.ts; the edge function prompt in
+-- supabase/functions/ai-safety-review/index.ts is updated to match.
+-- ════════════════════════════════════════════════════════════════════════════
+
+-- Additive only. Existing rows keep their tier: a job already stored as
+-- 'caution' stays 'caution' until it is re-reviewed, since re-classifying
+-- historical posts would need the original text run back through the
+-- classifier and is a data task, not a schema one.
+alter type safety_tier add value if not exists 'sixteen_plus_only';

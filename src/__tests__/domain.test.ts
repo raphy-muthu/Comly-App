@@ -8,6 +8,7 @@ import {
   categoryLabel,
   deriveBadges,
   eligibilityFor,
+  fallbackBracket,
   VerificationStatus,
 } from '@/types/domain';
 
@@ -62,36 +63,95 @@ describe('bracketFromDateOfBirth (age floor)', () => {
 describe('eligibilityFor (teen-safety gate)', () => {
   it('blocks everyone from blocked jobs', () => {
     expect(eligibilityFor('blocked', 'adult', false).canApply).toBe(false);
-    expect(eligibilityFor('blocked', 'teen', true).canApply).toBe(false);
+    expect(eligibilityFor('blocked', 'sixteen_seventeen', true).canApply).toBe(false);
+    expect(eligibilityFor('blocked', 'under_14', true).canApply).toBe(false);
   });
 
   it('lets adults apply to any non-blocked tier', () => {
     expect(eligibilityFor('teen_safe', 'adult', false).canApply).toBe(true);
     expect(eligibilityFor('caution', 'adult', false).canApply).toBe(true);
     expect(eligibilityFor('adult_supervision', 'adult', false).canApply).toBe(true);
+    expect(eligibilityFor('sixteen_plus_only', 'adult', false).canApply).toBe(true);
     expect(eligibilityFor('eighteen_plus_only', 'adult', false).canApply).toBe(true);
   });
 
   it('never lets minors apply to 18+ jobs', () => {
-    expect(eligibilityFor('eighteen_plus_only', 'teen', false).canApply).toBe(false);
+    expect(eligibilityFor('eighteen_plus_only', 'sixteen_seventeen', false).canApply).toBe(
+      false
+    );
     // Parent approval must NOT override the 18+ restriction.
-    expect(eligibilityFor('eighteen_plus_only', 'teen', true).canApply).toBe(false);
+    expect(eligibilityFor('eighteen_plus_only', 'sixteen_seventeen', true).canApply).toBe(
+      false
+    );
+    expect(eligibilityFor('eighteen_plus_only', 'fourteen_fifteen', true).canApply).toBe(
+      false
+    );
   });
 
-  it('gates supervision-tier jobs on parent approval for teens', () => {
-    expect(eligibilityFor('adult_supervision', 'teen', false).canApply).toBe(false);
-    expect(eligibilityFor('adult_supervision', 'teen', true).canApply).toBe(true);
+  it('enforces the 16 floor on power-equipment jobs, approval or not', () => {
+    expect(eligibilityFor('sixteen_plus_only', 'sixteen_seventeen', false).canApply).toBe(
+      true
+    );
+    expect(eligibilityFor('sixteen_plus_only', 'fourteen_fifteen', false).canApply).toBe(
+      false
+    );
+    // The whole point of a separate tier: a guardian cannot sign this away.
+    expect(eligibilityFor('sixteen_plus_only', 'fourteen_fifteen', true).canApply).toBe(
+      false
+    );
+    expect(eligibilityFor('sixteen_plus_only', 'under_14', true).canApply).toBe(false);
   });
 
-  it('lets teens apply to teen-safe and caution jobs', () => {
-    expect(eligibilityFor('teen_safe', 'teen', false).canApply).toBe(true);
-    expect(eligibilityFor('caution', 'teen', false).canApply).toBe(true);
+  it('gates supervision-tier jobs on parent approval for minors', () => {
+    expect(eligibilityFor('adult_supervision', 'fourteen_fifteen', false).canApply).toBe(
+      false
+    );
+    expect(eligibilityFor('adult_supervision', 'fourteen_fifteen', true).canApply).toBe(
+      true
+    );
+    expect(eligibilityFor('adult_supervision', 'sixteen_seventeen', true).canApply).toBe(
+      true
+    );
+  });
+
+  it('holds under-14 helpers to teen-safe work only', () => {
+    expect(eligibilityFor('teen_safe', 'under_14', false).canApply).toBe(true);
+    // Below the general 14-year minimum for non-agricultural work: no
+    // weather/physical caution jobs, and no supervised work even with a
+    // guardian's approval.
+    expect(eligibilityFor('caution', 'under_14', false).canApply).toBe(false);
+    expect(eligibilityFor('adult_supervision', 'under_14', true).canApply).toBe(false);
+  });
+
+  it('lets 14+ helpers apply to teen-safe and caution jobs', () => {
+    expect(eligibilityFor('teen_safe', 'fourteen_fifteen', false).canApply).toBe(true);
+    expect(eligibilityFor('caution', 'fourteen_fifteen', false).canApply).toBe(true);
+    expect(eligibilityFor('caution', 'sixteen_seventeen', false).canApply).toBe(true);
   });
 
   it('explains every refusal', () => {
     expect(eligibilityFor('blocked', 'adult', false).reason).toBeTruthy();
-    expect(eligibilityFor('eighteen_plus_only', 'teen', false).reason).toBeTruthy();
-    expect(eligibilityFor('adult_supervision', 'teen', false).reason).toBeTruthy();
+    expect(
+      eligibilityFor('eighteen_plus_only', 'sixteen_seventeen', false).reason
+    ).toBeTruthy();
+    expect(
+      eligibilityFor('sixteen_plus_only', 'fourteen_fifteen', false).reason
+    ).toBeTruthy();
+    expect(
+      eligibilityFor('adult_supervision', 'fourteen_fifteen', false).reason
+    ).toBeTruthy();
+    expect(eligibilityFor('caution', 'under_14', false).reason).toBeTruthy();
+  });
+});
+
+describe('fallbackBracket (profiles predating the date-of-birth column)', () => {
+  it('fails closed for a legacy teen rather than guessing an age', () => {
+    expect(fallbackBracket('teen')).toBe('under_14');
+    expect(eligibilityFor('caution', fallbackBracket('teen'), true).canApply).toBe(false);
+  });
+
+  it('leaves legacy adults unrestricted', () => {
+    expect(fallbackBracket('adult')).toBe('adult');
   });
 });
 

@@ -239,7 +239,7 @@ export function JobDetailScreen() {
           (() => {
             const elig = eligibilityFor(
               job.safetyTier,
-              user?.ageGroup ?? 'adult',
+              user?.ageBracket ?? 'adult',
               user?.verification.parentApproved ?? false
             );
             return (

@@ -5,7 +5,7 @@
 // POST { title: string, description: string }
 // → { safe: boolean, tier: SafetyTier, flags: string[], note: string }
 //
-// `tier` MUST be one of the five values in the app's SafetyTier union (see
+// `tier` MUST be one of the six values in the app's SafetyTier union (see
 // src/types/domain.ts) — they are also Postgres enum values, so anything else
 // fails the jobs insert outright. An earlier revision of this prompt asked for
 // "adults_only", which exists in neither.
@@ -24,7 +24,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { title, description } = await req.json();
+    const { title, description, category } = await req.json();
 
     const content = await chat({
       json: true,
@@ -33,13 +33,20 @@ Deno.serve(async (req) => {
         'helpers are teens. Flag scams, unsafe physical work (roofs, ladders, ' +
         'chemicals, electrical), inappropriate or adult-only requests. Respond ' +
         'ONLY with JSON: {"safe": boolean, "tier": "teen_safe"|"caution"|' +
-        '"adult_supervision"|"eighteen_plus_only"|"blocked", ' +
+        '"adult_supervision"|"sixteen_plus_only"|"eighteen_plus_only"|"blocked", ' +
         '"flags": string[], "note": string}. ' +
         'Tier meanings: teen_safe = fine for a minor unsupervised; ' +
         'caution = minor may do it but should take care; ' +
         'adult_supervision = minor needs guardian approval; ' +
+        'sixteen_plus_only = involves power-driven equipment (mowers, ' +
+        'trimmers, edgers, leaf or snow blowers, tractors), which is ' +
+        'prohibited under 16 regardless of guardian approval; ' +
         'eighteen_plus_only = no minors; blocked = not allowed at all.',
-      user: `Title: ${title ?? ''}\nDescription: ${description ?? ''}`,
+      // The category is often the strongest hazard signal — "lawn_care" is a
+      // mowing job however gently the description is worded.
+      user:
+        `Category: ${category ?? 'unspecified'}\n` +
+        `Title: ${title ?? ''}\nDescription: ${description ?? ''}`,
     });
 
     const parsed = JSON.parse(content);
@@ -51,6 +58,7 @@ Deno.serve(async (req) => {
       'teen_safe',
       'caution',
       'adult_supervision',
+      'sixteen_plus_only',
       'eighteen_plus_only',
       'blocked',
     ];

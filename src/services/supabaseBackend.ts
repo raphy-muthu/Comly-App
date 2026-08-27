@@ -14,6 +14,7 @@
 import {
   Application,
   AppNotification,
+  fallbackBracket,
   ImpactStats,
   Job,
   Report,
@@ -123,6 +124,10 @@ function mapProfile(row: any): UserProfile {
     neighborhood: row.neighborhood ?? '',
     roles: row.roles ?? ['customer'],
     ageGroup: row.age_group ?? 'adult',
+    // Rows created before migration 0013 have no date of birth and therefore no
+    // bracket; fallbackBracket() resolves those to the most restricted bracket
+    // rather than inferring one from the self-reported age group.
+    ageBracket: row.age_bracket ?? fallbackBracket(row.age_group ?? 'adult'),
     rating: Number(row.rating ?? 0),
     jobsCount: row.jobs_count ?? 0,
     reputationScore: row.reputation_score ?? 0,

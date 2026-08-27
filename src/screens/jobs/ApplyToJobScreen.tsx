@@ -39,7 +39,7 @@ export function ApplyToJobScreen() {
   const eligibility = job
     ? eligibilityFor(
         job.safetyTier,
-        user?.ageGroup ?? 'adult',
+        user?.ageBracket ?? 'adult',
         user?.verification.parentApproved ?? false
       )
     : { canApply: true as boolean, reason: undefined as string | undefined };

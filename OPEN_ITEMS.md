@@ -1,6 +1,6 @@
 # Comly — Open Feature Requests
 
-Context: Comly is a React Native/Expo neighborhood-services marketplace (residents post small jobs, helpers — including teens — apply). Backend is Supabase (Auth, Postgres, RLS, Storage, Edge Functions), with an existing safety-tier system (`teen_safe` / `caution` / `adult_supervision` / `eighteen_plus_only` / `blocked`) that gates who can apply to what, and a contact-unlock-after-acceptance model (helper/customer contact info is hidden until a job application is accepted, specifically to keep interactions inside the app's safety review). Mock-mode-first architecture: most things can be built and tested against `EXPO_PUBLIC_USE_MOCKS=true` without touching production data.
+Context: Comly is a React Native/Expo neighborhood-services marketplace (residents post small jobs, helpers — including teens — apply). Backend is Supabase (Auth, Postgres, RLS, Storage, Edge Functions), with an existing safety-tier system (`teen_safe` / `caution` / `adult_supervision` / `sixteen_plus_only` / `eighteen_plus_only` / `blocked`) that gates who can apply to what, and a contact-unlock-after-acceptance model (helper/customer contact info is hidden until a job application is accepted, specifically to keep interactions inside the app's safety review). Mock-mode-first architecture: most things can be built and tested against `EXPO_PUBLIC_USE_MOCKS=true` without touching production data.
 
 Each item below has: what was asked, what currently exists (verified by reading the code, not assumed), the design tension if any, and a suggested scope.
 

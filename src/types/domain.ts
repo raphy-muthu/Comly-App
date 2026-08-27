@@ -58,6 +58,18 @@ export function bracketFromDateOfBirth(
   return 'adult';
 }
 
+/**
+ * Bracket for a profile that predates migration 0013 and therefore has no
+ * stored date of birth. It fails closed: a legacy minor is treated as the most
+ * restricted bracket rather than being waved through on the strength of a
+ * self-reported "teen". Those accounts need a real date of birth collected
+ * before they can take anything beyond teen-safe work — which is the intended
+ * pressure, not a bug.
+ */
+export function fallbackBracket(ageGroup: AgeGroup): AgeBracket {
+  return ageGroup === 'adult' ? 'adult' : 'under_14';
+}
+
 export type ParentApprovalStatus = 'not_required' | 'pending' | 'approved';
 
 // ── Verification (government ID intentionally removed) ───────────────────────
@@ -146,10 +158,18 @@ export const JOB_CATEGORIES: Record<
 };
 
 // ── Safety tiers (5 levels) ──────────────────────────────────────────────────
+/**
+ * Ordered from least to most restrictive. `sixteen_plus_only` exists because
+ * the federal hazardous-occupation rules draw a hard line at 16 that none of
+ * the other tiers could express: power-driven equipment (mowers, trimmers,
+ * blowers) is off-limits below 16 regardless of parent approval, which is
+ * neither "supervision fixes it" nor "no minors at all".
+ */
 export type SafetyTier =
   | 'teen_safe'
   | 'caution'
   | 'adult_supervision'
+  | 'sixteen_plus_only'
   | 'eighteen_plus_only'
   | 'blocked';
 
@@ -174,6 +194,12 @@ export const SAFETY_TIERS: Record<
     tone: 'warning',
     description: 'Comly recommends adult supervision. Teen helpers need parent/guardian approval.',
   },
+  sixteen_plus_only: {
+    label: '16+ Only',
+    tone: 'danger',
+    description:
+      'Involves power-driven equipment. Helpers under 16 cannot apply, and parent approval does not lift this.',
+  },
   eighteen_plus_only: {
     label: '18+ Only',
     tone: 'danger',
@@ -186,21 +212,73 @@ export const SAFETY_TIERS: Record<
   },
 };
 
-/** Whether a helper may apply to a job of the given tier. */
+/** Brackets in increasing order of what they're permitted to do. */
+const BRACKET_RANK: Record<AgeBracket, number> = {
+  under_14: 0,
+  fourteen_fifteen: 1,
+  sixteen_seventeen: 2,
+  adult: 3,
+};
+
+/**
+ * The youngest bracket allowed to apply to each tier, before parent approval
+ * is considered. `null` means nobody may apply.
+ *
+ * The lines follow the federal child-labor rules the tiers were named after:
+ *
+ *   • under_14 — below the general 14-year minimum for non-agricultural work.
+ *     Restricted to `teen_safe` only, i.e. the chore-scale tasks that fall
+ *     under the casual/incidental exemptions, and never to anything the
+ *     classifier flagged as physical, weather-exposed, or supervised.
+ *   • fourteen_fifteen — may do light work, but no power-driven equipment.
+ *   • sixteen_seventeen — power equipment is allowed; the 18-only hazardous
+ *     occupations (roofs, ladders, chemicals, power tools) are not.
+ *
+ * This is a rank comparison rather than a per-tier branch so that adding a
+ * tier forces a decision here instead of silently defaulting to permissive.
+ */
+const MIN_BRACKET_FOR_TIER: Record<SafetyTier, AgeBracket | null> = {
+  teen_safe: 'under_14',
+  caution: 'fourteen_fifteen',
+  adult_supervision: 'fourteen_fifteen',
+  sixteen_plus_only: 'sixteen_seventeen',
+  eighteen_plus_only: 'adult',
+  blocked: null,
+};
+
+const TOO_YOUNG_REASON: Record<SafetyTier, string> = {
+  teen_safe: '',
+  caution: 'Helpers under 14 can only apply to teen-safe tasks.',
+  adult_supervision: 'Helpers under 14 cannot apply to tasks needing adult supervision.',
+  sixteen_plus_only:
+    'This task involves power-driven equipment, which helpers under 16 cannot use.',
+  eighteen_plus_only: 'Helpers under 18 cannot apply to 18+ jobs.',
+  blocked: 'This task is not allowed on Comly.',
+};
+
+/**
+ * Whether a helper may apply to a job of the given tier.
+ *
+ * Takes the derived `AgeBracket` (server-owned, computed from date of birth by
+ * migration 0013) rather than the coarse teen/adult `AgeGroup` it used to take.
+ * The old signature could not express the 14 and 16 floors at all — every minor
+ * from 13 to 17 was one undifferentiated "teen".
+ */
 export function eligibilityFor(
   tier: SafetyTier,
-  ageGroup: AgeGroup,
+  bracket: AgeBracket,
   parentApproved: boolean
 ): { canApply: boolean; reason?: string } {
-  if (tier === 'blocked') {
-    return { canApply: false, reason: 'This task is not allowed on Comly.' };
+  const minimum = MIN_BRACKET_FOR_TIER[tier];
+  if (minimum === null) {
+    return { canApply: false, reason: TOO_YOUNG_REASON.blocked };
   }
-  if (ageGroup === 'adult') return { canApply: true };
-  // Teen helper:
-  if (tier === 'eighteen_plus_only') {
-    return { canApply: false, reason: 'Helpers under 18 cannot apply to 18+ jobs.' };
+  if (BRACKET_RANK[bracket] < BRACKET_RANK[minimum]) {
+    return { canApply: false, reason: TOO_YOUNG_REASON[tier] };
   }
-  if (tier === 'adult_supervision' && !parentApproved) {
+  // Old enough by itself; supervision tasks additionally need a guardian on
+  // record. Adults are their own guardian.
+  if (tier === 'adult_supervision' && bracket !== 'adult' && !parentApproved) {
     return {
       canApply: false,
       reason: 'Parent/guardian approval is required for this task.',
@@ -300,6 +378,12 @@ export interface UserProfile {
   neighborhood: string;
   roles: Role[];
   ageGroup: AgeGroup;
+  /**
+   * Server-derived from the stored date of birth. This — not `ageGroup` — is
+   * what the safety gate reads; `ageGroup` remains only for the coarse
+   * teen/adult copy and badges.
+   */
+  ageBracket: AgeBracket;
   rating: number; // 0–5
   jobsCount: number; // jobs posted (customer) or completed (helper)
   reputationScore: number; // 0–100, shown as "Trust Score"

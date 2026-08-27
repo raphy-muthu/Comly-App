@@ -31,6 +31,47 @@ describe('safetyReview tiers', () => {
     ).toBe('caution');
   });
 
+  it('puts power-driven equipment behind the 16 floor, not a caution label', async () => {
+    // Regression: mowing used to sit in the caution list, which let a
+    // 13-year-old apply to a lawn-mowing job with only a warning attached.
+    expect((await ai.safetyReview('Lawn mowing', 'front and back yard')).tier).toBe(
+      'sixteen_plus_only'
+    );
+    expect(
+      (await ai.safetyReview('Yard help', 'hedge trimmer and leaf blower')).tier
+    ).toBe('sixteen_plus_only');
+    expect(
+      (await ai.safetyReview('Driveway', 'run the snow blower after the storm')).tier
+    ).toBe('sixteen_plus_only');
+  });
+
+  it('applies the 16 floor from the category when the wording hides it', async () => {
+    // No flagged keyword anywhere in this text, but the category the poster
+    // picked is literally labelled "Lawn Mowing".
+    expect(
+      (await ai.safetyReview('Yard tidy-up', 'tidy the grass out front', 'lawn_care'))
+        .tier
+    ).toBe('sixteen_plus_only');
+  });
+
+  it('lets the text raise a tier above its category floor, never lower it', async () => {
+    // snow_removal floors at caution…
+    expect((await ai.safetyReview('Driveway', 'clear it', 'snow_removal')).tier).toBe(
+      'caution'
+    );
+    // …and a hazard in the text still wins.
+    expect(
+      (await ai.safetyReview('Driveway', 'also clean the gutters', 'snow_removal')).tier
+    ).toBe('eighteen_plus_only');
+  });
+
+  it('keeps the un-powered version of the same chore at caution', async () => {
+    // The line is the equipment, not the task: shovelling is still fine.
+    expect(
+      (await ai.safetyReview('Snow shoveling', 'by hand, no machines')).tier
+    ).toBe('caution');
+  });
+
   it('defaults harmless tasks to teen-safe', async () => {
     expect((await ai.safetyReview('Algebra tutoring', 'help with exams')).tier).toBe(
       'teen_safe'

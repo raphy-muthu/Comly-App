@@ -42,7 +42,17 @@ export interface AIService {
     payType: PayType
   ): Promise<PaySuggestion>;
   improveDescription(text: string, category: JobCategory): Promise<string>;
-  safetyReview(title: string, description: string): Promise<SafetyResult>;
+  /**
+   * `category` is optional only so existing callers keep compiling — pass it
+   * whenever it's known. The chosen category is often a stronger hazard signal
+   * than the free text: "lawn care" posted as "tidy up the grass out front"
+   * contains no flagged keyword at all, yet the job is mowing.
+   */
+  safetyReview(
+    title: string,
+    description: string,
+    category?: JobCategory
+  ): Promise<SafetyResult>;
   /** Resume-style experience summary built from a helper's track record. */
   generateResumeSummary(
     profile: Pick<
@@ -108,8 +118,79 @@ const payBandsFor = (payType: PayType) =>
 // Keyword → safety tier signals (most severe wins).
 const BLOCKED_TERMS = ['roof', 'electrical', 'wiring', 'heavy machinery', 'chainsaw', 'firearm', 'gun'];
 const EIGHTEEN_TERMS = ['ladder', 'gutter', 'chemical', 'pressure washer', 'power tool'];
+
+/**
+ * Power-driven equipment: a hard 16 floor, not a caution.
+ *
+ * Mowing used to sit in CAUTION_TERMS, which made a lawn-mowing job applicable
+ * by a 13-year-old with a warning label. Operating a power-driven mower,
+ * trimmer or blower is prohibited below 16 under the federal hazardous-
+ * occupation rules, and no amount of parent approval changes that — hence a
+ * separate tier rather than 'adult_supervision'.
+ *
+ * Hand tools are deliberately absent: shoveling snow stays a caution (below),
+ * and only the powered form of each task lands here. 'snow blower' is listed in
+ * both spellings because the checker is a plain substring match, so 'blower'
+ * alone would also swallow unrelated text.
+ */
+const SIXTEEN_TERMS = [
+  // Most specific first: `find` returns the first hit, and that string is
+  // quoted back to the poster in the note.
+  'riding mower',
+  'lawn mower',
+  'lawnmower',
+  'mower',
+  'mowing',
+  'mow',
+  'weed whacker',
+  'weed eater',
+  'weedeater',
+  'hedge trimmer',
+  'trimmer',
+  'lawn edger',
+  'leaf blower',
+  'snow blower',
+  'snowblower',
+  'snow thrower',
+  'lawn tractor',
+  'power-driven',
+  'power driven',
+];
+
 const SUPERVISION_TERMS = ['pool', 'chemical', 'basement', 'attic'];
-const CAUTION_TERMS = ['snow', 'ice', 'lift', 'carry', 'heavy', 'outdoor', 'mow'];
+const CAUTION_TERMS = ['snow', 'ice', 'lift', 'carry', 'heavy', 'outdoor'];
+
+/**
+ * Floor implied by the category the poster picked, independent of wording.
+ *
+ * Only categories whose ordinary form carries a hazard appear here; everything
+ * else is left to the text. `lawn_care` is the one that matters most — it is
+ * literally labelled "Lawn Mowing" in the picker, so a post reading "tidy the
+ * grass out front" is a mowing job with no flagged keyword in it.
+ *
+ * `pool_cleaning` is not listed as sixteen_plus_only because pool work spans
+ * skimming (fine, supervised) and chemical handling (already 18+ via
+ * EIGHTEEN_TERMS); the supervision floor is the honest middle.
+ */
+const CATEGORY_MIN_TIER: Partial<Record<JobCategory, SafetyTier>> = {
+  lawn_care: 'sixteen_plus_only',
+  pool_cleaning: 'adult_supervision',
+  snow_removal: 'caution',
+  moving_help: 'caution',
+};
+
+/**
+ * Ordering used to combine two independent verdicts on the same job (the
+ * model's and the keyword rules'). Higher is more restrictive.
+ */
+export const TIER_SEVERITY: Record<SafetyTier, number> = {
+  teen_safe: 0,
+  caution: 1,
+  adult_supervision: 2,
+  sixteen_plus_only: 3,
+  eighteen_plus_only: 4,
+  blocked: 5,
+};
 
 const mockAI: AIService = {
   async suggestPay(category, _title, payType) {
@@ -137,9 +218,14 @@ const mockAI: AIService = {
     );
   },
 
-  async safetyReview(title, description) {
+  async safetyReview(title, description, category) {
     const text = `${title} ${description}`.toLowerCase();
     const has = (terms: string[]) => terms.find((t) => text.includes(t));
+
+    // The category floor is checked before the keywords so it can't be talked
+    // down by wording. Nothing here can *lower* a tier — the keyword ladder
+    // below still runs and only ever raises it.
+    const categoryFloor = category ? CATEGORY_MIN_TIER[category] : undefined;
 
     const blocked = has(BLOCKED_TERMS);
     if (blocked) {
@@ -157,15 +243,33 @@ const mockAI: AIService = {
         note: `Mentions "${eighteen}" — helpers under 18 cannot apply to this task.`,
       });
     }
+    // Checked before supervision: a 15-year-old cannot run a mower even with a
+    // parent standing next to them, so this must not degrade into a tier that
+    // parent approval unlocks.
+    const sixteen = has(SIXTEEN_TERMS);
+    if (sixteen) {
+      return delay({
+        safe: false,
+        tier: 'sixteen_plus_only' as SafetyTier,
+        note: `Mentions "${sixteen}" — power-driven equipment, so helpers under 16 cannot apply.`,
+      });
+    }
+    if (categoryFloor === 'sixteen_plus_only') {
+      return delay({
+        safe: false,
+        tier: 'sixteen_plus_only' as SafetyTier,
+        note: `${JOB_CATEGORIES[category!].label} normally means power-driven equipment, so helpers under 16 cannot apply.`,
+      });
+    }
     const supervision = has(SUPERVISION_TERMS);
-    if (supervision) {
+    if (supervision || categoryFloor === 'adult_supervision') {
       return delay({
         safe: true,
         tier: 'adult_supervision' as SafetyTier,
         note: 'Comly recommends adult supervision; teen helpers need parent approval.',
       });
     }
-    const caution = has(CAUTION_TERMS);
+    const caution = has(CAUTION_TERMS) || categoryFloor === 'caution';
     return delay({
       safe: true,
       tier: (caution ? 'caution' : 'teen_safe') as SafetyTier,
@@ -293,10 +397,10 @@ const realAI: AIService = {
     }
   },
 
-  async safetyReview(title, description) {
+  async safetyReview(title, description, category) {
     try {
       const { data, error } = await getSupabase().functions.invoke('ai-safety-review', {
-        body: { title, description },
+        body: { title, description, category },
       });
       if (error) throw error;
       // The edge function already coerces unknown tiers, but this is the app's
@@ -307,20 +411,33 @@ const realAI: AIService = {
         'teen_safe',
         'caution',
         'adult_supervision',
+        'sixteen_plus_only',
         'eighteen_plus_only',
         'blocked',
       ];
       if (!data || !VALID.includes(data.tier)) {
         throw new Error(`Unrecognized safety tier from model: ${data?.tier}`);
       }
+
+      // The keyword classifier is a FLOOR under the model, not just an offline
+      // stand-in for it. A model that reads "mow the lawn" as ordinary yard
+      // work is being reasonable in the abstract and wrong about the age rule;
+      // the deterministic rules encode lines that are not negotiable, so the
+      // more severe of the two wins. This can only tighten a tier, never
+      // loosen one the model raised.
+      const local = await mockAI.safetyReview(title, description, category);
+      const modelTier = data.tier as SafetyTier;
+      const tier =
+        TIER_SEVERITY[local.tier] > TIER_SEVERITY[modelTier] ? local.tier : modelTier;
+
       return {
-        safe: !!data.safe,
-        tier: data.tier as SafetyTier,
-        note: data.note ?? '',
+        safe: tier === modelTier ? !!data.safe : local.safe,
+        tier,
+        note: tier === modelTier ? (data.note ?? '') : local.note,
       };
     } catch (err) {
       console.warn('[Comly] ai-safety-review failed, using local keyword check:', err);
-      return mockAI.safetyReview(title, description);
+      return mockAI.safetyReview(title, description, category);
     }
   },
 

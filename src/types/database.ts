@@ -19,7 +19,18 @@ export type JobCategoryEnum =
   | 'tech_help'
   | 'errands'
   | 'house_sitting';
-export type SafetyTierEnum = 'teen_safe' | 'adult_supervision' | 'adults_only';
+// Mirrors the Postgres `safety_tier` enum: the 0001 originals, the values
+// added by 0003, and 'sixteen_plus_only' from 0014. 'adults_only' is a dead
+// 0001 value the app has never written (see 0008) — kept here only because the
+// type describes what the column can contain, not what we choose to store.
+export type SafetyTierEnum =
+  | 'teen_safe'
+  | 'caution'
+  | 'adult_supervision'
+  | 'sixteen_plus_only'
+  | 'eighteen_plus_only'
+  | 'blocked'
+  | 'adults_only';
 export type PayTypeEnum = 'fixed' | 'hourly';
 export type JobStatusEnum =
   | 'open'

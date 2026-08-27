@@ -1,7 +1,7 @@
 /**
- * SafetyBadge — surfaces a job's teen-safety tier (5 levels) in the feed and on
+ * SafetyBadge — surfaces a job's teen-safety tier (6 levels) in the feed and on
  * detail screens. Success = teen safe, warning = caution/supervision,
- * danger = 18+/blocked.
+ * danger = 16+/18+/blocked.
  */
 
 import { Chip } from '@/components/ui/Chip';
@@ -15,6 +15,7 @@ const ICONS: Record<SafetyTier, string> = {
   teen_safe: 'shield-checkmark-outline',
   caution: 'alert-circle-outline',
   adult_supervision: 'people-outline',
+  sixteen_plus_only: 'construct-outline',
   eighteen_plus_only: 'warning-outline',
   blocked: 'ban-outline',
 };

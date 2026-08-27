@@ -129,7 +129,7 @@ function StandardFlow() {
     setAiLoading(true);
     Promise.all([
       ai.suggestPay(category, title, payType),
-      ai.safetyReview(title, description),
+      ai.safetyReview(title, description, category),
     ])
       .then(([p, s]) => {
         if (!active) return;
@@ -664,7 +664,7 @@ function SeniorFlow() {
     // recoverable UI, so this flow must not dead-end.
     let safety: SafetyResult;
     try {
-      safety = await ai.safetyReview(preset.label, '');
+      safety = await ai.safetyReview(preset.label, '', preset.category);
     } catch {
       safety = {
         safe: true,

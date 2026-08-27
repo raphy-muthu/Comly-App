@@ -1,11 +1,14 @@
 /**
  * Sign Up — creates a real Supabase Auth account.
  *
- * Role and age group are captured here because both are server-owned
- * afterwards: migration 0005 pins `age_group` so it can't be edited later
- * (it gates which safety tiers a helper may apply to), and the signup
- * metadata is what the handle_new_user trigger uses to provision the
- * profile row.
+ * Role and date of birth are captured here because both are server-owned
+ * afterwards: migration 0013 derives `age_bracket` and `age_group` from the
+ * date of birth and then pins all three against later edits, and the signup
+ * metadata is what the handle_new_user trigger uses to provision the profile.
+ *
+ * The age check below is a courtesy, not the gate. The same rule runs again in
+ * the database, which refuses the account outright rather than trusting
+ * anything this screen sends.
  */
 
 import { useState } from 'react';
@@ -14,11 +17,18 @@ import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { colors, radius, spacing } from '@/theme';
-import { Button, Card, Input, Screen, Text, useToast } from '@/components/ui';
+import {
+  Button,
+  Card,
+  DateTimeField,
+  Input,
+  Screen,
+  Text,
+  useToast,
+} from '@/components/ui';
 import { useAuthStore } from '@/stores/authStore';
 import { OAuthProvider, signInWithProvider } from '@/services/auth';
-import { AgeGroup, Role } from '@/types/domain';
-import { minimumWageFor, money } from '@/lib/wage';
+import { bracketFromDateOfBirth, MIN_SIGNUP_AGE, Role } from '@/types/domain';
 import { PublicStackParamList } from '@/navigation/types';
 
 type Props = NativeStackScreenProps<PublicStackParamList, 'SignUp'>;
@@ -32,17 +42,22 @@ const ROLE_OPTIONS: {
   { role: 'helper', label: 'I want to help', icon: 'construct-outline' },
 ];
 
-const AGE_OPTIONS: { value: AgeGroup; label: string; hint: string }[] = [
-  { value: 'teen', label: 'Under 18', hint: 'Extra safety protections apply' },
-  { value: 'adult', label: '18 or older', hint: '' },
-];
-
 const MIN_PASSWORD = 6;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+/** Oldest selectable birth date — bounds the picker without excluding anyone. */
+const EARLIEST_BIRTH_DATE = new Date(1900, 0, 1);
+
+/** Supabase expects an ISO calendar date; toISOString would shift by timezone. */
+function toIsoDate(d: Date): string {
+  const month = `${d.getMonth() + 1}`.padStart(2, '0');
+  const day = `${d.getDate()}`.padStart(2, '0');
+  return `${d.getFullYear()}-${month}-${day}`;
+}
+
 export function SignUpScreen({ navigation }: Props) {
   const [role, setRole] = useState<Role>('customer');
-  const [ageGroup, setAgeGroup] = useState<AgeGroup | null>(null);
+  const [dateOfBirth, setDateOfBirth] = useState<Date | null>(null);
   const [name, setName] = useState('');
   const [neighborhood, setNeighborhood] = useState('');
   const [email, setEmail] = useState('');
@@ -66,24 +81,30 @@ export function SignUpScreen({ navigation }: Props) {
       ? `At least ${MIN_PASSWORD} characters.`
       : undefined;
 
-  // Informational only. Comly never handles payment (neighbors settle it
-  // themselves), so this sets an expectation at signup rather than gating
-  // anything — and it names the federal floor unless the neighborhood field
-  // carries an explicit state code, because guessing a state is worse than
-  // quoting the floor that always applies.
-  const wageFloor = minimumWageFor(neighborhood);
+  // Null covers both "too young" and "unparseable", which is why the check is
+  // on the derived bracket rather than on the raw date.
+  const ageBracket =
+    dateOfBirth === null ? null : bracketFromDateOfBirth(toIsoDate(dateOfBirth), new Date());
+  const ageError =
+    touched && dateOfBirth !== null && ageBracket === null
+      ? `You must be at least ${MIN_SIGNUP_AGE} years old to use Comly.`
+      : undefined;
 
   const complete =
     name.trim().length > 1 &&
     neighborhood.trim().length > 0 &&
     EMAIL_RE.test(email.trim()) &&
     password.length >= MIN_PASSWORD &&
-    ageGroup !== null;
+    ageBracket !== null;
 
   const authenticate = async () => {
     setTouched(true);
     if (!complete || busy) {
-      if (!ageGroup) toast.info('Please tell us your age group to continue.');
+      if (dateOfBirth === null) {
+        toast.info('Please enter your date of birth to continue.');
+      } else if (ageBracket === null) {
+        toast.error(`You must be at least ${MIN_SIGNUP_AGE} years old to use Comly.`);
+      }
       return;
     }
 
@@ -97,7 +118,7 @@ export function SignUpScreen({ navigation }: Props) {
         name,
         neighborhood,
         role,
-        ageGroup: ageGroup as AgeGroup,
+        dateOfBirth: toIsoDate(dateOfBirth as Date),
       });
 
       if (!result.ok) {
@@ -184,46 +205,28 @@ export function SignUpScreen({ navigation }: Props) {
       </View>
 
       <Text variant="labelMd" color="textSecondary" style={styles.sectionLabel}>
-        MY AGE GROUP
+        MY DATE OF BIRTH
       </Text>
-      <View style={styles.roles}>
-        {AGE_OPTIONS.map((opt) => {
-          const selected = ageGroup === opt.value;
-          return (
-            <Pressable
-              key={opt.value}
-              style={styles.roleWrap}
-              onPress={() => setAgeGroup(opt.value)}
-              disabled={busy}
-            >
-              <Card
-                style={StyleSheet.flatten([
-                  styles.ageCard,
-                  selected && styles.roleCardSelected,
-                ])}
-                padded
-              >
-                <Text
-                  variant="bodyLg"
-                  color={selected ? 'primary' : 'textPrimary'}
-                  style={styles.roleLabel}
-                >
-                  {opt.label}
-                </Text>
-                {!!opt.hint && (
-                  <Text variant="caption" color="textSecondary" center>
-                    {opt.hint}
-                  </Text>
-                )}
-              </Card>
-            </Pressable>
-          );
-        })}
+      <View style={styles.dobRow}>
+        <DateTimeField
+          label="Date of birth"
+          mode="date"
+          value={dateOfBirth}
+          onChange={setDateOfBirth}
+          placeholder="Select your date of birth"
+          minimumDate={EARLIEST_BIRTH_DATE}
+          maximumDate={new Date()}
+        />
       </View>
+      {!!ageError && (
+        <Text variant="caption" color="danger" style={styles.ageError}>
+          {ageError}
+        </Text>
+      )}
       <Text variant="caption" color="textSecondary" style={styles.ageNote}>
         This can't be changed later — it determines which jobs are safe to show
-        you. Helpers under 18 need a parent or guardian's approval for some
-        tasks.
+        you. You must be at least {MIN_SIGNUP_AGE}. Helpers under 18 need a
+        parent or guardian's approval for some tasks.
       </Text>
 
       <Input
@@ -346,7 +349,8 @@ const styles = StyleSheet.create({
   roles: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.md },
   roleWrap: { flex: 1 },
   roleCard: { alignItems: 'center', gap: spacing.sm },
-  ageCard: { alignItems: 'center', gap: 2, minHeight: 76, justifyContent: 'center' },
+  dobRow: { flexDirection: 'row', marginBottom: spacing.sm },
+  ageError: { color: colors.error, marginBottom: spacing.base },
   roleCardSelected: {
     borderColor: colors.primary,
     borderWidth: 2,

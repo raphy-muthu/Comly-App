@@ -37,6 +37,22 @@ describe('friendlyError', () => {
     expect(friendlyError('Network request failed')).toMatch(/connection/i);
   });
 
+  it('states the age requirement plainly when the signup gate refuses', () => {
+    // Migration 0013's trigger raises this; it must not surface as a raw
+    // database error to someone who is simply too young to sign up.
+    expect(friendlyError('You must be at least 13 years old to use Comly')).toMatch(
+      /at least 13/i
+    );
+  });
+
+  it('explains an opaque database signup failure as an age/details problem', () => {
+    // GoTrue frequently collapses a trigger exception into this generic string,
+    // which tells the user nothing about what to change.
+    const msg = friendlyError('Database error saving new user');
+    expect(msg).toMatch(/date of birth|age/i);
+    expect(msg).not.toMatch(/database/i);
+  });
+
   it('passes through anything it does not recognize', () => {
     expect(friendlyError('Some brand new failure')).toBe('Some brand new failure');
   });

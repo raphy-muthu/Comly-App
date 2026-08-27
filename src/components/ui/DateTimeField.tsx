@@ -37,8 +37,7 @@ export function DateTimeField({
   onChange,
   placeholder,
   minimumDate,
-  onDate,
-  error,
+  maximumDate,
 }: DateTimeFieldProps) {
   const [open, setOpen] = useState(false);
 
@@ -90,7 +89,8 @@ export function DateTimeField({
         <DateTimePicker
           mode={mode}
           value={value ?? new Date()}
-          minimumDate={resolvedMinimum}
+          minimumDate={mode === 'date' ? minimumDate ?? new Date() : undefined}
+          maximumDate={mode === 'date' ? maximumDate : undefined}
           display={Platform.OS === 'ios' ? 'spinner' : 'default'}
           onChange={(event: DateTimePickerEvent, selected?: Date) => {
             // Android closes on selection; iOS stays open until tapped away.

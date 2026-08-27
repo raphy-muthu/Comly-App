@@ -51,6 +51,18 @@ const FAQS: { q: string; a: string }[] = [
     a: 'Our AI safety review flags weather, physical effort, or equipment concerns so helpers know what to expect. You can request a review if you think a label is wrong.',
   },
   {
+    q: 'Where do my support tickets go?',
+    a: 'Straight into the Comly moderation queue. A ticket lands in the admin console the moment you submit it, and its status (Open → In progress → Resolved) updates right here under "My Tickets" — you never have to email anyone to check.',
+  },
+  {
+    q: 'What happens if someone does not show up?',
+    a: 'Open the job and choose "Report a no-show". That is not an instant penalty: an admin reviews every report before a strike is applied, and a confirmed strike can be reversed on appeal. Three confirmed strikes can suspend an account.',
+  },
+  {
+    q: 'When can I leave a review?',
+    a: 'After both sides confirm the job is done. The customer marks it complete, the helper confirms, and then a "Leave a Review" button appears on the job for both of you.',
+  },
+  {
     q: 'How do I delete a listing?',
     a: 'Open your job, tap the ••• menu, and choose Delete. Deleted listings leave the feed immediately.',
   },

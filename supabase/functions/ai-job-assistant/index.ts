@@ -2,8 +2,17 @@
 // Generates a polished job title, description, suggested pay range, and an
 // estimated duration from a short free-text prompt.
 //
-// POST { prompt: string, category?: string, neighborhood?: string, payType?: "fixed"|"hourly" }
-// → { title, description, suggestedPayMin, suggestedPayMax, estimatedDuration }
+// POST { prompt: string, category?: string, neighborhood?: string, payType?: "fixed"|"hourly",
+//        pay?: number, durationMinutes?: number, checkRealism?: boolean,
+//        applicationMessage?: boolean }
+// → { title, description, suggestedPayMin, suggestedPayMax, estimatedDuration,
+//     realismWarning?, applicationMessage? }
+//
+// Two opt-in extras ride on this same function rather than getting their own
+// deployment: `checkRealism` asks for a one-sentence caution about the pay /
+// duration the poster actually typed, and `applicationMessage` drafts a
+// helper's intro message. Both are additive — clients that don't ask for them
+// get the same response shape as before.
 //
 // suggestedPayMin/Max mean different things depending on payType: a whole-job
 // flat fee, or a per-hour rate. The prompt used to never say which, so the
@@ -26,11 +35,39 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { prompt, category, neighborhood, payType } = await req.json();
+    const {
+      prompt,
+      category,
+      neighborhood,
+      payType,
+      pay,
+      durationMinutes,
+      checkRealism,
+      applicationMessage,
+    } = await req.json();
     if (!prompt || typeof prompt !== 'string') {
       return json({ error: 'prompt is required' }, 400);
     }
     const resolvedPayType = payType === 'hourly' ? 'hourly' : 'fixed';
+
+    // Helper's intro message — a different task with a different output shape,
+    // so it short-circuits before the job-drafting prompt below.
+    if (applicationMessage) {
+      const msg = await chat({
+        json: true,
+        system:
+          'You draft short, friendly first messages from a neighborhood helper ' +
+          'to someone who posted a local job. 2-3 sentences, warm and specific, ' +
+          'no emoji, never invent credentials or promise a price. Respond ONLY ' +
+          'with JSON: {"applicationMessage": string}.',
+        user: `${prompt}
+Category: ${category ?? 'unknown'}
+Area: ${
+          neighborhood ?? 'unknown'
+        }`,
+      });
+      return json(JSON.parse(msg));
+    }
 
     const content = await chat({
       json: true,
@@ -52,7 +89,40 @@ Deno.serve(async (req) => {
       }\nPay type: ${resolvedPayType}`,
     });
 
-    return json(JSON.parse(content));
+    const result = JSON.parse(content);
+
+    // Realism pass: a separate, cheap call so a failure here can't corrupt the
+    // main draft the poster is waiting on.
+    if (checkRealism) {
+      try {
+        const realism = await chat({
+          json: true,
+          system:
+            'You review neighborhood job listings for realistic expectations. ' +
+            'Given the task, the pay, and the estimated duration, say whether ' +
+            'the combination looks unrealistic (far too little time for the ' +
+            'work, or pay far below what the time is worth). Respond ONLY with ' +
+            'JSON: {"realismWarning": string}. Use an empty string when the ' +
+            'listing looks reasonable. Never mention laws or legal advice — ' +
+            'one plain sentence a neighbor would find helpful.',
+          user:
+            `Task: ${prompt}
+Category: ${category ?? 'unknown'}
+` +
+            `Pay: ${pay ?? 'unspecified'} (${resolvedPayType})
+` +
+            `Estimated duration: ${durationMinutes ?? 'unspecified'} minutes`,
+        });
+        const parsed = JSON.parse(realism);
+        if (typeof parsed?.realismWarning === 'string') {
+          result.realismWarning = parsed.realismWarning;
+        }
+      } catch (_realismErr) {
+        // The client keeps its own deterministic check; silence is fine.
+      }
+    }
+
+    return json(result);
   } catch (err) {
     return json({ error: String(err) }, 500);
   }

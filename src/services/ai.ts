@@ -13,6 +13,11 @@
 import { JobCategory, JOB_CATEGORIES, PayType, UserProfile } from '@/types/domain';
 import type { SafetyTier } from '@/types/domain';
 import { USE_MOCKS, hasSupabaseConfig } from '@/config/env';
+import {
+  MAX_DURATION_MINUTES,
+  MIN_DURATION_MINUTES,
+  wageGuidance,
+} from '@/lib/wage';
 import { getSupabase } from './supabaseClient';
 
 export interface PaySuggestion {
@@ -26,6 +31,107 @@ export interface SafetyResult {
   safe: boolean;
   tier: SafetyTier;
   note: string;
+}
+
+/** Input for the "is this listing realistic?" check run on the AI preview step. */
+export interface RealismInput {
+  category: JobCategory;
+  title: string;
+  description: string;
+  pay: number;
+  payType: PayType;
+  durationMinutes?: number;
+  location?: string;
+}
+
+export interface RealismResult {
+  /** False when at least one warning fired. Never blocks posting. */
+  ok: boolean;
+  /** Plain-language cautions, most important first. */
+  warnings: string[];
+  /** Effective hourly rate the pay/duration combination implies, if computable. */
+  impliedHourlyRate: number | null;
+}
+
+/** Category → plausible whole-task duration band, in minutes. */
+const DURATION_BANDS: Record<JobCategory, [number, number]> = {
+  snow_removal: [30, 180],
+  yard_work: [45, 300],
+  lawn_care: [30, 180],
+  leaf_cleanup: [45, 240],
+  pool_cleaning: [30, 180],
+  pet_care: [30, 480],
+  dog_walking: [15, 90],
+  tutoring: [30, 180],
+  tech_help: [30, 180],
+  moving_help: [60, 480],
+  errands: [15, 120],
+  cleaning: [45, 300],
+  organization: [60, 300],
+  plant_watering: [15, 60],
+  car_washing: [30, 120],
+  house_sitting: [60, 480],
+  other: [15, 480],
+};
+
+/**
+ * Deterministic realism check shared by both AI modes.
+ *
+ * Deliberately local rather than a model call: these are arithmetic facts
+ * about the numbers the poster typed (an implied hourly rate, a duration
+ * outside the plausible band for the category), so a model would add latency
+ * and non-determinism without adding accuracy. `realAI` layers Gemini's
+ * qualitative read on top of this, never in place of it.
+ */
+export function checkRealismLocally(input: RealismInput): RealismResult {
+  const warnings: string[] = [];
+  const [lo, hi] = DURATION_BANDS[input.category] ?? [15, 480];
+  const minutes = input.durationMinutes;
+
+  if (minutes !== undefined && minutes > 0) {
+    if (minutes < MIN_DURATION_MINUTES) {
+      warnings.push(
+        `${minutes} minutes is shorter than Comly's ${MIN_DURATION_MINUTES}-minute minimum.`
+      );
+    } else if (minutes > MAX_DURATION_MINUTES) {
+      warnings.push(
+        `${Math.round(minutes / 60)} hours is longer than a single Comly job should run. Consider splitting it up.`
+      );
+    } else if (minutes < lo) {
+      warnings.push(
+        `${JOB_CATEGORIES[input.category].label} usually takes at least ${lo} minutes. A ${minutes}-minute estimate may leave your helper rushed.`
+      );
+    } else if (minutes > hi) {
+      warnings.push(
+        `${JOB_CATEGORIES[input.category].label} rarely takes more than ${Math.round(hi / 60)} hours. Double-check the estimate so helpers know what they're signing up for.`
+      );
+    }
+  }
+
+  const guidance = wageGuidance(
+    input.pay,
+    input.payType,
+    input.durationMinutes,
+    input.location
+  );
+  if (guidance.warning) warnings.push(guidance.warning);
+
+  return {
+    ok: warnings.length === 0,
+    warnings,
+    impliedHourlyRate: guidance.hourlyRate,
+  };
+}
+
+export interface ApplicationMessageInput {
+  jobTitle: string;
+  category: JobCategory;
+  jobDescription: string;
+  neighborhood: string;
+  helperName: string;
+  helperSkills: string[];
+  helperJobsCount: number;
+  equipmentProvided: boolean;
 }
 
 export interface AIService {
@@ -43,6 +149,17 @@ export interface AIService {
   ): Promise<PaySuggestion>;
   improveDescription(text: string, category: JobCategory): Promise<string>;
   safetyReview(title: string, description: string): Promise<SafetyResult>;
+  /**
+   * Sanity-checks the poster's own numbers (duration vs category, pay vs the
+   * local minimum-wage floor) before the listing goes live. Advisory only.
+   */
+  checkRealism(input: RealismInput): Promise<RealismResult>;
+  /**
+   * Drafts the helper's "short message to customer" on the apply screen. The
+   * helper always edits it before submitting — this fills the field, it never
+   * sends anything.
+   */
+  suggestApplicationMessage(input: ApplicationMessageInput): Promise<string>;
   /** Resume-style experience summary built from a helper's track record. */
   generateResumeSummary(
     profile: Pick<
@@ -173,6 +290,31 @@ const mockAI: AIService = {
         ? 'May involve weather or light physical work. Helpers should only accept jobs they can safely complete.'
         : 'This task looks safe for teen helpers.',
     });
+  },
+
+  async checkRealism(input) {
+    return delay(checkRealismLocally(input), 400);
+  },
+
+  async suggestApplicationMessage(input) {
+    const skill = input.helperSkills[0]?.toLowerCase();
+    const category = JOB_CATEGORIES[input.category].label.toLowerCase();
+    const experience =
+      input.helperJobsCount > 0
+        ? `I've completed ${input.helperJobsCount} ${
+            input.helperJobsCount === 1 ? 'job' : 'jobs'
+          } on Comly`
+        : `I'm new to Comly and eager to build a good track record`;
+    const equipment = input.equipmentProvided
+      ? 'Thanks for providing the equipment'
+      : 'I can bring my own equipment';
+    const strength = skill ? ` and neighbors say I'm ${skill.toLowerCase()}` : '';
+    return delay(
+      `Hi! I'm ${input.helperName} and I live in ${input.neighborhood}. ` +
+        `I'd love to help with "${input.jobTitle}". ${experience}${strength}, ` +
+        `including ${category}. ${equipment}. Let me know what time works best for you!`,
+      600
+    );
   },
 
   async generateResumeSummary(profile) {
@@ -321,6 +463,71 @@ const realAI: AIService = {
     } catch (err) {
       console.warn('[Comly] ai-safety-review failed, using local keyword check:', err);
       return mockAI.safetyReview(title, description);
+    }
+  },
+
+  async checkRealism(input) {
+    // The arithmetic half is authoritative and always runs. Gemini is asked
+    // only for the qualitative read it can actually add ("$20 for a full day
+    // of moving furniture reads as unrealistic"), and a failure there just
+    // means the local warnings stand on their own.
+    const local = checkRealismLocally(input);
+    try {
+      const { data, error } = await getSupabase().functions.invoke(
+        'ai-job-assistant',
+        {
+          body: {
+            prompt: `${input.title}. ${input.description}`,
+            category: input.category,
+            neighborhood: input.location,
+            payType: input.payType,
+            pay: input.pay,
+            durationMinutes: input.durationMinutes,
+            checkRealism: true,
+          },
+        }
+      );
+      if (error) throw error;
+      const note =
+        typeof data?.realismWarning === 'string' ? data.realismWarning.trim() : '';
+      if (note && !local.warnings.includes(note)) {
+        return { ...local, ok: false, warnings: [...local.warnings, note] };
+      }
+      return local;
+    } catch (err) {
+      console.warn('[Comly] ai-job-assistant (realism) failed, using local check:', err);
+      return local;
+    }
+  },
+
+  async suggestApplicationMessage(input) {
+    try {
+      const { data, error } = await getSupabase().functions.invoke(
+        'ai-job-assistant',
+        {
+          body: {
+            prompt:
+              `Write a short, friendly 2-3 sentence message from a neighborhood helper ` +
+              `named ${input.helperName} applying to help with "${input.jobTitle}" ` +
+              `(${JOB_CATEGORIES[input.category].label}) in ${input.neighborhood}.`,
+            category: input.category,
+            neighborhood: input.neighborhood,
+            applicationMessage: true,
+          },
+        }
+      );
+      if (error) throw error;
+      const text =
+        typeof data?.applicationMessage === 'string'
+          ? data.applicationMessage.trim()
+          : typeof data?.description === 'string'
+            ? data.description.trim()
+            : '';
+      if (!text) throw new Error('Empty application-message response');
+      return text;
+    } catch (err) {
+      console.warn('[Comly] ai-job-assistant (apply message) failed, using local draft:', err);
+      return mockAI.suggestApplicationMessage(input);
     }
   },
 

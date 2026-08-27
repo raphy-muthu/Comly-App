@@ -249,6 +249,18 @@ export function SignUpScreen({ navigation }: Props) {
         hint="Used to show jobs near you. Your exact address is never shown."
         containerStyle={styles.input}
       />
+      <Card padded style={styles.wageCard}>
+        <View style={styles.wageRow}>
+          <Ionicons name="cash-outline" size={18} color={colors.tertiary} />
+          <Text variant="caption" color="textSecondary" style={styles.wageText}>
+            {role === 'helper'
+              ? `Fair-pay guideline: aim for at least ${money(wageFloor.amount)}/hr — the ${wageFloor.label}. You can always counter-offer on a job.`
+              : `Fair-pay guideline: pay your helper at least ${money(wageFloor.amount)}/hr — the ${wageFloor.label}. Comly shows this next to every pay field.`}
+            {' '}Neighbors agree and settle pay themselves; Comly never handles the money.
+          </Text>
+        </View>
+      </Card>
+
       <Input
         label="Email"
         placeholder="you@neighborhood.com"
@@ -347,6 +359,13 @@ const styles = StyleSheet.create({
   roleLabel: { textAlign: 'center' },
   ageNote: { marginTop: -spacing.sm, marginBottom: spacing.md },
   input: { marginBottom: spacing.sm },
+  wageCard: {
+    marginBottom: spacing.sm,
+    backgroundColor: colors.successSoft,
+    borderColor: colors.successSoft,
+  },
+  wageRow: { flexDirection: 'row', gap: spacing.base },
+  wageText: { flex: 1 },
   cta: { marginTop: spacing.base },
   dividerRow: {
     flexDirection: 'row',

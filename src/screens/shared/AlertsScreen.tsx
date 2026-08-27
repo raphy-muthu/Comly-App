@@ -26,6 +26,9 @@ function iconsFor(
     review_received: { icon: 'star', tint: colors.warning, bg: colors.warningContainer },
     verification: { icon: 'shield-checkmark', tint: colors.tertiary, bg: colors.successSoft },
     report_update: { icon: 'flag', tint: colors.warning, bg: colors.warningContainer },
+    job_invite: { icon: 'mail-open', tint: role.accent, bg: role.accentSoft },
+    completion_requested: { icon: 'checkmark-done-circle', tint: colors.warning, bg: colors.warningContainer },
+    completion_confirmed: { icon: 'trophy', tint: colors.tertiary, bg: colors.successSoft },
     safety: { icon: 'alert-circle', tint: colors.warning, bg: colors.warningContainer },
   };
 }

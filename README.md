@@ -1,6 +1,6 @@
 # Comly
 
-A neighborhood services marketplace that connects residents who need help with trusted local helpers (primarily teens and young adults). Comly is a **matchmaking platform** — customers post jobs, helpers apply, and the two connect. **Payment is arranged off-platform**, so there is no in-app payment, escrow, or subscription.
+A neighborhood services marketplace that connects residents who need help with trusted local helpers (primarily teens and young adults). Comly is a **matchmaking platform** — customers post jobs, helpers apply, and the two connect. **Payment is arranged off-platform**, so there is no in-app payment, escrow, or billing. Comly Plus and Pro Helper exist as *visibility* tiers only — server-granted flags that change sort order and add a badge, with no purchase flow attached (see [OPEN_ITEMS.md](OPEN_ITEMS.md)).
 
 Built with React Native + Expo, TypeScript, React Navigation, React Query, Zustand, and Supabase. AI features (job assistant, safety review) run as Supabase Edge Functions backed by Gemini; recommendations use a deterministic scoring function, no model call.
 

@@ -21,10 +21,13 @@ export interface DateTimeFieldProps {
   placeholder?: string;
   minimumDate?: Date;
   /**
-   * Upper bound for date mode. Needed for backward-looking dates such as a
-   * date of birth, where the default "no past dates" floor is inverted.
+   * Time mode only: the calendar day the time will land on. When that day is
+   * today, the picker floors at the current clock time — without it "3 PM" is
+   * selectable at 6 PM and produces a listing scheduled in the past.
    */
-  maximumDate?: Date;
+  onDate?: Date | null;
+  /** Inline validation message rendered under the field. */
+  error?: string;
 }
 
 export function DateTimeField({
@@ -37,6 +40,11 @@ export function DateTimeField({
   maximumDate,
 }: DateTimeFieldProps) {
   const [open, setOpen] = useState(false);
+
+  const isToday =
+    !!onDate && new Date(onDate).toDateString() === new Date().toDateString();
+  const resolvedMinimum =
+    mode === 'date' ? minimumDate ?? new Date() : isToday ? new Date() : undefined;
 
   const display =
     value == null
@@ -59,7 +67,10 @@ export function DateTimeField({
       </Text>
       {/* Toggle: on iOS the inline spinner stays open, so tapping the field
           again is how it closes — without this the picker was un-dismissable. */}
-      <Pressable style={styles.field} onPress={() => setOpen((o) => !o)}>
+      <Pressable
+        style={[styles.field, !!error && styles.fieldError]}
+        onPress={() => setOpen((o) => !o)}
+      >
         <Ionicons
           name={mode === 'date' ? 'calendar-outline' : 'time-outline'}
           size={18}
@@ -88,6 +99,12 @@ export function DateTimeField({
           }}
         />
       )}
+
+      {!!error && (
+        <Text variant="caption" color="danger" style={styles.error}>
+          {error}
+        </Text>
+      )}
     </View>
   );
 }
@@ -105,4 +122,6 @@ const styles = StyleSheet.create({
     gap: spacing.base,
   },
   value: { flex: 1 },
+  fieldError: { borderWidth: 1, borderColor: colors.error },
+  error: { marginTop: 4 },
 });

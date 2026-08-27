@@ -2,115 +2,172 @@
 
 Context: Comly is a React Native/Expo neighborhood-services marketplace (residents post small jobs, helpers — including teens — apply). Backend is Supabase (Auth, Postgres, RLS, Storage, Edge Functions), with an existing safety-tier system (`teen_safe` / `caution` / `adult_supervision` / `eighteen_plus_only` / `blocked`) that gates who can apply to what, and a contact-unlock-after-acceptance model (helper/customer contact info is hidden until a job application is accepted, specifically to keep interactions inside the app's safety review). Mock-mode-first architecture: most things can be built and tested against `EXPO_PUBLIC_USE_MOCKS=true` without touching production data.
 
-Each item below has: what was asked, what currently exists (verified by reading the code, not assumed), the design tension if any, and a suggested scope.
+**Status: every item below is now implemented.** Each entry keeps the original
+ask and the state it was found in, followed by what shipped. Abuse-model
+analysis for the new surfaces lives in [SAFETY_AND_ETHICS.md](SAFETY_AND_ETHICS.md).
 
 ---
 
-## 1. AI realistic-duration check + minimum-wage guideline
+## 1. AI realistic-duration check + minimum-wage guideline — ✅ done
 
 **Ask:** "Set a time boundary, have AI check if it's realistic" + "Add minimum wage guideline when signing up."
 
-**Current state:** The `ai-job-assistant` edge function (`supabase/functions/ai-job-assistant/index.ts`) already returns `estimatedDuration` as a free-text string from Gemini when a job is posted. There is no validation of that duration against anything, and no minimum-wage display anywhere in the signup or job-posting flow.
+**Was:** The `ai-job-assistant` edge function returned `estimatedDuration` as free text with no validation, and no minimum-wage figure appeared anywhere.
 
-**Scope:**
-- Have the edge function's Gemini prompt also flag if the *user-entered* duration/pay combination looks unrealistic (e.g., "$20 for 8 hours" implies a sub-minimum-wage rate), returning a warning string the client can surface as a caution banner — reuse the existing safety-review caution UI pattern rather than inventing a new one.
-- For minimum wage: this needs a real data source. There's no per-state/locality minimum wage table in the app today. Cheapest correct approach: a static lookup table (federal + a curated set of state minimums) surfaced as a hint on the pay-entry step, not a hard block — job pay is informal/negotiated, so this should inform, not gate.
-- Federal minimum wage is $7.25/hr as a floor; if you want per-state accuracy, that's a maintenance burden (states update yearly) — flag this to the user rather than silently building a self-maintaining number.
+**Shipped:**
+- `src/lib/wage.ts` — federal floor plus a curated state table, `effectiveHourlyRate` (hourly pay is already a rate; fixed pay divides by duration), and `wageGuidance`, which produces the hint line and the below-floor warning. State lookup returns `null` rather than guessing when the location has no explicit state code.
+- Hard duration bounds (15 minutes – 8 hours) with inline validation on the custom-duration field, and a category-plausibility band on top (`DURATION_BANDS` in `src/services/ai.ts`).
+- `ai.checkRealism` runs the arithmetic locally and deterministically, then layers Gemini's qualitative read on top via the edge function's new `checkRealism` flag. A model failure leaves the local warnings standing.
+- The guideline shows on the signup screen (role-appropriate wording) and again beside the pay field on the AI preview step.
+- Advisory throughout — nothing blocks a post, because pay is agreed off-platform.
+
+**Known limit, by design:** state minimums are a curated snapshot, not a live feed, and are labeled as guidance.
 
 ---
 
-## 2. Contact option for recommended helpers — ⚠️ SAFETY CONFLICT
+## 2. Contact option for recommended helpers — ✅ done (as invite-to-apply)
 
 **Ask:** "For recommended helpers, add an option where they can possibly contact them."
 
-**Current state:** `src/components/people/HelperRow.tsx` — recommended-helper rows currently only have a "View" button that opens the helper's profile. No contact affordance exists. This is not an oversight — it's deliberate: contact information is unlocked only after a job application is *accepted*, specifically so that unvetted contact never happens outside the safety-review pipeline (relevant given teen users).
+**The conflict:** a direct contact button pre-acceptance bypasses the safety gate entirely — a resident could reach a teen helper with no safety review having happened on any specific job.
 
-**The conflict:** Adding a direct "contact" button on a recommendation card (before any application/acceptance) bypasses that gate entirely — a resident could message a teen helper with zero safety review having occurred on a specific job.
-
-**Recommended approach (needs a decision, not just code):**
-- Do NOT expose raw contact info (phone/email) pre-acceptance.
-- Instead, add an in-app "invite to apply" or "request to hire" action on the recommendation card — this creates a job-scoped application/invite record (reusing the existing application flow) rather than a raw contact channel. Contact stays locked until that invite is accepted, preserving the safety review.
-- If the goal is lower-friction discovery rather than literal messaging, this satisfies the ask without reopening the safety gap.
+**Shipped:** the resolution recommended here, not a raw contact channel.
+`src/components/people/InviteHelperSheet.tsx` adds an **Invite** action to
+recommendation rows. It lists the customer's own open listings and creates a
+`job_invites` row plus a notification. No phone number, email, or free text
+crosses over; the helper applies through the normal flow and contact still
+unlocks only on acceptance. Invites are deduplicated per (job, helper), refuse
+blocked users in either direction, and only target open listings
+(`invite_helper_to_job`, migration 0013). Helpers see them at the top of
+**My Jobs**.
 
 ---
 
-## 3. No-show strike/penalty system
+## 3. No-show strike/penalty system — ✅ done
 
 **Ask:** "If you accept a job, and you don't show up, point penalty/strike system."
 
-**Current state:** `src/types/domain.ts` has `'no_show'` only as one value in the generic `ReportCategory` enum (i.e., it can be *reported* as a category of abuse). There is no strike counter, no trust-score field, no automated consequence, and no schema for tracking repeated no-shows per user.
+**Was:** `'no_show'` existed only as a `ReportCategory` value. No counter, no events table, no consequence.
 
-**Scope (this is a real feature, not a bug fix):**
-- New DB column(s): a `strikes` or `trust_score` counter on the user/profile table, plus a `no_show_events` table (job id, accused user id, reporter id, timestamp, resolution status) so strikes are auditable, not just a silently incrementing number.
-- Define the actual policy before building: what counts as a no-show (reported by the other party? time-based auto-detection if a job's scheduled time passes with no check-in?), how many strikes trigger what (temporary suspension? permanent ban? just a visible badge to future posters?), and whether there's an appeal path (recommended — false reports are a real risk here).
-- UI: strike count visible to the affected user (transparency), and probably to admins in `AdminScreen.tsx` (which already has a ticket/moderation surface to extend).
-- This has real fairness/liability implications for a marketplace with teen users — recommend defining the policy in writing before implementation, not just shipping a counter.
+**Shipped, with the policy written down first** (`NO_SHOW_POLICY` in `src/types/domain.ts`, so UI, admin console, and docs cannot drift):
+- `no_show_events` table — job, accused, reporter, note, status, admin notes. Auditable rows, not a silent counter.
+- **A report is not a strike.** It files as `pending` and touches nothing. Only an admin confirming it increments `profiles.strikes`, and reversing that decision decrements it again.
+- Never auto-detected from a passing scheduled time — neighbors reschedule.
+- One report per reporter per job; both parties must actually have been on the job; only on an accepted/in-progress job.
+- The affected user sees every event and the appeal path on their own Profile. A public caution appears only at **2** confirmed strikes; suspension at **3**.
+- Admin console gains a **No-shows** tab with confirm / dismiss / reopen.
+- `strikes` and `is_suspended` are pinned against self-service writes by the 0005 guard trigger, extended in 0013.
 
 ---
 
-## 4. AI for "Short Message to Customer"
+## 4. AI for "Short Message to Customer" — ✅ done
 
 **Ask:** "Add AI for 'Short Message to Customer'."
 
-**Current state:** `src/screens/jobs/ApplyToJobScreen.tsx` has a free-text `Input` field labeled "Short message to customer" (the helper's intro message when applying to a job) — currently 100% manually typed, no AI assist.
-
-**Scope:**
-- Add a small "suggest message" affordance next to that field, backed by a new lightweight prompt to the existing `ai-job-assistant` Gemini integration (`supabase/functions/_shared/gemini.ts` is the shared client — reuse it, don't add a new provider integration).
-- Input to the prompt: job title/category/description (already loaded on this screen via `useJob`) + the helper's basic profile blurb if available.
-- Keep it a *suggestion the user edits*, not an auto-send — same pattern as the existing pay-suggestion chip (`suggestion.recommended` → tappable chip that fills the field, not auto-submits).
-- This is the most contained/lowest-risk item on this list — no schema changes, no safety-architecture questions, additive to a self-contained screen.
+**Shipped:** a "Draft for me" / "Rewrite" affordance beside the message field on
+`ApplyToJobScreen`, backed by `ai.suggestApplicationMessage`. It reuses the
+existing shared Gemini client through a new `applicationMessage` flag on
+`ai-job-assistant`, falls back to a deterministic local draft, and fills the
+field for the helper to edit — same "suggestion you accept" pattern as the pay
+chip, never an auto-send.
 
 ---
 
-## 5. "My Jobs" and "My Listings" settings
+## 5. "My Jobs" and "My Listings" settings — ✅ done
 
 **Ask:** "Add a 'My Jobs' and 'My Listing' settings."
 
-**Current state:** Not yet investigated in depth — needs clarification from whoever picks this up on what's actually missing. The app already has job lists (posted jobs, applied-to jobs) somewhere in the navigation; the ask may be:
-- (a) a settings-screen entry point that surfaces these lists in one place, or
-- (b) actual new list views that don't currently exist, or
-- (c) management actions (edit/cancel a posted listing, withdraw an application) that are missing from an existing list.
+**Scoping pass result:** the lists existed but only inside the role-specific
+Jobs *tab*, so whichever role you were not currently in was unreachable — that
+was the actual gap.
 
-**Recommended first step:** grep the navigation stack (`src/navigation/`) and existing screens for any current "my jobs" / "my listings" surface before writing code — this item needs a scoping pass, not a blind build.
+**Shipped:** two entries under Profile → settings, both visible to both roles
+(plenty of neighbors post one week and help the next):
+- **My listings** → `MyListingsScreen`, a pushable wrapper reusing `MyJobsScreen` via a new `embedded` prop rather than duplicating the list.
+- **My jobs & applications** → `MyApplicationsScreen`, a new helper-side view: accepted work first, then pending applications, with open invitations to apply pinned above.
 
 ---
 
-## 6. Mutual job-completion confirmation
+## 6. Mutual job-completion confirmation — ✅ done
 
 **Ask:** "Add a confirmation that the job was complete."
 
-**Current state:** `src/components/job/JobOwnerMenu.tsx` already has a one-sided action: the job *owner* (the resident who posted it) can mark a job `completed` via `change('completed', 'Job completed — nice work!')`. The helper has no corresponding confirmation step — completion is unilateral.
+**Was:** the owner could flip a job to `completed` unilaterally via `JobOwnerMenu`.
 
-**Scope:**
-- Add a job status step between "in progress" and "completed" — e.g. `pending_confirmation` — set when the owner marks it done, requiring the helper to confirm (or dispute) before the job flips to a final `completed` state.
-- This needs a new state in the job-status enum (`src/types/domain.ts`) and corresponding UI on the helper's side (a confirm/dispute prompt, likely on the job detail screen).
-- Natural pairing with item 7 (review/feedback) — mutual completion confirmation is the natural trigger point for prompting both sides to leave a review, so consider sequencing these two together.
+**Shipped:** a `pending_confirmation` status between in-progress and completed.
+"Mark as completed" now calls `request_job_completion`; the assigned helper sees
+a confirm/dispute card on the job detail screen. Disputing returns the job to
+`in_progress` with a reason and notifies the customer. `jobs_count` increments
+only on genuine completion. All three transitions are SECURITY DEFINER RPCs
+because the helper has no UPDATE grant on `jobs` at all.
 
 ---
 
-## 7. Review/feedback screens for both ends
+## 7. Review/feedback screens for both ends — ✅ done
 
 **Ask:** "Add a review/feedback screen for both ends."
 
-**Current state:** Confirmed via `src/services/types.ts` — the `DataBackend` interface only has `listReviewsForUser(userId)` (reading reviews). **There is no `createReview`/`submitReview` method anywhere in the interface, the mock backend, or the Supabase backend.** This is the biggest gap on the list — reviews can theoretically be displayed but can never be created; nothing writes to whatever review storage exists.
+**Was:** the biggest gap on the list — `DataBackend` had only `listReviewsForUser`. Nothing could ever create a review, and the 0002 INSERT policy checked only `auth.uid() = reviewer_id`, so any signed-in user could have fabricated a review of any stranger against any job id.
 
-**Scope (full-stack, largest item here):**
-- Confirm/design the review schema: rating (1–5?), free-text comment, reviewer id, reviewee id, job id (to prevent reviewing outside a real completed job), timestamp. Check if a `reviews` table already exists in the Supabase schema (`supabase/migrations/`) even though nothing writes to it — if so, reuse it; if not, it needs a new migration + RLS policies (reviewer can only write once per job, can only review the other party on a job they were actually part of).
-- Add `createReview`/`submitReview` to the `DataBackend` interface, then implement in both the mock backend and the real Supabase backend (this codebase's established pattern — every feature has a mock-mode implementation and a real one, keep both in sync).
-- Build the actual review-submission UI, likely triggered right after job completion (see item 6 — pairs naturally as "job marked complete → prompt both sides to review each other").
-- Surface reviews on profile screens (partially exists — `listReviewsForUser` already reads them, so display may already work; verify).
-- Given this touches trust/reputation for a marketplace with teen users, consider whether reviews need moderation (the existing `AdminScreen.tsx` ticket/moderation surface could be extended) before they're publicly visible, to prevent retaliatory or abusive reviews.
+**Shipped:**
+- Reused the existing `reviews` table from migration 0001 (four category scores + comment).
+- `createReview` / `listReviewsForJob` added to `DataBackend` and implemented in **both** the mock and Supabase backends.
+- Migration 0013 replaces the RLS policy: the job must be `completed`, and reviewer/reviewee must be its two parties in either direction. One review per reviewer per job; no self-review; no self-service edit or delete.
+- `profiles.rating` is recomputed by an `AFTER INSERT` trigger, so the headline number always matches the reviews on file.
+- `LeaveReviewScreen` derives the reviewee **from the job**, never from a route param. It is reached from a card that appears on the job for both parties once completion is confirmed — the natural pairing with item 6.
+
+**Still open:** reviews are public immediately. Pre-publication moderation for retaliatory reviews is not built (tracked in SAFETY_AND_ETHICS.md).
 
 ---
 
-## Suggested build order
+## Also addressed from the same round
 
-Roughly increasing complexity / decreasing self-containment:
+- **Date & time overlap / time running off screen** — the schedule fields are stacked full-width rather than side-by-side (iOS's spinner ignores a parent's flex constraint). On top of that, the time picker now floors at the current clock time when the chosen date is today, so "today at 9 AM" selected at 6 PM no longer produces a listing in the past; both fields show inline validation.
+- **AI per-hour price guideline** — fixed and hourly suggestions come from genuinely separate rate tables, the suggestion refetches when the Fixed/Per-hour toggle changes, and the pay step now states the implied hourly rate in dollars.
+- **Profile picture backend** — verified working end to end: `expo-image-picker` → Supabase Storage `avatars` bucket (migration 0012) → public URL with a cache-busting query, one stable path per user so re-uploads overwrite rather than accumulate. Mock mode keeps the local URI.
+- **Where do support tickets go?** — into the admin console's Tickets tab the moment they are submitted, with status visible to the submitter under "My Tickets". Now stated explicitly in the Help & Support FAQ.
+- **Help & Support back button** — the screen had no header at all; it has one now.
+- **Ethics/abuse question** — answered in [SAFETY_AND_ETHICS.md](SAFETY_AND_ETHICS.md).
 
-1. **Item 4** (AI message suggestion) — smallest, no schema changes, no safety questions.
-2. **Item 1** (duration/wage guidance) — small, mostly UI + a static data table.
-3. **Item 5** (My Jobs/Listings) — needs a scoping pass first, but likely small once scoped.
-4. **Item 6** (mutual completion confirmation) — one new status + one new UI step.
-5. **Item 7** (reviews) — full-stack, sequence right after item 6 since they're naturally linked.
-6. **Item 3** (no-show strikes) — needs a written policy decision before code.
-7. **Item 2** (contact recommended helpers) — needs a product decision on the safety-gate question before any code is written; don't let an agent silently expose contact info pre-acceptance to satisfy the ticket.
+## From the first revisions round: premium visibility — ✅ done
+
+**Ask:** "For job applications requests premium users get their application sent to the top" + "Premium request helpers their job listing gets sent to the top."
+
+**Was:** removed from the codebase entirely — `types/domain.ts` stated "No premium/subscription concepts exist", on the reasoning that Comly is a matchmaking app that handles no money.
+
+**Shipped, reconciling both:** premium exists as **visibility only**, with no
+purchase flow, price, subscription table, or billing integration — because the
+app still processes no money. `profiles.is_customer_plus` and
+`profiles.is_helper_pro` are server-owned flags granted out of band, pinned
+against self-service writes by the same guard trigger that protects `is_admin`
+and `strikes` (migration 0014).
+
+- **Listings:** a Plus customer's jobs post pre-boosted (`jobs.is_boosted` /
+  `boosted_until`, set by a `BEFORE INSERT` trigger from the poster's plan — the
+  client sends no boost fields, and an owner editing their listing can't flip
+  the flag). Feed order is boosted → Plus → AI match score → distance → newest.
+- **Applications:** `applications.is_priority` is derived from the applicant's
+  plan by a trigger, never from client input, and is pinned on update.
+  Application order is accepted → priority → rating → completed jobs → earliest
+  applied.
+- **Badges:** `PremiumBadge` renders on the job card, job detail, profile, and
+  the applications list — including the priority *reason*, so a promoted
+  application always says why it is on top.
+- **Free is outranked, never hidden.** Both comparators fall through to match
+  score, distance, rating, and recency, and `premium.test.ts` asserts a free
+  listing is never dropped from the ordering and wins every tiebreak below the
+  premium key.
+
+Boost expiry is honoured client-side too (`boostActive`), so an elapsed boost
+stops promoting a listing even before anything clears the flag.
+
+## Deliberately not built
+
+- **"Make our own model."** Training a model is not warranted here: the checks
+  that matter (implied hourly rate, duration bands, safety keywords) are
+  deterministic arithmetic and rules, which a model would make slower and less
+  predictable without making more accurate. The qualitative half already runs
+  through the existing shared Gemini client behind a server-side key.
+- **Injury liability waiver for teen helpers.** Not enforceable against a minor,
+  and it would push the product toward permitting unsafe jobs with paperwork
+  instead of preventing them. See SAFETY_AND_ETHICS.md §10.

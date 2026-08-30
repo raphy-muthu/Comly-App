@@ -29,6 +29,7 @@ import {
 import { useAuthStore } from '@/stores/authStore';
 import { OAuthProvider, signInWithProvider } from '@/services/auth';
 import { bracketFromDateOfBirth, MIN_SIGNUP_AGE, Role } from '@/types/domain';
+import { money, minimumWageFor } from '@/lib/wage';
 import { PublicStackParamList } from '@/navigation/types';
 
 type Props = NativeStackScreenProps<PublicStackParamList, 'SignUp'>;
@@ -96,6 +97,10 @@ export function SignUpScreen({ navigation }: Props) {
     EMAIL_RE.test(email.trim()) &&
     password.length >= MIN_PASSWORD &&
     ageBracket !== null;
+
+  // Recomputed on every render from whatever the user has typed so far — the
+  // neighborhood field doubles as the location signal for the wage guideline.
+  const wageFloor = minimumWageFor(neighborhood);
 
   const authenticate = async () => {
     setTouched(true);

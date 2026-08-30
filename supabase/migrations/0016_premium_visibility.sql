@@ -39,6 +39,11 @@ alter table applications add column if not exists priority_reason text;
 -- Same reasoning as strikes in 0013: RLS gates the row, not the column, so a
 -- BEFORE UPDATE trigger is what actually stops `update profiles set
 -- is_helper_pro = true where id = <self>`.
+-- Fourth rewrite of this function across the merged history (0005 → 0013 →
+-- 0015 → this one). This is the version that actually takes effect, since
+-- CREATE OR REPLACE fully replaces the body and migrations apply in filename
+-- order — so it carries every pinned column from every prior version, not
+-- just this migration's own addition, or the earlier ones silently vanish.
 create or replace function guard_profile_privileged_columns()
 returns trigger language plpgsql security definer set search_path = public as $$
 begin
@@ -48,7 +53,10 @@ begin
 
   new.is_admin := old.is_admin;
 
+  -- Age inputs to the safety gate (0013).
   new.age_group := old.age_group;
+  new.date_of_birth := old.date_of_birth;
+  new.age_bracket := old.age_bracket;
   new.parent_approval_status := old.parent_approval_status;
 
   new.is_trusted := old.is_trusted;
@@ -56,6 +64,7 @@ begin
   new.jobs_count := old.jobs_count;
   new.reputation_score := old.reputation_score;
 
+  -- Moderation outcomes (0015).
   new.strikes := old.strikes;
   new.is_suspended := old.is_suspended;
 

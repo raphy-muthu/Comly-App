@@ -58,6 +58,14 @@ returns boolean language sql stable as $$
   select coalesce(current_setting('comly.privileged_write', true), 'off') = 'on';
 $$;
 
+-- Reconciles the two independent rewrites of this function: migration 0013
+-- (age verification) pinned date_of_birth/age_bracket against self-edit but
+-- didn't know about comly_privileged_write_active(); this branch's original
+-- version knew about the bypass flag but predates date_of_birth/age_bracket
+-- entirely. CREATE OR REPLACE fully replaces a function body rather than
+-- merging it, so applying both migrations in sequence would otherwise leave
+-- whichever one runs last as the only one in effect — silently dropping the
+-- other's protections. This version carries every pinned column from both.
 create or replace function guard_profile_privileged_columns()
 returns trigger language plpgsql security definer set search_path = public as $$
 begin
@@ -67,7 +75,10 @@ begin
 
   new.is_admin := old.is_admin;
 
+  -- Age inputs to the safety gate (0013).
   new.age_group := old.age_group;
+  new.date_of_birth := old.date_of_birth;
+  new.age_bracket := old.age_bracket;
   new.parent_approval_status := old.parent_approval_status;
 
   new.is_trusted := old.is_trusted;
@@ -75,8 +86,8 @@ begin
   new.jobs_count := old.jobs_count;
   new.reputation_score := old.reputation_score;
 
-  -- Moderation outcomes. Applied only by resolve_no_show_event (below), via
-  -- the privileged-write flag above.
+  -- Moderation outcomes (this migration). Applied only by
+  -- resolve_no_show_event, via the privileged-write flag above.
   new.strikes := old.strikes;
   new.is_suspended := old.is_suspended;
 

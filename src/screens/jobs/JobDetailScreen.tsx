@@ -41,6 +41,7 @@ import { useRoleTheme } from '@/hooks/useRoleTheme';
 import { useAuthStore } from '@/stores/authStore';
 import {
   boostActive,
+  effectiveAgeBracket,
   eligibilityFor,
   categoryLabel,
   JOB_CATEGORIES,
@@ -417,7 +418,7 @@ export function JobDetailScreen() {
           (() => {
             const elig = eligibilityFor(
               job.safetyTier,
-              user?.ageGroup ?? 'adult',
+              effectiveAgeBracket(user?.ageBracket, user?.ageGroup ?? 'adult'),
               user?.verification.parentApproved ?? false
             );
             return (

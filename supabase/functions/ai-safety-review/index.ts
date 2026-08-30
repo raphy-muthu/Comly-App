@@ -5,7 +5,7 @@
 // POST { title: string, description: string }
 // → { safe: boolean, tier: SafetyTier, flags: string[], note: string }
 //
-// `tier` MUST be one of the five values in the app's SafetyTier union (see
+// `tier` MUST be one of the six values in the app's SafetyTier union (see
 // src/types/domain.ts) — they are also Postgres enum values, so anything else
 // fails the jobs insert outright. An earlier revision of this prompt asked for
 // "adults_only", which exists in neither.
@@ -31,14 +31,19 @@ Deno.serve(async (req) => {
       system:
         'You are a safety reviewer for a neighborhood marketplace where many ' +
         'helpers are teens. Flag scams, unsafe physical work (roofs, ladders, ' +
-        'chemicals, electrical), inappropriate or adult-only requests. Respond ' +
+        'chemicals, electrical, power lawn equipment like mowers and trimmers), ' +
+        'driving/delivery work, door-to-door solicitation, and inappropriate or ' +
+        'adult-only requests. Respond ' +
         'ONLY with JSON: {"safe": boolean, "tier": "teen_safe"|"caution"|' +
-        '"adult_supervision"|"eighteen_plus_only"|"blocked", ' +
+        '"adult_supervision"|"sixteen_plus_only"|"eighteen_plus_only"|"blocked", ' +
         '"flags": string[], "note": string}. ' +
         'Tier meanings: teen_safe = fine for a minor unsupervised; ' +
         'caution = minor may do it but should take care; ' +
         'adult_supervision = minor needs guardian approval; ' +
-        'eighteen_plus_only = no minors; blocked = not allowed at all.',
+        'sixteen_plus_only = requires the helper to be at least 16 (e.g. operating ' +
+        'a power mower or trimmer); ' +
+        'eighteen_plus_only = no minors (e.g. driving/delivery, door-to-door ' +
+        'solicitation); blocked = not allowed at all.',
       user: `Title: ${title ?? ''}\nDescription: ${description ?? ''}`,
     });
 
@@ -51,6 +56,7 @@ Deno.serve(async (req) => {
       'teen_safe',
       'caution',
       'adult_supervision',
+      'sixteen_plus_only',
       'eighteen_plus_only',
       'blocked',
     ];

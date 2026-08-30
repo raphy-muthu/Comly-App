@@ -224,9 +224,10 @@ const payBandsFor = (payType: PayType) =>
 
 // Keyword → safety tier signals (most severe wins).
 const BLOCKED_TERMS = ['roof', 'electrical', 'wiring', 'heavy machinery', 'chainsaw', 'firearm', 'gun'];
-const EIGHTEEN_TERMS = ['ladder', 'gutter', 'chemical', 'pressure washer', 'power tool'];
+const EIGHTEEN_TERMS = ['ladder', 'gutter', 'chemical', 'pressure washer', 'power tool', 'driving', 'deliver', 'door-to-door', 'door to door', 'canvassing'];
+const SIXTEEN_TERMS = ['mow', 'weed whacker', 'string trimmer', 'hedge trimmer'];
 const SUPERVISION_TERMS = ['pool', 'chemical', 'basement', 'attic'];
-const CAUTION_TERMS = ['snow', 'ice', 'lift', 'carry', 'heavy', 'outdoor', 'mow'];
+const CAUTION_TERMS = ['snow', 'ice', 'lift', 'carry', 'heavy', 'outdoor'];
 
 const mockAI: AIService = {
   async suggestPay(category, _title, payType) {
@@ -272,6 +273,14 @@ const mockAI: AIService = {
         safe: false,
         tier: 'eighteen_plus_only' as SafetyTier,
         note: `Mentions "${eighteen}" — helpers under 18 cannot apply to this task.`,
+      });
+    }
+    const sixteenPlus = has(SIXTEEN_TERMS);
+    if (sixteenPlus) {
+      return delay({
+        safe: true,
+        tier: 'sixteen_plus_only' as SafetyTier,
+        note: `Mentions "${sixteenPlus}" — helpers under 16 cannot apply to this task.`,
       });
     }
     const supervision = has(SUPERVISION_TERMS);
@@ -449,6 +458,7 @@ const realAI: AIService = {
         'teen_safe',
         'caution',
         'adult_supervision',
+        'sixteen_plus_only',
         'eighteen_plus_only',
         'blocked',
       ];

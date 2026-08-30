@@ -19,6 +19,27 @@ describe('safetyReview tiers', () => {
     );
   });
 
+  it('classifies mowing/trimming work as 16+', async () => {
+    expect((await ai.safetyReview('Mow my lawn', '')).tier).toBe('sixteen_plus_only');
+    expect(
+      (await ai.safetyReview('Trim the hedges', 'need someone with a hedge trimmer')).tier
+    ).toBe('sixteen_plus_only');
+  });
+
+  it('classifies driving/delivery and door-to-door work as 18+', async () => {
+    expect(
+      (
+        await ai.safetyReview(
+          'Delivery help',
+          'must have a car, will be driving to drop off packages'
+        )
+      ).tier
+    ).toBe('eighteen_plus_only');
+    expect(
+      (await ai.safetyReview('Fundraiser', 'door-to-door canvassing in the neighborhood')).tier
+    ).toBe('eighteen_plus_only');
+  });
+
   it('recommends supervision for pool work', async () => {
     expect(
       (await ai.safetyReview('Pool cleaning assistance', 'skim and vacuum')).tier
@@ -26,6 +47,12 @@ describe('safetyReview tiers', () => {
   });
 
   it('marks weather/physical work as caution', async () => {
+    expect(
+      (await ai.safetyReview('Snow shoveling', 'clear the driveway')).tier
+    ).toBe('caution');
+  });
+
+  it('does not let the new 16+ mowing tier swallow unrelated caution work (regression guard)', async () => {
     expect(
       (await ai.safetyReview('Snow shoveling', 'clear the driveway')).tier
     ).toBe('caution');

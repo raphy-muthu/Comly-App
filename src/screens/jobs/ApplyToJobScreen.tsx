@@ -18,7 +18,7 @@ import { useApplyToJob, useJob } from '@/hooks';
 import { useRoleTheme } from '@/hooks/useRoleTheme';
 import { ai, PaySuggestion } from '@/services/ai';
 import { formatPayShort } from '@/lib/format';
-import { eligibilityFor, JOB_CATEGORIES } from '@/types/domain';
+import { effectiveAgeBracket, eligibilityFor, JOB_CATEGORIES } from '@/types/domain';
 import { useAuthStore } from '@/stores/authStore';
 import { AppStackParamList } from '@/navigation/types';
 
@@ -39,7 +39,7 @@ export function ApplyToJobScreen() {
   const eligibility = job
     ? eligibilityFor(
         job.safetyTier,
-        user?.ageGroup ?? 'adult',
+        effectiveAgeBracket(user?.ageBracket, user?.ageGroup ?? 'adult'),
         user?.verification.parentApproved ?? false
       )
     : { canApply: true as boolean, reason: undefined as string | undefined };

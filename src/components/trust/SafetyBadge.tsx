@@ -15,6 +15,7 @@ const ICONS: Record<SafetyTier, string> = {
   teen_safe: 'shield-checkmark-outline',
   caution: 'alert-circle-outline',
   adult_supervision: 'people-outline',
+  sixteen_plus_only: 'shield-half-outline',
   eighteen_plus_only: 'warning-outline',
   blocked: 'ban-outline',
 };

@@ -1,0 +1,30 @@
+-- ════════════════════════════════════════════════════════════════════════════
+-- Comly — sixteen_plus_only safety tier
+--
+-- The five existing safety_tier values can't express a common real case: a job
+-- that's fine for a 16-17 year old helper but not for a 13-15 year old one.
+-- Power equipment is the recurring example — lawn mowing is routine work for
+-- an older teen and a genuine hazard for a younger one — and neither existing
+-- tier fits it. 'teen_safe' and 'caution' admit both ages alike; jumping to
+-- 'adult_supervision' or 'eighteen_plus_only' shuts out every teen, which is
+-- stricter than the job actually calls for. 'sixteen_plus_only' fills that
+-- gap: 16-17 may apply, 13-15 may not.
+--
+-- This migration adds only the enum value. The applications INSERT policy
+-- that reads it lives in 0018_hazard_classification_tier_policy.sql instead
+-- of landing here in the same transaction — see below.
+--
+-- Enum note (same discipline 0003 and 0015 already established in this repo):
+-- PostgreSQL forbids *using* a newly added enum value in the same transaction
+-- that adds it. 0015's header states the workaround precisely: reference new
+-- values only from inside plpgsql function bodies (parsed at call time, not
+-- at DDL time), and "never from a default, a check constraint, or a top-level
+-- statement." A `create policy ... with check (...)` clause falls on the
+-- wrong side of that line — it's parsed and type-checked as part of the
+-- CREATE POLICY statement itself, the same as a check constraint, not
+-- deferred the way a function body is. Rather than guess whether Postgres
+-- tolerates it anyway, the policy update referencing 'sixteen_plus_only' is a
+-- separate migration, applied (and committed) after this one.
+-- ════════════════════════════════════════════════════════════════════════════
+
+alter type safety_tier add value if not exists 'sixteen_plus_only';

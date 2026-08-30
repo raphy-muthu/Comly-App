@@ -157,6 +157,7 @@ function mapProfile(row: any): UserProfile {
     neighborhood: row.neighborhood ?? '',
     roles: row.roles ?? ['customer'],
     ageGroup: row.age_group ?? 'adult',
+    ageBracket: row.age_bracket ?? undefined,
     rating: Number(row.rating ?? 0),
     jobsCount: row.jobs_count ?? 0,
     reputationScore: row.reputation_score ?? 0,

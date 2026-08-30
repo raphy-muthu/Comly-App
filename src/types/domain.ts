@@ -63,6 +63,21 @@ export function bracketFromDateOfBirth(
   return 'adult';
 }
 
+/**
+ * Resolves the bracket to actually gate on. Profiles created before the
+ * age-bracket migration have `ageGroup` but no `ageBracket`; for those, a
+ * legacy adult isn't newly restricted, but a legacy teen's real age within
+ * the teen range is unknown, so fall back to the most conservative bracket
+ * rather than risk under-restricting them.
+ */
+export function effectiveAgeBracket(
+  ageBracket: AgeBracket | undefined,
+  ageGroup: AgeGroup
+): AgeBracket {
+  if (ageBracket) return ageBracket;
+  return ageGroup === 'adult' ? 'adult' : 'under_14';
+}
+
 export type ParentApprovalStatus = 'not_required' | 'pending' | 'approved';
 
 // ── Verification (government ID intentionally removed) ───────────────────────
@@ -155,6 +170,7 @@ export type SafetyTier =
   | 'teen_safe'
   | 'caution'
   | 'adult_supervision'
+  | 'sixteen_plus_only'
   | 'eighteen_plus_only'
   | 'blocked';
 
@@ -179,6 +195,11 @@ export const SAFETY_TIERS: Record<
     tone: 'warning',
     description: 'Comly recommends adult supervision. Teen helpers need parent/guardian approval.',
   },
+  sixteen_plus_only: {
+    label: '16+ Only',
+    tone: 'danger',
+    description: 'Helpers under 16 cannot apply to this task.',
+  },
   eighteen_plus_only: {
     label: '18+ Only',
     tone: 'danger',
@@ -194,14 +215,17 @@ export const SAFETY_TIERS: Record<
 /** Whether a helper may apply to a job of the given tier. */
 export function eligibilityFor(
   tier: SafetyTier,
-  ageGroup: AgeGroup,
+  ageBracket: AgeBracket,
   parentApproved: boolean
 ): { canApply: boolean; reason?: string } {
   if (tier === 'blocked') {
     return { canApply: false, reason: 'This task is not allowed on Comly.' };
   }
-  if (ageGroup === 'adult') return { canApply: true };
+  if (ageBracket === 'adult') return { canApply: true };
   // Teen helper:
+  if (tier === 'sixteen_plus_only' && (ageBracket === 'under_14' || ageBracket === 'fourteen_fifteen')) {
+    return { canApply: false, reason: 'Helpers under 16 cannot apply to this task.' };
+  }
   if (tier === 'eighteen_plus_only') {
     return { canApply: false, reason: 'Helpers under 18 cannot apply to 18+ jobs.' };
   }
@@ -313,6 +337,8 @@ export interface UserProfile {
   neighborhood: string;
   roles: Role[];
   ageGroup: AgeGroup;
+  /** Server-derived from date of birth; undefined only on rows created before this existed. */
+  ageBracket?: AgeBracket;
   rating: number; // 0–5
   jobsCount: number; // jobs posted (customer) or completed (helper)
   reputationScore: number; // 0–100, shown as "Trust Score"

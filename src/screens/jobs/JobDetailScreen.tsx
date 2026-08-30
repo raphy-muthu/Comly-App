@@ -47,6 +47,7 @@ import {
   JOB_CATEGORIES,
   JOB_STATUS_LABELS,
 } from '@/types/domain';
+import { hoursGuidanceFor } from '@/lib/hours';
 import { formatPay } from '@/lib/format';
 import { AppStackParamList } from '@/navigation/types';
 
@@ -416,16 +417,19 @@ export function JobDetailScreen() {
           />
         ) : (
           (() => {
-            const elig = eligibilityFor(
-              job.safetyTier,
-              effectiveAgeBracket(user?.ageBracket, user?.ageGroup ?? 'adult'),
-              user?.verification.parentApproved ?? false
-            );
+            const ageBracket = effectiveAgeBracket(user?.ageBracket, user?.ageGroup ?? 'adult');
+            const elig = eligibilityFor(job.safetyTier, ageBracket, user?.verification.parentApproved ?? false);
+            const hours = hoursGuidanceFor(ageBracket, new Date(job.scheduledFor), job.durationMinutes);
             return (
               <>
                 {!elig.canApply && (
                   <Text variant="caption" color="danger" center style={styles.eligReason}>
                     {elig.reason}
+                  </Text>
+                )}
+                {elig.canApply && (hours?.outsideWindow || hours?.overDurationCap) && (
+                  <Text variant="caption" color="warning" center style={styles.eligReason}>
+                    {hours?.outsideWindow ? hours.windowNote : hours?.durationNote}
                   </Text>
                 )}
                 <Button

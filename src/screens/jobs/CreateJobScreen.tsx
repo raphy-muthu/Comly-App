@@ -43,12 +43,14 @@ import {
 import { useAuthStore } from '@/stores/authStore';
 import { formatPayShort } from '@/lib/format';
 import {
+  combineDateTime,
   durationBoundsError,
   MAX_DURATION_MINUTES,
   MIN_DURATION_MINUTES,
   scheduleInPast,
   wageGuidance,
 } from '@/lib/wage';
+import { hoursGuidanceFor } from '@/lib/hours';
 import { AppStackParamList } from '@/navigation/types';
 
 type Nav = NativeStackNavigationProp<AppStackParamList>;
@@ -246,6 +248,13 @@ function StandardFlow() {
   // wage once you divide by the hours" are different claims, and the second is
   // the one worth stating in dollars-per-hour.
   const wage = wageGuidance(payNum, payType, durationMinutes, location);
+  // Evaluated against the fourteen_fifteen bracket regardless of who's
+  // posting — this is advisory for whichever helper might apply, not a
+  // statement about the poster's own age.
+  const scheduledMoment = flexible ? null : combineDateTime(date, time);
+  const hours = scheduledMoment
+    ? hoursGuidanceFor('fourteen_fifteen', scheduledMoment, durationMinutes)
+    : null;
 
   const post = () => {
     createJob.mutate(
@@ -632,6 +641,17 @@ function StandardFlow() {
                 <Text variant="caption" color="warning" style={{ flex: 1, marginLeft: 6 }}>
                   This pay may be too low for the estimated work. Consider raising
                   it to attract reliable helpers and support fair compensation.
+                </Text>
+              </View>
+            )}
+            {/* Informational only — the poster doesn't yet know if a younger
+                teen will apply, so this never blocks posting. */}
+            {(hours?.outsideWindow || hours?.overDurationCap) && (
+              <View style={styles.warnRow}>
+                <Ionicons name="time-outline" size={16} color={colors.warning} />
+                <Text variant="caption" color="warning" style={{ flex: 1, marginLeft: 6 }}>
+                  {hours?.outsideWindow ? hours.windowNote : hours?.durationNote}{' '}
+                  Some younger teen helpers may not be able to accept this job.
                 </Text>
               </View>
             )}

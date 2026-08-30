@@ -19,6 +19,7 @@ import { useRoleTheme } from '@/hooks/useRoleTheme';
 import { ai, PaySuggestion } from '@/services/ai';
 import { formatPayShort } from '@/lib/format';
 import { effectiveAgeBracket, eligibilityFor, JOB_CATEGORIES } from '@/types/domain';
+import { hoursGuidanceFor } from '@/lib/hours';
 import { useAuthStore } from '@/stores/authStore';
 import { AppStackParamList } from '@/navigation/types';
 
@@ -36,13 +37,13 @@ export function ApplyToJobScreen() {
   const toast = useToast();
   const user = useAuthStore((s) => s.user);
 
+  const ageBracket = effectiveAgeBracket(user?.ageBracket, user?.ageGroup ?? 'adult');
   const eligibility = job
-    ? eligibilityFor(
-        job.safetyTier,
-        effectiveAgeBracket(user?.ageBracket, user?.ageGroup ?? 'adult'),
-        user?.verification.parentApproved ?? false
-      )
+    ? eligibilityFor(job.safetyTier, ageBracket, user?.verification.parentApproved ?? false)
     : { canApply: true as boolean, reason: undefined as string | undefined };
+  const hours = job
+    ? hoursGuidanceFor(ageBracket, new Date(job.scheduledFor), job.durationMinutes)
+    : null;
 
   const [message, setMessage] = useState('');
   const [availability, setAvailability] = useState('');
@@ -179,6 +180,18 @@ export function ApplyToJobScreen() {
           </Card>
         )}
 
+        {/* Advisory only — never blocks submitting the application. */}
+        {eligibility.canApply && (hours?.outsideWindow || hours?.overDurationCap) && (
+          <Card padded style={styles.hoursCard}>
+            <View style={styles.blockRow}>
+              <Ionicons name="time-outline" size={18} color={colors.warning} />
+              <Text variant="bodyMd" color="warning" style={styles.blockText}>
+                {hours?.outsideWindow ? hours.windowNote : hours?.durationNote}
+              </Text>
+            </View>
+          </Card>
+        )}
+
         {/* AI suggestion */}
         {suggestion && (
           <Card padded style={styles.aiCard}>
@@ -307,6 +320,7 @@ const styles = StyleSheet.create({
   summaryRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.base, marginTop: spacing.sm },
   blockCard: { marginBottom: spacing.md, backgroundColor: colors.errorContainer, borderColor: '#fecaca' },
+  hoursCard: { marginBottom: spacing.md, backgroundColor: colors.warningContainer, borderColor: '#fde68a' },
   blockRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.base },
   blockText: { flex: 1 },
   thumb: {

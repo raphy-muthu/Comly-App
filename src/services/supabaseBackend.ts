@@ -184,6 +184,12 @@ function mapProfile(row: any): UserProfile {
     resumeSummary: row.resume_summary ?? undefined,
     bio: row.bio ?? undefined,
     isAdmin: !!row.is_admin,
+    legalConsent: {
+      termsVersion: row.terms_version ?? null,
+      termsAcceptedAt: row.terms_accepted_at ?? null,
+      privacyVersion: row.privacy_version ?? null,
+      privacyAcceptedAt: row.privacy_accepted_at ?? null,
+    },
     memberSince: row.member_since ?? row.created_at,
   };
 }

@@ -8,11 +8,13 @@
 
 import { useEffect } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
-import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
+import * as Linking from 'expo-linking';
+import { NavigationContainer, DefaultTheme, LinkingOptions } from '@react-navigation/native';
 import { useAuthStore } from '@/stores/authStore';
 import { colors } from '@/theme';
 import { PublicStack } from './PublicStack';
 import { AppStack } from './AppStack';
+import { LEGAL_ORIGIN } from '@/legal/content';
 
 const navTheme = {
   ...DefaultTheme,
@@ -23,6 +25,29 @@ const navTheme = {
     text: colors.textPrimary,
     primary: colors.primary,
     border: colors.divider,
+  },
+};
+
+/**
+ * URL mapping for the legal pages.
+ *
+ * These are the only routes that need stable, quotable URLs: the App Store and
+ * Play Console listings point at them, and the sign-up consent line links to
+ * them. Both screens are registered in BOTH stacks, so /terms resolves whether
+ * or not anyone is signed in — a signed-out visitor following the link from a
+ * store listing must land on the document, not on the login wall.
+ *
+ * `comly://terms` works as a deep link on device; the same paths are the real
+ * browser URLs under Expo web. The hosted static copies under web/legal/ cover
+ * the case where the web build isn't deployed.
+ */
+const linking: LinkingOptions<ReactNavigation.RootParamList> = {
+  prefixes: [Linking.createURL('/'), LEGAL_ORIGIN],
+  config: {
+    screens: {
+      Terms: 'terms',
+      Privacy: 'privacy',
+    },
   },
 };
 
@@ -46,7 +71,7 @@ export function RootNavigator() {
   }
 
   return (
-    <NavigationContainer theme={navTheme}>
+    <NavigationContainer theme={navTheme} linking={linking}>
       {isAuthenticated ? <AppStack /> : <PublicStack />}
     </NavigationContainer>
   );

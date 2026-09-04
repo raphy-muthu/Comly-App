@@ -27,7 +27,12 @@ import {
   useToast,
 } from '@/components/ui';
 import { useAuthStore } from '@/stores/authStore';
-import { OAuthProvider, signInWithProvider } from '@/services/auth';
+import {
+  OAuthProvider,
+  recordLegalConsent,
+  signInWithProvider,
+} from '@/services/auth';
+import { PRIVACY_VERSION, TERMS_VERSION } from '@/legal/content';
 import { bracketFromDateOfBirth, MIN_SIGNUP_AGE, Role } from '@/types/domain';
 import { money, minimumWageFor } from '@/lib/wage';
 import { PublicStackParamList } from '@/navigation/types';
@@ -66,6 +71,10 @@ export function SignUpScreen({ navigation }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [oauthPending, setOauthPending] = useState<OAuthProvider | null>(null);
   const [touched, setTouched] = useState(false);
+  // Consent is its own piece of state, not folded into `complete`, because it
+  // gates every account-creation path on this screen — including the OAuth
+  // buttons, which never reach the form validation below.
+  const [acceptedLegal, setAcceptedLegal] = useState(false);
 
   const signUp = useAuthStore((s) => s.signUp);
   const adoptSession = useAuthStore((s) => s.adoptSession);
@@ -91,7 +100,13 @@ export function SignUpScreen({ navigation }: Props) {
       ? `You must be at least ${MIN_SIGNUP_AGE} years old to use Comly.`
       : undefined;
 
+  const legalError =
+    touched && !acceptedLegal
+      ? 'Please accept the Terms of Service and Privacy Policy to continue.'
+      : undefined;
+
   const complete =
+    acceptedLegal &&
     name.trim().length > 1 &&
     neighborhood.trim().length > 0 &&
     EMAIL_RE.test(email.trim()) &&
@@ -105,7 +120,9 @@ export function SignUpScreen({ navigation }: Props) {
   const authenticate = async () => {
     setTouched(true);
     if (!complete || busy) {
-      if (dateOfBirth === null) {
+      if (!acceptedLegal) {
+        toast.info('Please accept the Terms of Service and Privacy Policy to continue.');
+      } else if (dateOfBirth === null) {
         toast.info('Please enter your date of birth to continue.');
       } else if (ageBracket === null) {
         toast.error(`You must be at least ${MIN_SIGNUP_AGE} years old to use Comly.`);
@@ -124,6 +141,8 @@ export function SignUpScreen({ navigation }: Props) {
         neighborhood,
         role,
         dateOfBirth: toIsoDate(dateOfBirth as Date),
+        termsVersion: TERMS_VERSION,
+        privacyVersion: PRIVACY_VERSION,
       });
 
       if (!result.ok) {
@@ -144,6 +163,13 @@ export function SignUpScreen({ navigation }: Props) {
   };
 
   const oauth = async (provider: OAuthProvider) => {
+    // Same gate as the email path. Without this, tapping Continue with Google
+    // would create an account that never agreed to anything.
+    if (!acceptedLegal) {
+      setTouched(true);
+      toast.info('Please accept the Terms of Service and Privacy Policy to continue.');
+      return;
+    }
     setOauthPending(provider);
     try {
       const result = await signInWithProvider(provider);
@@ -152,7 +178,13 @@ export function SignUpScreen({ navigation }: Props) {
         return;
       }
       const adopted = await adoptSession();
-      if (!adopted.ok) toast.error(adopted.message);
+      if (!adopted.ok) {
+        toast.error(adopted.message);
+        return;
+      }
+      // OAuth accounts are created by the provider, so the consent versions
+      // could not ride along in signup metadata — write them now.
+      await recordLegalConsent(TERMS_VERSION, PRIVACY_VERSION);
     } catch (err) {
       console.warn('[Comly] OAuth sign-in failed:', err);
       toast.error('Something went wrong signing in. Please try again.');
@@ -295,11 +327,68 @@ export function SignUpScreen({ navigation }: Props) {
         containerStyle={styles.input}
       />
 
+      {/* Checkbox and sentence are separate press targets on purpose. A
+          Pressable wrapping a Text that itself contains pressable links makes
+          which handler wins ambiguous — tapping "Terms of Service" would also
+          toggle the box. Nested Text presses ARE well defined per text range,
+          so the sentence toggles and the two links navigate. */}
+      <View style={styles.consentRow}>
+        <Pressable
+          onPress={() => setAcceptedLegal((v) => !v)}
+          disabled={busy}
+          hitSlop={10}
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked: acceptedLegal }}
+          accessibilityLabel="I agree to Comly's Terms of Service and Privacy Policy"
+        >
+          <View
+            style={StyleSheet.flatten([
+              styles.checkbox,
+              acceptedLegal && styles.checkboxChecked,
+              !!legalError && styles.checkboxError,
+            ])}
+          >
+            {acceptedLegal && (
+              <Ionicons name="checkmark" size={16} color={colors.onPrimary} />
+            )}
+          </View>
+        </Pressable>
+        <Text
+          variant="bodyMd"
+          color="textSecondary"
+          style={styles.consentText}
+          onPress={() => !busy && setAcceptedLegal((v) => !v)}
+        >
+          I agree to Comly's{' '}
+          <Text
+            variant="bodyMd"
+            color="primary"
+            onPress={() => navigation.navigate('Terms')}
+          >
+            Terms of Service
+          </Text>{' '}
+          and{' '}
+          <Text
+            variant="bodyMd"
+            color="primary"
+            onPress={() => navigation.navigate('Privacy')}
+          >
+            Privacy Policy
+          </Text>
+          .
+        </Text>
+      </View>
+      {!!legalError && (
+        <Text variant="caption" color="danger" style={styles.legalError}>
+          {legalError}
+        </Text>
+      )}
+
       <Button
         title="Create Account"
         onPress={authenticate}
         loading={submitting}
-        disabled={busy}
+        disabled={busy || !acceptedLegal}
         style={styles.cta}
       />
 
@@ -363,6 +452,26 @@ const styles = StyleSheet.create({
   },
   roleLabel: { textAlign: 'center' },
   ageNote: { marginTop: -spacing.sm, marginBottom: spacing.md },
+  consentRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+    marginTop: spacing.md,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: radius.sm,
+    borderWidth: 2,
+    borderColor: colors.outline,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+  },
+  checkboxChecked: { backgroundColor: colors.primary, borderColor: colors.primary },
+  checkboxError: { borderColor: colors.error },
+  consentText: { flex: 1, lineHeight: 20 },
+  legalError: { color: colors.error, marginTop: spacing.xs },
   input: { marginBottom: spacing.sm },
   wageCard: {
     marginBottom: spacing.sm,

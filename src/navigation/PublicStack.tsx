@@ -11,6 +11,7 @@ import { WelcomeScreen } from '@/screens/onboarding/WelcomeScreen';
 import { SignUpScreen } from '@/screens/auth/SignUpScreen';
 import { LoginScreen } from '@/screens/auth/LoginScreen';
 import { PhoneVerifyScreen } from '@/screens/auth/PhoneVerifyScreen';
+import { PrivacyScreen, TermsScreen } from '@/screens/legal';
 
 const Stack = createNativeStackNavigator<PublicStackParamList>();
 
@@ -27,6 +28,8 @@ export function PublicStack() {
       <Stack.Screen name="SignUp" component={SignUpScreen} />
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="PhoneVerify" component={PhoneVerifyScreen} />
+      <Stack.Screen name="Terms" component={TermsScreen} />
+      <Stack.Screen name="Privacy" component={PrivacyScreen} />
     </Stack.Navigator>
   );
 }

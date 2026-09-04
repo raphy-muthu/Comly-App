@@ -15,6 +15,9 @@ export type PublicStackParamList = {
   SignUp: undefined;
   Login: undefined;
   PhoneVerify: { phone?: string } | undefined;
+  /** Readable before sign-up: you must be able to read what you're agreeing to. */
+  Terms: undefined;
+  Privacy: undefined;
 };
 
 export type MainTabsParamList = {
@@ -44,6 +47,8 @@ export type AppStackParamList = {
   Impact: undefined;
   About: undefined;
   Admin: undefined;
+  Terms: undefined;
+  Privacy: undefined;
 };
 
 declare global {

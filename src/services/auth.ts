@@ -35,6 +35,15 @@ export interface SignUpParams {
    * sends a self-reported age group at all. Server-owned once set.
    */
   dateOfBirth: string;
+  /**
+   * Versions of the Terms of Service and Privacy Policy the user ticked the
+   * consent box for. Sent as metadata rather than as a boolean: knowing that
+   * someone agreed is close to useless without knowing WHAT they agreed to.
+   * The acceptance timestamps are set server-side by handle_new_user, never
+   * from the device clock.
+   */
+  termsVersion: string;
+  privacyVersion: string;
 }
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -127,6 +136,8 @@ export async function signUpWithEmail(params: SignUpParams): Promise<AuthResult>
         // age_group is deliberately not sent: 0013 derives it from this date,
         // so a client-supplied value would be ignored anyway.
         date_of_birth: params.dateOfBirth,
+        terms_version: params.termsVersion,
+        privacy_version: params.privacyVersion,
       },
     },
   });
@@ -136,6 +147,34 @@ export async function signUpWithEmail(params: SignUpParams): Promise<AuthResult>
   // With email confirmation enabled, Supabase returns a user but no session.
   // The caller must not treat that as being signed in.
   return { ok: true, needsEmailConfirmation: !data.session };
+}
+
+/**
+ * Records legal consent for the signed-in user.
+ *
+ * Needed because OAuth sign-up never passes through signUpWithEmail: Google
+ * and Apple create the account themselves, so there is no metadata to carry
+ * the consent versions. The RPC is SECURITY DEFINER (migration 0015) because
+ * the consent columns are pinned against self-service edits like every other
+ * server-owned field, and it only ever fills columns that are still null — so
+ * calling it twice cannot rewrite an earlier acceptance.
+ *
+ * Deliberately does not throw. A failed consent write must not strand someone
+ * mid-sign-in with a live account they cannot reach; the call is idempotent
+ * and safe to retry on next launch.
+ */
+export async function recordLegalConsent(
+  termsVersion: string,
+  privacyVersion: string
+): Promise<void> {
+  if (USE_MOCKS || !hasSupabaseConfig) return;
+  const { error } = await getSupabase().rpc('record_legal_consent', {
+    p_terms_version: termsVersion,
+    p_privacy_version: privacyVersion,
+  });
+  if (error) {
+    console.warn('[Comly] Could not record legal consent:', error.message);
+  }
 }
 
 export async function signInWithEmail(

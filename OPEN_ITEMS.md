@@ -140,7 +140,7 @@ purchase flow, price, subscription table, or billing integration — because the
 app still processes no money. `profiles.is_customer_plus` and
 `profiles.is_helper_pro` are server-owned flags granted out of band, pinned
 against self-service writes by the same guard trigger that protects `is_admin`
-and `strikes` (migration 0014).
+and `strikes` (migration 0016).
 
 - **Listings:** a Plus customer's jobs post pre-boosted (`jobs.is_boosted` /
   `boosted_until`, set by a `BEFORE INSERT` trigger from the poster's plan — the

@@ -172,7 +172,7 @@ down as two comparators (`compareFeedJobs`, `compareApplications` in
 - Boosts expire, and `boostActive` re-checks the expiry on read.
 - The badge is mandatory: a promoted application shows *why* it is on top.
 - `is_customer_plus` / `is_helper_pro` / `is_boosted` / `is_priority` are all
-  server-derived and pinned against self-service writes (migration `0014`), so
+  server-derived and pinned against self-service writes (migration `0016`), so
   the perk cannot be self-granted.
 
 **Residual risk.** Visibility advantage is still an advantage. The mitigation is

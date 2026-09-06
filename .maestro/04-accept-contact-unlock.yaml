@@ -1,0 +1,42 @@
+# Accept an applicant and confirm contact unlocks — but only then.
+#
+# Contact details staying hidden until acceptance is the core safety promise of
+# the app: it is what stops an unvetted adult reaching a teen outside the
+# safety review. This flow asserts both halves — hidden before, shown after —
+# because only checking the "after" would pass even if contact leaked the whole
+# time.
+appId: com.comly.app
+---
+- launchApp:
+    clearState: true
+
+- tapOn: "Log In"
+- tapOn: "you@neighborhood.com"
+- inputText: "maestro@example.com"
+- tapOn: "Your password"
+- inputText: "password123"
+- hideKeyboard
+- tapOn:
+    text: "Log In"
+    index: 1
+
+# A seeded listing that already has an applicant.
+- assertVisible: "Active Jobs"
+- tapOn:
+    text: ".*applicant.*"
+
+# Before acceptance the exact address and phone number must not be on screen.
+- assertNotVisible:
+    text: ".*[0-9]{3}-[0-9]{3}-[0-9]{4}.*"
+- assertVisible:
+    text: ".*(hidden until accepted|CONTACT UNLOCKED).*"
+
+- tapOn:
+    text: ".*View Applications.*"
+- assertVisible: "Applications"
+- tapOn: "Accept"
+
+# After acceptance the contact card appears.
+- assertVisible: "CONTACT UNLOCKED"
+- assertVisible:
+    text: ".*[0-9]{3}-[0-9]{3}-[0-9]{4}.*"

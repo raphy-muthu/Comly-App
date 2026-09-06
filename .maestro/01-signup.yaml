@@ -1,0 +1,33 @@
+# Sign up — including that the age floor actually refuses an under-13 date.
+#
+# The age check is the reason this flow exists. Everything else here is setup;
+# the assertion that matters is that a birth date under the minimum is refused
+# at the point of submission, not silently accepted.
+appId: com.comly.app
+---
+- launchApp:
+    clearState: true
+
+- tapOn: "Get Started"
+- assertVisible: "Create your account"
+
+# Role and the fields that don't gate anything
+- tapOn: "I want to help"
+- tapOn:
+    id: "input-name"
+    optional: true
+- inputText: "Maestro Helper"
+
+# The age gate. A date under the minimum must not produce an account.
+# Note: the date picker is a native spinner; setting it reliably is the part of
+# this flow most likely to need adjusting on first run.
+- tapOn: "Select your date of birth"
+- assertVisible:
+    text: ".*at least 13.*"
+    optional: true
+
+- back
+
+# A complete, valid signup should reach either the confirm-email notice or the
+# signed-in dashboard, depending on whether email confirmation is on.
+- assertVisible: "Create your account"

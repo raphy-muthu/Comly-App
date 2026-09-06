@@ -3,6 +3,7 @@
  * reputation score, verification ladder, and account actions.
  */
 
+import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -29,6 +30,7 @@ import {
   VerificationList,
   YouthSkillsCard,
 } from '@/components/trust';
+import { ParentConsentSheet } from '@/components/people/ParentConsentSheet';
 import { useUserNoShows } from '@/hooks';
 import { useAuthStore } from '@/stores/authStore';
 import { NO_SHOW_POLICY, NO_SHOW_STATUS_LABELS, Role, strikeTone, VerificationKey } from '@/types/domain';
@@ -51,20 +53,21 @@ export function ProfileScreen() {
   const activeRole = useAuthStore((s) => s.activeRole);
   const setActiveRole = useAuthStore((s) => s.setActiveRole);
   const signOut = useAuthStore((s) => s.signOut);
+  const adoptSession = useAuthStore((s) => s.adoptSession);
   const toast = useToast();
-  // Hook order is fixed, so this can't sit behind the `!user` early return.
+  // Hook order is fixed, so these can't sit behind the `!user` early return.
   const { data: noShows } = useUserNoShows(user?.id ?? '');
+  const [consentOpen, setConsentOpen] = useState(false);
 
   if (!user) return null;
 
   // phoneAdded/photoAdded/schoolEmailVerified are all fields the user can set
-  // themselves on Edit Profile. parentApproved is a guardian-completed
-  // attestation with no self-service screen — routing it to Edit Profile
-  // would just be a second, more misleading dead end, so it gets an honest
-  // explanation instead.
+  // themselves on Edit Profile. parentApproved cannot be self-verified — it is
+  // set server-side only when a guardian follows an emailed link — so it opens
+  // the request sheet rather than Edit Profile.
   const handleVerificationAdd = (key: VerificationKey) => {
     if (key === 'parentApproved') {
-      toast.info('Ask your parent or guardian to complete approval — this can’t be self-verified.');
+      setConsentOpen(true);
       return;
     }
     navigation.navigate('EditProfile');
@@ -302,6 +305,18 @@ export function ProfileScreen() {
           Sign Out
         </Text>
       </Pressable>
+
+      <ParentConsentSheet
+        visible={consentOpen}
+        onClose={() => setConsentOpen(false)}
+        initialEmail={user.parentEmail}
+        status={user.parentApprovalStatus}
+        // The server moves parent_approval_status to 'pending'; re-reading the
+        // session is what pulls that back into the profile on screen.
+        onSent={() => {
+          void adoptSession();
+        }}
+      />
     </Screen>
   );
 }

@@ -1,0 +1,41 @@
+# Post a job as a customer, through the AI preview step.
+#
+# The assertion that matters is that the AI preview actually runs and assigns a
+# safety tier — that classification is what every downstream age gate reads. A
+# job reaching the listing without a tier would silently skip the entire
+# teen-safety system.
+appId: com.comly.app
+---
+- launchApp:
+    clearState: true
+
+# Mock mode accepts any credentials.
+- tapOn: "Log In"
+- tapOn: "you@neighborhood.com"
+- inputText: "maestro@example.com"
+- tapOn: "Your password"
+- inputText: "password123"
+- hideKeyboard
+- tapOn:
+    text: "Log In"
+    index: 1
+
+- assertVisible: "Post a Job"
+- tapOn: "Post a Job"
+- assertVisible: "Job Details"
+
+- tapOn: "Snow Shoveling"
+- tapOn: "e.g., Shovel 2-car driveway"
+- inputText: "Shovel the front walk"
+- hideKeyboard
+
+- tapOn: "Describe what needs to be done…"
+- inputText: "Front walk and steps cleared after the storm."
+- hideKeyboard
+
+- tapOn: "Continue"
+
+# Step 2 is the AI preview: fair-pay guidance and the safety classification.
+- assertVisible: "AI Preview"
+- assertVisible:
+    text: ".*[Ss]afety.*"

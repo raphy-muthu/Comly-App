@@ -1,0 +1,41 @@
+# Apply to a job as a helper, with the eligibility gate exercised.
+#
+# This is the flow worth having. The safety tier assigned at posting decides
+# who may apply, and the whole teen-safety argument rests on that gate actually
+# firing in the UI — not just in the database. A job the helper is ineligible
+# for must show a reason and a disabled action, never an enabled Apply button.
+appId: com.comly.app
+---
+- launchApp:
+    clearState: true
+
+- tapOn: "Log In"
+- tapOn: "you@neighborhood.com"
+- inputText: "maestro@example.com"
+- tapOn: "Your password"
+- inputText: "password123"
+- hideKeyboard
+- tapOn:
+    text: "Log In"
+    index: 1
+
+# Switch to the helper side, where the feed and its safety labels live.
+- tapOn: "Jobs"
+- assertVisible:
+    text: ".*(Teen Safe|Caution|16\\+|18\\+).*"
+
+# Open the first listing and confirm the tier badge and the apply affordance
+# agree with each other: either apply is offered, or a reason is given.
+- tapOn:
+    text: ".*"
+    index: 1
+- assertVisible:
+    text: ".*(Apply for Job|Not eligible).*"
+
+# When ineligible, the refusal must be explained rather than a dead button.
+- runFlow:
+    when:
+      visible: "Not eligible"
+    commands:
+      - assertVisible:
+          text: ".*(cannot apply|approval is required|under 1[68]).*"

@@ -165,7 +165,18 @@ export const JOB_CATEGORIES: Record<
   other: { label: 'Other', icon: 'ellipsis-horizontal-outline' },
 };
 
+<<<<<<< Updated upstream
 // ── Safety tiers (5 levels) ──────────────────────────────────────────────────
+=======
+// ── Safety tiers (6 levels) ──────────────────────────────────────────────────
+/**
+ * Ordered from least to most restrictive. `sixteen_plus_only` exists because
+ * the federal hazardous-occupation rules draw a hard line at 16 that none of
+ * the other tiers could express: power-driven equipment (mowers, trimmers,
+ * blowers) is off-limits below 16 regardless of parent approval, which is
+ * neither "supervision fixes it" nor "no minors at all".
+ */
+>>>>>>> Stashed changes
 export type SafetyTier =
   | 'teen_safe'
   | 'caution'
@@ -366,6 +377,19 @@ export interface UserProfile {
   resumeSummary?: string;
   bio?: string;
   isAdmin?: boolean;
+  /**
+   * Which legal documents this account accepted, and when. Optional because
+   * accounts created before migration 0015 never saw a consent box — absent
+   * means "no record", which is different from "declined", and back-filling it
+   * would be inventing a record. Compare `termsVersion` against the current
+   * TERMS_VERSION to decide whether to prompt for re-consent.
+   */
+  legalConsent?: {
+    termsVersion: string | null;
+    termsAcceptedAt: string | null;
+    privacyVersion: string | null;
+    privacyAcceptedAt: string | null;
+  };
   memberSince: string; // ISO date
 }
 

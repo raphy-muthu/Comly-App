@@ -286,6 +286,18 @@ export function ProfileScreen() {
             label="About Comly"
             onPress={() => navigation.navigate('About')}
           />
+          <Divider inset />
+          <SettingsRow
+            icon="document-text-outline"
+            label="Terms of Service"
+            onPress={() => navigation.navigate('Terms')}
+          />
+          <Divider inset />
+          <SettingsRow
+            icon="lock-closed-outline"
+            label="Privacy Policy"
+            onPress={() => navigation.navigate('Privacy')}
+          />
           {user.isAdmin && (
             <>
               <Divider inset />

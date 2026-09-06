@@ -124,30 +124,40 @@ $$;
 create or replace function guard_profile_privileged_columns()
 returns trigger language plpgsql security definer set search_path = public as $$
 begin
-  if auth.uid() is null then
+  if auth.uid() is null or comly_privileged_write_active() then
     return new;
   end if;
 
   new.is_admin := old.is_admin;
 
-  -- Age inputs to the safety gate.
+  -- Age inputs to the safety gate (0013).
   new.age_group := old.age_group;
   new.date_of_birth := old.date_of_birth;
   new.age_bracket := old.age_bracket;
   new.parent_approval_status := old.parent_approval_status;
 
-  -- Legal consent record.
+  new.is_trusted := old.is_trusted;
+  new.rating := old.rating;
+  new.jobs_count := old.jobs_count;
+  new.reputation_score := old.reputation_score;
+
+  -- Moderation outcomes (0015).
+  new.strikes := old.strikes;
+  new.is_suspended := old.is_suspended;
+
+  -- Paid/granted visibility tiers (0016).
+  new.is_customer_plus := old.is_customer_plus;
+  new.is_helper_pro := old.is_helper_pro;
+
+  -- Legal consent record (this migration). Scoped to its own flag rather than
+  -- comly_privileged_write_active(), since record_legal_consent should only
+  -- ever unlock these four columns, not every privileged column above.
   if coalesce(current_setting('comly.allow_consent_write', true), 'off') <> 'on' then
     new.terms_accepted_at := old.terms_accepted_at;
     new.privacy_accepted_at := old.privacy_accepted_at;
     new.terms_version := old.terms_version;
     new.privacy_version := old.privacy_version;
   end if;
-
-  new.is_trusted := old.is_trusted;
-  new.rating := old.rating;
-  new.jobs_count := old.jobs_count;
-  new.reputation_score := old.reputation_score;
 
   new.id := old.id;
 

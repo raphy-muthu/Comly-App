@@ -165,9 +165,6 @@ export const JOB_CATEGORIES: Record<
   other: { label: 'Other', icon: 'ellipsis-horizontal-outline' },
 };
 
-<<<<<<< Updated upstream
-// ── Safety tiers (5 levels) ──────────────────────────────────────────────────
-=======
 // ── Safety tiers (6 levels) ──────────────────────────────────────────────────
 /**
  * Ordered from least to most restrictive. `sixteen_plus_only` exists because
@@ -176,7 +173,6 @@ export const JOB_CATEGORIES: Record<
  * blowers) is off-limits below 16 regardless of parent approval, which is
  * neither "supervision fixes it" nor "no minors at all".
  */
->>>>>>> Stashed changes
 export type SafetyTier =
   | 'teen_safe'
   | 'caution'

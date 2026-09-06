@@ -148,7 +148,15 @@ export interface Database {
     // job_with_applicant_count removed (migration 0009): unused, and it
     // exposed jobs.lat/lng (exact coordinates) via a view that bypassed RLS.
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      // Migration 0015. Records legal consent for the calling user; the only
+      // RPC the client invokes by name, so the only one that has to be typed
+      // here for `supabase.rpc()` to accept its arguments.
+      record_legal_consent: {
+        Args: { p_terms_version: string; p_privacy_version: string };
+        Returns: void;
+      };
+    };
     Enums: {
       user_role: UserRoleEnum;
       job_category: JobCategoryEnum;

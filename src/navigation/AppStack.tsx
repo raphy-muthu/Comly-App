@@ -23,6 +23,7 @@ import { EditProfileScreen } from '@/screens/shared/EditProfileScreen';
 import { ImpactScreen } from '@/screens/shared/ImpactScreen';
 import { AboutScreen } from '@/screens/shared/AboutScreen';
 import { AdminScreen } from '@/screens/admin/AdminScreen';
+import { PrivacyScreen, TermsScreen } from '@/screens/legal';
 
 const Stack = createNativeStackNavigator<AppStackParamList>();
 
@@ -75,6 +76,8 @@ export function AppStack() {
       <Stack.Screen name="Impact" component={ImpactScreen} />
       <Stack.Screen name="About" component={AboutScreen} />
       <Stack.Screen name="Admin" component={AdminScreen} />
+      <Stack.Screen name="Terms" component={TermsScreen} />
+      <Stack.Screen name="Privacy" component={PrivacyScreen} />
     </Stack.Navigator>
   );
 }

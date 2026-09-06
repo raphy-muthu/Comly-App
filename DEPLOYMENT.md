@@ -146,6 +146,29 @@ eas secret:create --name EXPO_PUBLIC_GOOGLE_MAPS_API_KEY --value AIza...
 
 ---
 
+## 7.5 Legal pages (required before store review)
+
+Both stores reject a listing whose Terms/Privacy URLs 404, and the sign-up
+screen links to the same two paths.
+
+1. Fill in the `__________` placeholders in `src/legal/content.ts` — Termly left
+   blanks for the registered company address and the contact email, and they
+   appear verbatim in the published document today.
+2. Replace the placeholder Privacy Policy (`PRIVACY_POLICY` in the same file).
+   It currently says, deliberately and truthfully, that the policy is not
+   finished yet.
+3. Set `LEGAL_ORIGIN` to the real domain, then regenerate the hosted pages:
+
+```bash
+npm run legal:html            # writes web/legal/{terms,privacy}.html
+```
+
+4. Deploy `web/legal/` so that `/terms` and `/privacy` serve those files
+   (see `web/legal/README.md` for the rewrite rules).
+5. Bump `TERMS_VERSION` / `PRIVACY_VERSION` whenever the documents change
+   materially. Those strings are recorded against each account at sign-up, so
+   they are the only way to tell which text a given user actually agreed to.
+
 ## 8. Submit to stores
 
 ```bash
@@ -153,7 +176,9 @@ eas submit --platform ios
 eas submit --platform android
 ```
 
-Have ready: app screenshots, privacy policy URL, store descriptions, and (for iOS) App Privacy answers. Because Comly handles no payments and minimal personal data, the privacy surface is small — but you still collect names, neighborhoods, and (if enabled) phone numbers, so disclose those.
+Have ready: app screenshots, the live `/terms` and `/privacy` URLs (App Store
+Connect → App Information → License Agreement / Privacy Policy URL; Play Console
+→ App content → Privacy policy), store descriptions, and (for iOS) App Privacy answers. Because Comly handles no payments and minimal personal data, the privacy surface is small — but you still collect names, neighborhoods, and (if enabled) phone numbers, so disclose those.
 
 ---
 
@@ -167,4 +192,7 @@ Have ready: app screenshots, privacy policy URL, store descriptions, and (for iO
 - [ ] Real app icon + splash assets
 - [ ] Push credentials configured (APNs / FCM)
 - [ ] Tested a real sign-up → post job → apply flow against Supabase
+- [ ] Termly `__________` placeholders filled in and real Privacy Policy published
+- [ ] `/terms` and `/privacy` live, and the URLs entered in both store consoles
+- [ ] iOS permission usage strings reviewed against what the app actually requests
 ```

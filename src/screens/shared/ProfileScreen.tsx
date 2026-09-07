@@ -31,6 +31,7 @@ import {
   YouthSkillsCard,
 } from '@/components/trust';
 import { ParentConsentSheet } from '@/components/people/ParentConsentSheet';
+import { DeleteAccountSheet } from '@/components/people/DeleteAccountSheet';
 import { useUserNoShows } from '@/hooks';
 import { useAuthStore } from '@/stores/authStore';
 import { NO_SHOW_POLICY, NO_SHOW_STATUS_LABELS, Role, strikeTone, VerificationKey } from '@/types/domain';
@@ -58,6 +59,7 @@ export function ProfileScreen() {
   // Hook order is fixed, so these can't sit behind the `!user` early return.
   const { data: noShows } = useUserNoShows(user?.id ?? '');
   const [consentOpen, setConsentOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   if (!user) return null;
 
@@ -318,6 +320,19 @@ export function ProfileScreen() {
         </Text>
       </Pressable>
 
+      {/* Separated from Sign Out on purpose: they are one tap apart and only
+          one of them is reversible. */}
+      <Pressable
+        style={styles.deleteAccount}
+        onPress={() => setDeleteOpen(true)}
+        accessibilityRole="button"
+        accessibilityLabel="Delete my account"
+      >
+        <Text variant="labelMd" color="textSecondary">
+          Delete my account
+        </Text>
+      </Pressable>
+
       <ParentConsentSheet
         visible={consentOpen}
         onClose={() => setConsentOpen(false)}
@@ -327,6 +342,17 @@ export function ProfileScreen() {
         // session is what pulls that back into the profile on screen.
         onSent={() => {
           void adoptSession();
+        }}
+      />
+
+      <DeleteAccountSheet
+        visible={deleteOpen}
+        onClose={() => setDeleteOpen(false)}
+        // The server session is already gone by this point; signOut clears the
+        // local store and returns the app to the signed-out stack.
+        onDeleted={() => {
+          setDeleteOpen(false);
+          void signOut();
         }}
       />
     </Screen>
@@ -410,6 +436,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: spacing.lg,
+    paddingVertical: spacing.sm,
+  },
+  // Quieter than Sign Out and set apart from it. A destructive, irreversible
+  // action should not compete for the same glance as the routine one.
+  deleteAccount: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: spacing.xs,
     paddingVertical: spacing.sm,
   },
 });

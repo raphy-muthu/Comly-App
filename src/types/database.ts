@@ -92,7 +92,8 @@ type ApplicationRow = {
 type ReviewRow = {
   id: string;
   job_id: string;
-  reviewer_id: string;
+  // Null once the author deletes their account (migration 0022).
+  reviewer_id: string | null;
   reviewee_id: string;
   reliability: number;
   quality: number;

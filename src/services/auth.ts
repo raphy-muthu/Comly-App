@@ -216,6 +216,71 @@ export async function signOutEverywhere(): Promise<void> {
   await getSupabase().auth.signOut();
 }
 
+export interface DeleteAccountResult {
+  ok: boolean;
+  /**
+   * Present when there is something to say either way — a failure reason, or
+   * the demo-mode notice that nothing was actually deleted. AuthResult cannot
+   * carry a message on success, and here a successful no-op needs one.
+   */
+  message?: string;
+}
+
+/**
+ * Permanently delete the signed-in user's account. Irreversible.
+ *
+ * The account id is never sent — the edge function reads it from the verified
+ * JWT, so this cannot be aimed at anyone else's account.
+ *
+ * Reviews the user wrote and no-show reports they filed are kept but detached
+ * from them, because those records belong to the other party's history
+ * (migration 0022). Everything that is only theirs goes.
+ */
+export async function deleteAccount(): Promise<DeleteAccountResult> {
+  if (USE_MOCKS || !hasSupabaseConfig) {
+    await delay(600);
+    // Demo mode has no server to delete anything from. Say so rather than
+    // reporting a deletion that did not happen.
+    return { ok: true, message: 'Demo mode: no account was actually deleted.' };
+  }
+
+  try {
+    const { data, error } = await getSupabase().functions.invoke('delete-account', {
+      method: 'POST',
+    });
+
+    if (error) {
+      const detail = await readFunctionError(error);
+      return { ok: false, message: detail ?? 'Could not delete your account.' };
+    }
+    if (!(data as { ok?: boolean })?.ok) {
+      return { ok: false, message: 'Could not delete your account.' };
+    }
+
+    // The server row is gone; clear the local session so the app cannot keep
+    // using tokens for an account that no longer exists.
+    await getSupabase().auth.signOut();
+    return { ok: true };
+  } catch {
+    return { ok: false, message: 'Could not reach the server. Check your connection.' };
+  }
+}
+
+/**
+ * supabase-js wraps a non-2xx function response in a FunctionsHttpError whose
+ * body has to be read off the attached Response to get the real message.
+ */
+async function readFunctionError(error: unknown): Promise<string | null> {
+  const res = (error as { context?: Response })?.context;
+  if (!res || typeof res.json !== 'function') return null;
+  try {
+    const body = await res.json();
+    return typeof body?.error === 'string' ? body.error : null;
+  } catch {
+    return null;
+  }
+}
+
 // ── Phone (SMS one-time code) ────────────────────────────────────────────────
 //
 // Requires an SMS provider (Twilio, MessageBird, …) configured under

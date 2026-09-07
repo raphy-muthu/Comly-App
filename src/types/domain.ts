@@ -467,7 +467,12 @@ export type ReviewCategory =
 export interface Review {
   id: string;
   jobId: string;
-  reviewerId: string;
+  /**
+   * Null once the author has deleted their account. The review itself stays —
+   * it belongs to the reviewee's history — so render a null author as a former
+   * member rather than assuming a name is always there (migration 0022).
+   */
+  reviewerId: string | null;
   revieweeId: string;
   ratings: Record<ReviewCategory, number>;
   comment: string;

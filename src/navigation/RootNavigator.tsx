@@ -15,6 +15,7 @@ import { colors } from '@/theme';
 import { PublicStack } from './PublicStack';
 import { AppStack } from './AppStack';
 import { LEGAL_ORIGIN } from '@/legal/content';
+import { ReConsentGate } from '@/components/legal/ReConsentGate';
 
 const navTheme = {
   ...DefaultTheme,
@@ -73,6 +74,10 @@ export function RootNavigator() {
   return (
     <NavigationContainer theme={navTheme} linking={linking}>
       {isAuthenticated ? <AppStack /> : <PublicStack />}
+      {/* Inside the container so the gate can link to the Terms and Privacy
+          screens, and above the stack so it covers whichever screen the user
+          happens to be on. Renders nothing when consent is already current. */}
+      {isAuthenticated && <ReConsentGate />}
     </NavigationContainer>
   );
 }

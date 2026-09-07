@@ -53,7 +53,48 @@ export interface LegalDocument {
  * `privacy_version` on the profile.
  */
 export const TERMS_VERSION = '2026-09-06';
-export const PRIVACY_VERSION = '2026-09-06';
+export const PRIVACY_VERSION = '2026-09-07';
+
+/**
+ * The oldest version still considered acceptable without re-agreeing.
+ *
+ * These exist separately from the version strings above because those answer a
+ * different question. A version records *which text a user saw* and so must be
+ * bumped on any change, including a typo fix. Re-consent is a much heavier
+ * event — it interrupts everyone — and should only fire when the substance
+ * changed.
+ *
+ * With one string doing both jobs, every correction nags every user, and the
+ * predictable result is that nobody bumps the version for small fixes and the
+ * stored record quietly stops matching the published text.
+ *
+ * Raise these only for a change a user would want to be told about:
+ *   2026-09-06 terms   — payment and subscription sections removed, the
+ *                        no-funds clause added, commercial-use scope corrected.
+ *   2026-09-06 privacy — the policy went from an explicit placeholder to a
+ *                        real document.
+ *
+ * The 2026-09-07 privacy revision (documenting in-app account deletion) is
+ * deliberately NOT a re-consent event: it grants a right rather than changing
+ * what the user agreed to.
+ */
+export const TERMS_RECONSENT_SINCE = '2026-09-06';
+export const PRIVACY_RECONSENT_SINCE = '2026-09-06';
+
+/**
+ * Whether a stored consent version is still current enough to stand.
+ *
+ * Versions are ISO dates, so a string comparison is a date comparison. A null
+ * stored version means the account predates consent capture entirely and needs
+ * to accept for the first time.
+ */
+export function consentIsCurrent(
+  storedTerms: string | null | undefined,
+  storedPrivacy: string | null | undefined
+): boolean {
+  if (!storedTerms || !storedPrivacy) return false;
+  return storedTerms >= TERMS_RECONSENT_SINCE && storedPrivacy >= PRIVACY_RECONSENT_SINCE;
+}
 
 /**
  * Public origin the legal pages are hosted under. Also a deep-link prefix, so
@@ -570,18 +611,18 @@ export const TERMS_OF_SERVICE: LegalDocument = {
  * placeholders match the ones in TERMS_OF_SERVICE and should be filled with the
  * same values at the same time.
  *
- * Two things this document is honest about because the app currently is:
- *   - Account deletion is support-request-only; there is no self-service
- *     delete button yet. (Apple requires one for apps that support account
- *     creation — this is worth building before submission, not just
- *     disclosing around.)
- *   - Push notification permission code exists but no device token is
- *     currently stored anywhere, so that paragraph is phrased conditionally
- *     rather than as a present-tense claim.
+ * Section 10 describes the real in-app deletion flow (migration 0022 and the
+ * delete-account function), including the two record types that deliberately
+ * survive it detached from the user. Keep those in step: if the deletion
+ * behaviour changes, this section is a factual claim that changes with it.
+ *
+ * Still phrased conditionally on purpose: push notification permission code
+ * exists but no device token is currently stored anywhere, so that paragraph
+ * does not claim we hold one today.
  */
 export const PRIVACY_POLICY: LegalDocument = {
   title: 'Privacy Policy',
-  lastUpdated: 'September 06, 2026',
+  lastUpdated: 'September 07, 2026',
   version: PRIVACY_VERSION,
   blocks: [
     { type: 'h2', text: `AGREEMENT TO THIS PRIVACY POLICY` },
@@ -770,7 +811,11 @@ export const PRIVACY_POLICY: LegalDocument = {
     },
     {
       type: 'p',
-      text: `To request that we delete your account and associated personal information, contact us through Help & Support in the app or using the details below. We will confirm and act on deletion requests within a reasonable time, subject to the retention needs described in Section 7 — for example, keeping a record of a confirmed no-show strike that is also tied to another user's account.`,
+      text: `You can delete your account at any time from inside the app: open your Profile, scroll to the bottom, and choose "Delete my account". You will be asked to confirm, and the deletion is then immediate and permanent. Your profile, your contact details, your listings, and your applications are removed.`,
+    },
+    {
+      type: 'p',
+      text: `Two things deliberately survive that deletion, with your name removed from them: reviews you wrote about another person, and any no-show report you filed about another person. Those records belong to that other user's history — deleting them would silently change someone else's rating, or erase a finding made about them. They remain, no longer attributed to you.`,
     },
     {
       type: 'p',

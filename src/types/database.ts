@@ -150,10 +150,18 @@ export interface Database {
     // exposed jobs.lat/lng (exact coordinates) via a view that bypassed RLS.
     Views: Record<string, never>;
     Functions: {
-      // Migration 0015. Records legal consent for the calling user; the only
-      // RPC the client invokes by name, so the only one that has to be typed
-      // here for `supabase.rpc()` to accept its arguments.
+      // RPCs the client invokes by name, so the ones that have to be typed
+      // here for `supabase.rpc()` to accept their arguments.
+      //
+      // Migration 0021. First consent only — it fills null columns and cannot
+      // advance an existing version.
       record_legal_consent: {
+        Args: { p_terms_version: string; p_privacy_version: string };
+        Returns: void;
+      };
+      // Migration 0023. Re-consent: advances the stored version and appends to
+      // the legal_consents history.
+      accept_legal_versions: {
         Args: { p_terms_version: string; p_privacy_version: string };
         Returns: void;
       };

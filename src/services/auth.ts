@@ -177,6 +177,34 @@ export async function recordLegalConsent(
   }
 }
 
+/**
+ * Record acceptance of NEW document versions by an existing account.
+ *
+ * Separate from recordLegalConsent because that one deliberately cannot move a
+ * version forward — it exists to fill in first consent for OAuth signups
+ * without letting a retry rewrite an earlier acceptance. This one advances the
+ * stored version and appends to the consent history (migration 0023).
+ *
+ * Unlike recordLegalConsent, a failure here is surfaced rather than logged: the
+ * caller is a blocking prompt, and silently "succeeding" would let someone
+ * through without their agreement ever being recorded.
+ */
+export async function acceptLegalVersions(
+  termsVersion: string,
+  privacyVersion: string
+): Promise<AuthResult> {
+  if (USE_MOCKS || !hasSupabaseConfig) return { ok: true };
+
+  const { error } = await getSupabase().rpc('accept_legal_versions', {
+    p_terms_version: termsVersion,
+    p_privacy_version: privacyVersion,
+  });
+  if (error) {
+    return { ok: false, message: friendlyError(error.message) };
+  }
+  return { ok: true };
+}
+
 export async function signInWithEmail(
   email: string,
   password: string

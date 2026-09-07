@@ -10,29 +10,35 @@ appId: com.comly.app
     clearState: true
 
 - tapOn: "Log In"
+- assertVisible: "Welcome back"
 - tapOn: "you@neighborhood.com"
 - inputText: "maestro@example.com"
 - tapOn: "Your password"
 - inputText: "password123"
 - hideKeyboard
+# Anchored regex, not a bare string: the subtitle on this screen reads "Log in
+# to pick up where you left off", which a substring match also hits.
 - tapOn:
-    text: "Log In"
-    index: 1
+    text: "^Log In$"
 
 # Switch to the helper side, where the feed and its safety labels live.
 - tapOn: "Jobs"
 - assertVisible:
     text: ".*(Teen Safe|Caution|16\\+|18\\+).*"
 
-# Open the first listing and confirm the tier badge and the apply affordance
-# agree with each other: either apply is offered, or a reason is given.
+# Open the first listing. Selected by testID rather than by text — a feed card
+# has no stable text of its own, and the previous `text: ".*"` selector matched
+# any element on screen.
 - tapOn:
-    text: ".*"
-    index: 1
+    id: "job-card"
+    index: 0
+
+# The tier badge and the apply affordance must agree with each other: either
+# apply is offered, or a reason is given. Never a dead button.
 - assertVisible:
     text: ".*(Apply for Job|Not eligible).*"
 
-# When ineligible, the refusal must be explained rather than a dead button.
+# When ineligible, the refusal must be explained rather than left bare.
 - runFlow:
     when:
       visible: "Not eligible"

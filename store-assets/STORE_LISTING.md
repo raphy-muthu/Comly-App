@@ -120,22 +120,43 @@ actually see in search results:
 
 ### These are drafts, not submission assets
 
-Two things have to be fixed before these can be uploaded:
+Three things have to be fixed before these can be uploaded:
 
 1. **They carry the Expo dev-client overlay** — the blue gear in the top-right
    corner is the "Tools" button, not part of the app. Apple will reject
    screenshots showing development chrome.
 2. **They came from a debug build.** Store screenshots should come from a
-   release build.
+   release build, which has no dev menu at all.
+3. **They are the wrong size.** These were captured at 1206×2622 (iPhone 16
+   Pro, 6.3"). Apple's primary required iPhone size is **6.9" — 1320×2868**
+   (iPhone 16 Pro Max). Recapture on that device, not the one used here.
 
-Both are the same fix: capture again from a release build, which has no dev
-menu at all. That couldn't be produced on this machine — `expo run:ios
---configuration Release` fails with *"iOS 26.5 is not installed"*, because the
-project targets a platform version Xcode doesn't have locally. Installing it
-via **Xcode → Settings → Components** unblocks it, then re-run the same
-navigation and re-capture.
+All three are fixed by one recapture from a release build on a 16 Pro Max.
+That cannot currently be produced on this machine, and the cause is more
+specific than previously recorded: the Xcode scheme has **no eligible build
+destinations at all**.
 
-What these are good for right now: reviewing composition, ordering, and
+```
+$ xcodebuild -workspace ios/Comly.xcworkspace -scheme Comly -showdestinations
+    Ineligible destinations for the "Comly" scheme:
+        { platform:iOS, ..., error:iOS 26.5 is not installed. }
+```
+
+The installed Xcode offers only iOS 26.5 and that platform is not downloaded;
+the one installed simulator runtime (iOS 18.6) is not accepted for this scheme.
+This is not a matter of passing the right `--device` flag — it was tried three
+ways, including driving `xcodebuild` directly with an explicit simulator
+destination, and all fail the same way.
+
+**To unblock:** Xcode → Settings → Components → install the iOS platform, then:
+
+```bash
+# set EXPO_PUBLIC_USE_MOCKS=true in .env for seeded demo data, then:
+npx expo run:ios --configuration Release --device "iPhone 16 Pro Max"
+# ...capture, then set EXPO_PUBLIC_USE_MOCKS back to false
+```
+
+What these drafts are good for right now: reviewing composition, ordering, and
 whether the listing tells the right story, and showing a partner what the
 listing will look like.
 

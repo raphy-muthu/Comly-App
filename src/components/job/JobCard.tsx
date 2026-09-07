@@ -25,7 +25,10 @@ export interface JobCardProps {
 export function JobCard({ job, onPress, showSafety = true }: JobCardProps) {
   const role = useRoleTheme();
   return (
-    <Card onPress={onPress} rounded="xl" style={styles.card}>
+    // testID is what the Maestro flows select on. A feed card has no stable
+    // text of its own — the title is seeded data that changes — so matching it
+    // by text means matching an arbitrary regex against the whole screen.
+    <Card onPress={onPress} rounded="xl" style={styles.card} testID="job-card">
       <View style={styles.row}>
         {job.matchScore !== undefined ? (
           // "How well this job fits you" — an AI match score, labelled so the

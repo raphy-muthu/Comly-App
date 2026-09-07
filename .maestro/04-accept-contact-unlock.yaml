@@ -11,14 +11,14 @@ appId: com.comly.app
     clearState: true
 
 - tapOn: "Log In"
+- assertVisible: "Welcome back"
 - tapOn: "you@neighborhood.com"
 - inputText: "maestro@example.com"
 - tapOn: "Your password"
 - inputText: "password123"
 - hideKeyboard
 - tapOn:
-    text: "Log In"
-    index: 1
+    text: "^Log In$"
 
 # A seeded listing that already has an applicant.
 - assertVisible: "Active Jobs"

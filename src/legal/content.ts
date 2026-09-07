@@ -1,13 +1,26 @@
 /**
  * Comly legal documents — single source of truth.
  *
- * The Terms of Service text below is the Termly-generated document, converted
- * from its exported HTML into structured blocks. The wording is verbatim: only
- * the presentation was changed (Termly's empty conditional `<bdt>` markers,
- * inline Word styling, and per-span font declarations were dropped, since none
- * of them carry legal meaning). The `__________` placeholders are in the
- * source document too — they are unfilled Termly answers, not transcription
- * gaps, and must be filled in before launch.
+ * The Terms of Service began as a Termly-generated document but has since been
+ * edited to match the product. Changes from the generated original:
+ *   - Removed PURCHASES AND PAYMENT, SUBSCRIPTIONS, and the no-refund POLICY
+ *     section. Comly processes no money, has no subscriptions, and does not
+ *     accept cards; leaving those in meant users were agreeing to terms about
+ *     a payment system that does not exist. Sections renumbered accordingly.
+ *   - Added "Our role, and payment between users" under §1, which is what
+ *     those deleted sections should have said in the first place.
+ *   - Scoped the "non-commercial use" language in §2 and the
+ *     "revenue-generating endeavor" prohibition in §5, which together banned
+ *     the exact activity the app exists for (helpers being paid for work).
+ *   - Dropped the self-contradicting opener in §6 ("The Services does not
+ *     offer users to submit or post content" — it does).
+ *
+ * Two known gaps, both needing counsel rather than an engineer:
+ *   1. No child-labor-law clause. Given the product puts minors into paid work,
+ *      this is the most conspicuous omission. It would slot into §5 or as its
+ *      own section after §1.
+ *   2. No legal entity is named — the document identifies two individuals, so
+ *      there is no corporate shield behind the liability and indemnity clauses.
  *
  * Rendered natively by LegalDocumentScreen (mobile + Expo web) and exported to
  * standalone pages under web/legal/ by scripts/build-legal-html.mjs, so the
@@ -39,8 +52,8 @@ export interface LegalDocument {
  * and re-consent is driven by comparing these against `terms_version` /
  * `privacy_version` on the profile.
  */
-export const TERMS_VERSION = '2026-09-04';
-export const PRIVACY_VERSION = '2026-09-04';
+export const TERMS_VERSION = '2026-09-06';
+export const PRIVACY_VERSION = '2026-09-06';
 
 /**
  * Public origin the legal pages are hosted under. Also a deep-link prefix, so
@@ -60,18 +73,13 @@ export const LEGAL_URLS = {
 
 export const TERMS_OF_SERVICE: LegalDocument = {
   title: 'Terms of Service',
-  lastUpdated: 'September 03, 2026',
+  lastUpdated: 'September 06, 2026',
   version: TERMS_VERSION,
-  attribution: {
-    text: 'This Terms and Conditions was created using Termly’s ',
-    linkLabel: 'Terms and Conditions Generator',
-    url: 'https://termly.io/products/terms-and-conditions-generator/',
-  },
   blocks: [
     { type: 'h2', text: `AGREEMENT TO OUR LEGAL TERMS` },
     {
       type: 'p',
-      text: `We are Comly ("Company," "we," "us," "our"), a company registered in __________, United States at __________, __________.`,
+      text: `We are Comly ("Company," "we," "us," or "our"), operated by co-founders Raphael Muthu and Marcel Afsar, and based in Philadelphia, Pennsylvania, United States.`,
     },
     {
       type: 'p',
@@ -83,13 +91,12 @@ export const TERMS_OF_SERVICE: LegalDocument = {
     },
     {
       type: 'p',
-      text: `You can contact us by email at __________ or by mail to __________, __________, United States.`,
+      text: `You can contact us by email at raphaelmuthu21@gmail.com or marceldonk777@gmail.com, or by mail at [MAILING ADDRESS TO BE PROVIDED], Philadelphia, Pennsylvania [ZIP CODE], United States.`,
     },
     {
       type: 'p',
       text: `These Legal Terms constitute a legally binding agreement made between you, whether personally or on behalf of an entity ("you"), and Comly, concerning your access to and use of the Services. You agree that by accessing the Services, you have read, understood, and agreed to be bound by all of these Legal Terms. IF YOU DO NOT AGREE WITH ALL OF THESE LEGAL TERMS, THEN YOU ARE EXPRESSLY PROHIBITED FROM USING THE SERVICES AND YOU MUST DISCONTINUE USE IMMEDIATELY.`,
     },
-    { type: 'p', text: `In app notification and agreement.` },
     {
       type: 'p',
       text: `The Services are intended for users who are at least 13 years of age. All users who are minors in the jurisdiction in which they reside (generally under the age of 18) must have the permission of, and be directly supervised by, their parent or guardian to use the Services. If you are a minor, you must have your parent or guardian read and agree to these Legal Terms prior to you using the Services.`,
@@ -107,6 +114,19 @@ export const TERMS_OF_SERVICE: LegalDocument = {
     {
       type: 'p',
       text: `The Services are not tailored to comply with industry-specific regulations (Health Insurance Portability and Accountability Act (HIPAA), Federal Information Security Management Act (FISMA), etc.), so if your interactions would be subjected to such laws, you may not use the Services. You may not use the Services in a way that would violate the Gramm-Leach-Bliley Act (GLBA).`,
+    },
+    { type: 'h3', text: `Our role, and payment between users` },
+    {
+      type: 'p',
+      text: `Comly is a venue that connects users with one another. We are not a party to any agreement reached between a customer and a helper, we do not supervise or direct the performance of any job, and we do not employ helpers.`,
+    },
+    {
+      type: 'p',
+      text: `We do not process, hold, collect, or transfer payment of any kind between users, and we take no commission or fee from any job. Any pay rate, range, or wage guideline shown in the Services is a non-binding suggestion offered for information only. The amount, method, and timing of payment are agreed and settled directly between the users involved.`,
+    },
+    {
+      type: 'p',
+      text: `Because we are not a party to those arrangements, we are not responsible for non-payment, underpayment, the quality or completion of any job, or any other aspect of the agreement between users. Any such dispute must be resolved between the users themselves.`,
     },
 
     { type: 'h2', text: `2. INTELLECTUAL PROPERTY RIGHTS` },
@@ -136,11 +156,15 @@ export const TERMS_OF_SERVICE: LegalDocument = {
     { type: 'p', text: `solely for your personal, non-commercial use.` },
     {
       type: 'p',
+      text: `For clarity, "non-commercial use" in this section refers to our Content and Marks — our software, designs, branding, and other materials. It does not restrict use of the Services for their intended purpose: posting jobs, applying for jobs, and being paid by another user for work you complete through the Services.`,
+    },
+    {
+      type: 'p',
       text: `Except as set out in this section or elsewhere in our Legal Terms, no part of the Services and no Content or Marks may be copied, reproduced, aggregated, republished, uploaded, posted, publicly displayed, encoded, translated, transmitted, distributed, sold, licensed, or otherwise exploited for any commercial purpose whatsoever, without our express prior written permission.`,
     },
     {
       type: 'p',
-      text: `If you wish to make any use of the Services, Content, or Marks other than as set out in this section or elsewhere in our Legal Terms, please address your request to: __________. If we ever grant you the permission to post, reproduce, or publicly display any part of our Services or Content, you must identify us as the owners or licensors of the Services, Content, or Marks and ensure that any copyright or proprietary notice appears or is visible on posting, reproducing, or displaying our Content.`,
+      text: `If you wish to make any use of the Services, Content, or Marks other than as set out in this section or elsewhere in our Legal Terms, please address your request to: raphaelmuthu21@gmail.com or marceldonk777@gmail.com. If we ever grant you the permission to post, reproduce, or publicly display any part of our Services or Content, you must identify us as the owners or licensors of the Services, Content, or Marks and ensure that any copyright or proprietary notice appears or is visible on posting, reproducing, or displaying our Content.`,
     },
     {
       type: 'p',
@@ -200,45 +224,7 @@ export const TERMS_OF_SERVICE: LegalDocument = {
       text: `You may be required to register to use the Services. You agree to keep your password confidential and will be responsible for all use of your account and password. We reserve the right to remove, reclaim, or change a username you select if we determine, in our sole discretion, that such username is inappropriate, obscene, or otherwise objectionable.`,
     },
 
-    { type: 'h2', text: `5. PURCHASES AND PAYMENT` },
-    { type: 'p', text: `We accept the following forms of payment:` },
-    { type: 'li', text: `Visa` },
-    { type: 'li', text: `Mastercard` },
-    { type: 'li', text: `American Express` },
-    {
-      type: 'p',
-      text: `You agree to provide current, complete, and accurate purchase and account information for all purchases made via the Services. You further agree to promptly update account and payment information, including email address, payment method, and payment card expiration date, so that we can complete your transactions and contact you as needed. Sales tax will be added to the price of purchases as deemed required by us. We may change prices at any time. All payments shall be in US dollars.`,
-    },
-    {
-      type: 'p',
-      text: `You agree to pay all charges at the prices then in effect for your purchases and any applicable shipping fees, and you authorize us to charge your chosen payment provider for any such amounts upon placing your order. We reserve the right to correct any errors or mistakes in pricing, even if we have already requested or received payment.`,
-    },
-    {
-      type: 'p',
-      text: `We reserve the right to refuse any order placed through the Services. We may, in our sole discretion, limit or cancel quantities purchased per person, per household, or per order. These restrictions may include orders placed by or under the same customer account, the same payment method, and/or orders that use the same billing or shipping address. We reserve the right to limit or prohibit orders that, in our sole judgment, appear to be placed by dealers, resellers, or distributors.`,
-    },
-
-    { type: 'h2', text: `6. SUBSCRIPTIONS` },
-    { type: 'h3', text: `Billing and Renewal` },
-    {
-      type: 'p',
-      text: `Your subscription will continue and automatically renew unless canceled. You consent to our charging your payment method on a recurring basis without requiring your prior approval for each recurring charge, until such time as you cancel the applicable order. The length of your billing cycle is monthly.`,
-    },
-    { type: 'h3', text: `Cancellation` },
-    {
-      type: 'p',
-      text: `Users can cancel their Comly Plus or Comly Pro subscription at any time by logging into their account, going to Settings, opening the Subscription or Billing section, and selecting Cancel Subscription. If a user has trouble canceling, they can contact Comly support for help. Your cancellation will take effect at the end of the current paid term. If you have any questions or are unsatisfied with our Services, please email us at __________.`,
-    },
-    { type: 'h3', text: `Fee Changes` },
-    {
-      type: 'p',
-      text: `We may, from time to time, make changes to the subscription fee and will communicate any price changes to you in accordance with applicable law.`,
-    },
-
-    { type: 'h2', text: `7. POLICY` },
-    { type: 'p', text: `All sales are final and no refund will be issued.` },
-
-    { type: 'h2', text: `8. PROHIBITED ACTIVITIES` },
+    { type: 'h2', text: `5. PROHIBITED ACTIVITIES` },
     {
       type: 'p',
       text: `You may not access or use the Services for any purpose other than that for which we make the Services available. The Services may not be used in connection with any commercial endeavors except those that are specifically endorsed or approved by us.`,
@@ -327,7 +313,7 @@ export const TERMS_OF_SERVICE: LegalDocument = {
     },
     {
       type: 'li',
-      text: `Use the Services as part of any effort to compete with us or otherwise use the Services and/or the Content for any revenue-generating endeavor or commercial enterprise.`,
+      text: `Use the Services as part of any effort to compete with us. This does not restrict posting jobs, applying for jobs, or being paid by another user for work completed through the Services, which is what the Services are for.`,
     },
     { type: 'li', text: `Sell or otherwise transfer your profile.` },
     {
@@ -355,10 +341,10 @@ export const TERMS_OF_SERVICE: LegalDocument = {
       text: `Users may not refuse agreed payment, request unpaid work, or use Comly to exploit helpers.`,
     },
 
-    { type: 'h2', text: `9. USER GENERATED CONTRIBUTIONS` },
+    { type: 'h2', text: `6. USER GENERATED CONTRIBUTIONS` },
     {
       type: 'p',
-      text: `The Services does not offer users to submit or post content. We may provide you with the opportunity to create, submit, post, display, transmit, perform, publish, distribute, or broadcast content and materials to us or on the Services, including but not limited to text, writings, video, audio, photographs, graphics, comments, suggestions, or personal information or other material (collectively, "Contributions"). Contributions may be viewable by other users of the Services and through third-party websites. When you create or make available any Contributions, you thereby represent and warrant that:`,
+      text: `The Services provide you with the opportunity to create, submit, post, display, transmit, perform, publish, distribute, or broadcast content and materials to us or on the Services, including but not limited to text, writings, video, audio, photographs, graphics, comments, suggestions, or personal information or other material (collectively, "Contributions"). Contributions may be viewable by other users of the Services and through third-party websites. When you create or make available any Contributions, you thereby represent and warrant that:`,
     },
     {
       type: 'li',
@@ -411,7 +397,7 @@ export const TERMS_OF_SERVICE: LegalDocument = {
       text: `Any use of the Services in violation of the foregoing violates these Legal Terms and may result in, among other things, termination or suspension of your rights to use the Services.`,
     },
 
-    { type: 'h2', text: `10. CONTRIBUTION LICENSE` },
+    { type: 'h2', text: `7. CONTRIBUTION LICENSE` },
     {
       type: 'p',
       text: `You and Services agree that we may access, store, process, and use any information and personal data that you provide and your choices (including settings).`,
@@ -425,7 +411,7 @@ export const TERMS_OF_SERVICE: LegalDocument = {
       text: `We do not assert any ownership over your Contributions. You retain full ownership of all of your Contributions and any intellectual property rights or other proprietary rights associated with your Contributions. We are not liable for any statements or representations in your Contributions provided by you in any area on the Services. You are solely responsible for your Contributions to the Services and you expressly agree to exonerate us from any and all responsibility and to refrain from any legal action against us regarding your Contributions.`,
     },
 
-    { type: 'h2', text: `11. GUIDELINES FOR REVIEWS` },
+    { type: 'h2', text: `8. GUIDELINES FOR REVIEWS` },
     {
       type: 'p',
       text: `We may provide you areas on the Services to leave reviews or ratings. When posting a review, you must comply with the following criteria: (1) you should have firsthand experience with the person/entity being reviewed; (2) your reviews should not contain offensive profanity, or abusive, racist, offensive, or hateful language; (3) your reviews should not contain discriminatory references based on religion, race, gender, national origin, age, marital status, sexual orientation, or disability; (4) your reviews should not contain references to illegal activity; (5) you should not be affiliated with competitors if posting negative reviews; (6) you should not make any conclusions as to the legality of conduct; (7) you may not post any false or misleading statements; and (8) you may not organize a campaign encouraging others to post reviews, whether positive or negative.`,
@@ -435,7 +421,7 @@ export const TERMS_OF_SERVICE: LegalDocument = {
       text: `We may accept, reject, or remove reviews in our sole discretion. We have absolutely no obligation to screen reviews or to delete reviews, even if anyone considers reviews objectionable or inaccurate. Reviews are not endorsed by us, and do not necessarily represent our opinions or the views of any of our affiliates or partners. We do not assume liability for any review or for any claims, liabilities, or losses resulting from any review. By posting a review, you hereby grant to us a perpetual, non-exclusive, worldwide, royalty-free, fully paid, assignable, and sublicensable right and license to reproduce, modify, translate, transmit by any means, display, perform, and/or distribute all content relating to review.`,
     },
 
-    { type: 'h2', text: `12. MOBILE APPLICATION LICENSE` },
+    { type: 'h2', text: `9. MOBILE APPLICATION LICENSE` },
     { type: 'h3', text: `Use License` },
     {
       type: 'p',
@@ -447,13 +433,13 @@ export const TERMS_OF_SERVICE: LegalDocument = {
       text: `The following terms apply when you use the App obtained from either the Apple Store or Google Play (each an "App Distributor") to access the Services: (1) the license granted to you for our App is limited to a non-transferable license to use the application on a device that utilizes the Apple iOS or Android operating systems, as applicable, and in accordance with the usage rules set forth in the applicable App Distributor’s terms of service; (2) we are responsible for providing any maintenance and support services with respect to the App as specified in the terms and conditions of this mobile application license contained in these Legal Terms or as otherwise required under applicable law, and you acknowledge that each App Distributor has no obligation whatsoever to furnish any maintenance and support services with respect to the App; (3) in the event of any failure of the App to conform to any applicable warranty, you may notify the applicable App Distributor, and the App Distributor, in accordance with its terms and policies, may refund the purchase price, if any, paid for the App, and to the maximum extent permitted by applicable law, the App Distributor will have no other warranty obligation whatsoever with respect to the App; (4) you represent and warrant that (i) you are not located in a country that is subject to a US government embargo, or that has been designated by the US government as a "terrorist supporting" country and (ii) you are not listed on any US government list of prohibited or restricted parties; (5) you must comply with applicable third-party terms of agreement when using the App, e.g., if you have a VoIP application, then you must not be in violation of their wireless data service agreement when using the App; and (6) you acknowledge and agree that the App Distributors are third-party beneficiaries of the terms and conditions in this mobile application license contained in these Legal Terms, and that each App Distributor will have the right (and will be deemed to have accepted the right) to enforce the terms and conditions in this mobile application license contained in these Legal Terms against you as a third-party beneficiary thereof.`,
     },
 
-    { type: 'h2', text: `13. SERVICES MANAGEMENT` },
+    { type: 'h2', text: `10. SERVICES MANAGEMENT` },
     {
       type: 'p',
       text: `We reserve the right, but not the obligation, to: (1) monitor the Services for violations of these Legal Terms; (2) take appropriate legal action against anyone who, in our sole discretion, violates the law or these Legal Terms, including without limitation, reporting such user to law enforcement authorities; (3) in our sole discretion and without limitation, refuse, restrict access to, limit the availability of, or disable (to the extent technologically feasible) any of your Contributions or any portion thereof; (4) in our sole discretion and without limitation, notice, or liability, to remove from the Services or otherwise disable all files and content that are excessive in size or are in any way burdensome to our systems; and (5) otherwise manage the Services in a manner designed to protect our rights and property and to facilitate the proper functioning of the Services.`,
     },
 
-    { type: 'h2', text: `14. TERM AND TERMINATION` },
+    { type: 'h2', text: `11. TERM AND TERMINATION` },
     {
       type: 'p',
       text: `These Legal Terms shall remain in full force and effect while you use the Services. WITHOUT LIMITING ANY OTHER PROVISION OF THESE LEGAL TERMS, WE RESERVE THE RIGHT TO, IN OUR SOLE DISCRETION AND WITHOUT NOTICE OR LIABILITY, DENY ACCESS TO AND USE OF THE SERVICES (INCLUDING BLOCKING CERTAIN IP ADDRESSES), TO ANY PERSON FOR ANY REASON OR FOR NO REASON, INCLUDING WITHOUT LIMITATION FOR BREACH OF ANY REPRESENTATION, WARRANTY, OR COVENANT CONTAINED IN THESE LEGAL TERMS OR OF ANY APPLICABLE LAW OR REGULATION. WE MAY TERMINATE YOUR USE OR PARTICIPATION IN THE SERVICES OR DELETE YOUR ACCOUNT AND ANY CONTENT OR INFORMATION THAT YOU POSTED AT ANY TIME, WITHOUT WARNING, IN OUR SOLE DISCRETION.`,
@@ -463,7 +449,7 @@ export const TERMS_OF_SERVICE: LegalDocument = {
       text: `If we terminate or suspend your account for any reason, you are prohibited from registering and creating a new account under your name, a fake or borrowed name, or the name of any third party, even if you may be acting on behalf of the third party. In addition to terminating or suspending your account, we reserve the right to take appropriate legal action, including without limitation pursuing civil, criminal, and injunctive redress.`,
     },
 
-    { type: 'h2', text: `15. MODIFICATIONS AND INTERRUPTIONS` },
+    { type: 'h2', text: `12. MODIFICATIONS AND INTERRUPTIONS` },
     {
       type: 'p',
       text: `We reserve the right to change, modify, or remove the contents of the Services at any time or for any reason at our sole discretion without notice. However, we have no obligation to update any information on our Services. We also reserve the right to modify or discontinue all or part of the Services without notice at any time. We will not be liable to you or any third party for any modification, price change, suspension, or discontinuance of the Services.`,
@@ -473,13 +459,13 @@ export const TERMS_OF_SERVICE: LegalDocument = {
       text: `We cannot guarantee the Services will be available at all times. We may experience hardware, software, or other problems or need to perform maintenance related to the Services, resulting in interruptions, delays, or errors. We reserve the right to change, revise, update, suspend, discontinue, or otherwise modify the Services at any time or for any reason without notice to you. You agree that we have no liability whatsoever for any loss, damage, or inconvenience caused by your inability to access or use the Services during any downtime or discontinuance of the Services. Nothing in these Legal Terms will be construed to obligate us to maintain and support the Services or to supply any corrections, updates, or releases in connection therewith.`,
     },
 
-    { type: 'h2', text: `16. GOVERNING LAW` },
+    { type: 'h2', text: `13. GOVERNING LAW` },
     {
       type: 'p',
       text: `These Legal Terms and your use of the Services are governed by and construed in accordance with the laws of the Commonwealth of Pennsylvania applicable to agreements made and to be entirely performed within the Commonwealth of Pennsylvania, without regard to its conflict of law principles.`,
     },
 
-    { type: 'h2', text: `17. DISPUTE RESOLUTION` },
+    { type: 'h2', text: `14. DISPUTE RESOLUTION` },
     { type: 'h3', text: `Informal Negotiations` },
     {
       type: 'p',
@@ -488,11 +474,11 @@ export const TERMS_OF_SERVICE: LegalDocument = {
     { type: 'h3', text: `Binding Arbitration` },
     {
       type: 'p',
-      text: `If the Parties are unable to resolve a Dispute through informal negotiations, the Dispute (except those Disputes expressly excluded below) will be finally and exclusively resolved by binding arbitration. YOU UNDERSTAND THAT WITHOUT THIS PROVISION, YOU WOULD HAVE THE RIGHT TO SUE IN COURT AND HAVE A JURY TRIAL. The arbitration shall be commenced and conducted under the Commercial Arbitration Rules of the American Arbitration Association ("AAA") and, where appropriate, the AAA’s Supplementary Procedures for Consumer Related Disputes ("AAA Consumer Rules"), both of which are available at the American Arbitration Association (AAA) website. Your arbitration fees and your share of arbitrator compensation shall be governed by the AAA Consumer Rules and, where appropriate, limited by the AAA Consumer Rules. If such costs are determined by the arbitrator to be excessive, we will pay all arbitration fees and expenses. The arbitration may be conducted in person, through the submission of documents, by phone, or online. The arbitrator will make a decision in writing, but need not provide a statement of reasons unless requested by either Party. The arbitrator must follow applicable law, and any award may be challenged if the arbitrator fails to do so. Except where otherwise required by the applicable AAA rules or applicable law, the arbitration will take place in United States Of America, Pennsylvania. Except as otherwise provided herein, the Parties may litigate in court to compel arbitration, stay proceedings pending arbitration, or to confirm, modify, vacate, or enter judgment on the award entered by the arbitrator.`,
+      text: `If the Parties are unable to resolve a Dispute through informal negotiations, the Dispute (except those Disputes expressly excluded below) will be finally and exclusively resolved by binding arbitration. YOU UNDERSTAND THAT WITHOUT THIS PROVISION, YOU WOULD HAVE THE RIGHT TO SUE IN COURT AND HAVE A JURY TRIAL. The arbitration shall be commenced and conducted under the Commercial Arbitration Rules of the American Arbitration Association ("AAA") and, where appropriate, the AAA’s Supplementary Procedures for Consumer Related Disputes ("AAA Consumer Rules"), both of which are available at the American Arbitration Association (AAA) website. Your arbitration fees and your share of arbitrator compensation shall be governed by the AAA Consumer Rules and, where appropriate, limited by the AAA Consumer Rules. If such costs are determined by the arbitrator to be excessive, we will pay all arbitration fees and expenses. The arbitration may be conducted in person, through the submission of documents, by phone, or online. The arbitrator will make a decision in writing, but need not provide a statement of reasons unless requested by either Party. The arbitrator must follow applicable law, and any award may be challenged if the arbitrator fails to do so. Except where otherwise required by the applicable AAA rules or applicable law, the arbitration will take place in Philadelphia, Pennsylvania, United States. Except as otherwise provided herein, the Parties may litigate in court to compel arbitration, stay proceedings pending arbitration, or to confirm, modify, vacate, or enter judgment on the award entered by the arbitrator.`,
     },
     {
       type: 'p',
-      text: `If for any reason, a Dispute proceeds in court rather than arbitration, the Dispute shall be commenced or prosecuted in the state and federal courts located in United States Of America, Pennsylvania, and the Parties hereby consent to, and waive all defenses of lack of personal jurisdiction, and forum non conveniens with respect to venue and jurisdiction in such state and federal courts. Application of the United Nations Convention on Contracts for the International Sale of Goods and the Uniform Computer Information Transaction Act (UCITA) are excluded from these Legal Terms.`,
+      text: `If for any reason, a Dispute proceeds in court rather than arbitration, the Dispute shall be commenced or prosecuted in the state and federal courts located in Philadelphia, Pennsylvania, United States, and the Parties hereby consent to, and waive all defenses of lack of personal jurisdiction, and forum non conveniens with respect to venue and jurisdiction in such state and federal courts. Application of the United Nations Convention on Contracts for the International Sale of Goods and the Uniform Computer Information Transaction Act (UCITA) are excluded from these Legal Terms.`,
     },
     {
       type: 'p',
@@ -509,19 +495,19 @@ export const TERMS_OF_SERVICE: LegalDocument = {
       text: `The Parties agree that the following Disputes are not subject to the above provisions concerning informal negotiations binding arbitration: (a) any Disputes seeking to enforce or protect, or concerning the validity of, any of the intellectual property rights of a Party; (b) any Dispute related to, or arising from, allegations of theft, piracy, invasion of privacy, or unauthorized use; and (c) any claim for injunctive relief. If this provision is found to be illegal or unenforceable, then neither Party will elect to arbitrate any Dispute falling within that portion of this provision found to be illegal or unenforceable and such Dispute shall be decided by a court of competent jurisdiction within the courts listed for jurisdiction above, and the Parties agree to submit to the personal jurisdiction of that court.`,
     },
 
-    { type: 'h2', text: `18. CORRECTIONS` },
+    { type: 'h2', text: `15. CORRECTIONS` },
     {
       type: 'p',
       text: `There may be information on the Services that contains typographical errors, inaccuracies, or omissions, including descriptions, pricing, availability, and various other information. We reserve the right to correct any errors, inaccuracies, or omissions and to change or update the information on the Services at any time, without prior notice.`,
     },
 
-    { type: 'h2', text: `19. DISCLAIMER` },
+    { type: 'h2', text: `16. DISCLAIMER` },
     {
       type: 'p',
       text: `THE SERVICES ARE PROVIDED ON AN AS-IS AND AS-AVAILABLE BASIS. YOU AGREE THAT YOUR USE OF THE SERVICES WILL BE AT YOUR SOLE RISK. TO THE FULLEST EXTENT PERMITTED BY LAW, WE DISCLAIM ALL WARRANTIES, EXPRESS OR IMPLIED, IN CONNECTION WITH THE SERVICES AND YOUR USE THEREOF, INCLUDING, WITHOUT LIMITATION, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT. WE MAKE NO WARRANTIES OR REPRESENTATIONS ABOUT THE ACCURACY OR COMPLETENESS OF THE SERVICES' CONTENT OR THE CONTENT OF ANY WEBSITES OR MOBILE APPLICATIONS LINKED TO THE SERVICES AND WE WILL ASSUME NO LIABILITY OR RESPONSIBILITY FOR ANY (1) ERRORS, MISTAKES, OR INACCURACIES OF CONTENT AND MATERIALS, (2) PERSONAL INJURY OR PROPERTY DAMAGE, OF ANY NATURE WHATSOEVER, RESULTING FROM YOUR ACCESS TO AND USE OF THE SERVICES, (3) ANY UNAUTHORIZED ACCESS TO OR USE OF OUR SECURE SERVERS AND/OR ANY AND ALL PERSONAL INFORMATION AND/OR FINANCIAL INFORMATION STORED THEREIN, (4) ANY INTERRUPTION OR CESSATION OF TRANSMISSION TO OR FROM THE SERVICES, (5) ANY BUGS, VIRUSES, TROJAN HORSES, OR THE LIKE WHICH MAY BE TRANSMITTED TO OR THROUGH THE SERVICES BY ANY THIRD PARTY, AND/OR (6) ANY ERRORS OR OMISSIONS IN ANY CONTENT AND MATERIALS OR FOR ANY LOSS OR DAMAGE OF ANY KIND INCURRED AS A RESULT OF THE USE OF ANY CONTENT POSTED, TRANSMITTED, OR OTHERWISE MADE AVAILABLE VIA THE SERVICES. WE DO NOT WARRANT, ENDORSE, GUARANTEE, OR ASSUME RESPONSIBILITY FOR ANY PRODUCT OR SERVICE ADVERTISED OR OFFERED BY A THIRD PARTY THROUGH THE SERVICES, ANY HYPERLINKED WEBSITE, OR ANY WEBSITE OR MOBILE APPLICATION FEATURED IN ANY BANNER OR OTHER ADVERTISING, AND WE WILL NOT BE A PARTY TO OR IN ANY WAY BE RESPONSIBLE FOR MONITORING ANY TRANSACTION BETWEEN YOU AND ANY THIRD-PARTY PROVIDERS OF PRODUCTS OR SERVICES. AS WITH THE PURCHASE OF A PRODUCT OR SERVICE THROUGH ANY MEDIUM OR IN ANY ENVIRONMENT, YOU SHOULD USE YOUR BEST JUDGMENT AND EXERCISE CAUTION WHERE APPROPRIATE.`,
     },
 
-    { type: 'h2', text: `20. LIMITATIONS OF LIABILITY` },
+    { type: 'h2', text: `17. LIMITATIONS OF LIABILITY` },
     {
       type: 'p',
       text: `IN NO EVENT WILL WE OR OUR DIRECTORS, EMPLOYEES, OR AGENTS BE LIABLE TO YOU OR ANY THIRD PARTY FOR ANY DIRECT, INDIRECT, CONSEQUENTIAL, EXEMPLARY, INCIDENTAL, SPECIAL, OR PUNITIVE DAMAGES, INCLUDING LOST PROFIT, LOST REVENUE, LOSS OF DATA, OR OTHER DAMAGES ARISING FROM YOUR USE OF THE SERVICES, EVEN IF WE HAVE BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES. NOTWITHSTANDING ANYTHING TO THE CONTRARY CONTAINED HEREIN, OUR LIABILITY TO YOU FOR ANY CAUSE WHATSOEVER AND REGARDLESS OF THE FORM OF THE ACTION, WILL AT ALL TIMES BE LIMITED TO $100.00 USD.`,
@@ -531,95 +517,288 @@ export const TERMS_OF_SERVICE: LegalDocument = {
       text: `CERTAIN US STATE LAWS AND INTERNATIONAL LAWS DO NOT ALLOW LIMITATIONS ON IMPLIED WARRANTIES OR THE EXCLUSION OR LIMITATION OF CERTAIN DAMAGES. IF THESE LAWS APPLY TO YOU, SOME OR ALL OF THE ABOVE DISCLAIMERS OR LIMITATIONS MAY NOT APPLY TO YOU, AND YOU MAY HAVE ADDITIONAL RIGHTS.`,
     },
 
-    { type: 'h2', text: `21. INDEMNIFICATION` },
+    { type: 'h2', text: `18. INDEMNIFICATION` },
     {
       type: 'p',
       text: `You agree to defend, indemnify, and hold us harmless, including our subsidiaries, affiliates, and all of our respective officers, agents, partners, and employees, from and against any loss, damage, liability, claim, or demand, including reasonable attorneys’ fees and expenses, made by any third party due to or arising out of: (1) use of the Services; (2) breach of these Legal Terms; (3) any breach of your representations and warranties set forth in these Legal Terms; (4) your violation of the rights of a third party, including but not limited to intellectual property rights; or (5) any overt harmful act toward any other user of the Services with whom you connected via the Services. Notwithstanding the foregoing, we reserve the right, at your expense, to assume the exclusive defense and control of any matter for which you are required to indemnify us, and you agree to cooperate, at your expense, with our defense of such claims. We will use reasonable efforts to notify you of any such claim, action, or proceeding which is subject to this indemnification upon becoming aware of it.`,
     },
 
-    { type: 'h2', text: `22. USER DATA` },
+    { type: 'h2', text: `19. USER DATA` },
     {
       type: 'p',
       text: `We will maintain certain data that you transmit to the Services for the purpose of managing the performance of the Services, as well as data relating to your use of the Services. Although we perform regular routine backups of data, you are solely responsible for all data that you transmit or that relates to any activity you have undertaken using the Services. You agree that we shall have no liability to you for any loss or corruption of any such data, and you hereby waive any right of action against us arising from any such loss or corruption of such data.`,
     },
 
-    { type: 'h2', text: `23. ELECTRONIC COMMUNICATIONS, TRANSACTIONS, AND SIGNATURES` },
+    { type: 'h2', text: `20. ELECTRONIC COMMUNICATIONS, TRANSACTIONS, AND SIGNATURES` },
     {
       type: 'p',
       text: `Visiting the Services, sending us emails, and completing online forms constitute electronic communications. You consent to receive electronic communications, and you agree that all agreements, notices, disclosures, and other communications we provide to you electronically, via email and on the Services, satisfy any legal requirement that such communication be in writing. YOU HEREBY AGREE TO THE USE OF ELECTRONIC SIGNATURES, CONTRACTS, ORDERS, AND OTHER RECORDS, AND TO ELECTRONIC DELIVERY OF NOTICES, POLICIES, AND RECORDS OF TRANSACTIONS INITIATED OR COMPLETED BY US OR VIA THE SERVICES. You hereby waive any rights or requirements under any statutes, regulations, rules, ordinances, or other laws in any jurisdiction which require an original signature or delivery or retention of non-electronic records, or to payments or the granting of credits by any means other than electronic means.`,
     },
 
-    { type: 'h2', text: `24. CALIFORNIA USERS AND RESIDENTS` },
+    { type: 'h2', text: `21. CALIFORNIA USERS AND RESIDENTS` },
     {
       type: 'p',
       text: `If any complaint with us is not satisfactorily resolved, you can contact the Complaint Assistance Unit of the Division of Consumer Services of the California Department of Consumer Affairs in writing at 1625 North Market Blvd., Suite N 112, Sacramento, California 95834 or by telephone at (800) 952-5210 or (916) 445-1254.`,
     },
 
-    { type: 'h2', text: `25. MISCELLANEOUS` },
+    { type: 'h2', text: `22. MISCELLANEOUS` },
     {
       type: 'p',
       text: `These Legal Terms and any policies or operating rules posted by us on the Services or in respect to the Services constitute the entire agreement and understanding between you and us. Our failure to exercise or enforce any right or provision of these Legal Terms shall not operate as a waiver of such right or provision. These Legal Terms operate to the fullest extent permissible by law. We may assign any or all of our rights and obligations to others at any time. We shall not be responsible or liable for any loss, damage, delay, or failure to act caused by any cause beyond our reasonable control. If any provision or part of a provision of these Legal Terms is determined to be unlawful, void, or unenforceable, that provision or part of the provision is deemed severable from these Legal Terms and does not affect the validity and enforceability of any remaining provisions. There is no joint venture, partnership, employment or agency relationship created between you and us as a result of these Legal Terms or use of the Services. You agree that these Legal Terms will not be construed against us by virtue of having drafted them. You hereby waive any and all defenses you may have based on the electronic form of these Legal Terms and the lack of signing by the parties hereto to execute these Legal Terms.`,
     },
 
-    { type: 'h2', text: `26. CONTACT US` },
+    { type: 'h2', text: `23. CONTACT US` },
     {
       type: 'p',
       text: `In order to resolve a complaint regarding the Services or to receive further information regarding use of the Services, please contact us at:`,
     },
     { type: 'p', text: `Comly` },
-    { type: 'p', text: `United States` },
+    { type: 'p', text: `Email: raphaelmuthu21@gmail.com or marceldonk777@gmail.com` },
+    {
+      type: 'p',
+      text: `Mail: [MAILING ADDRESS TO BE PROVIDED], Philadelphia, Pennsylvania [ZIP CODE], United States`,
+    },
   ],
 };
 
 /**
- * Placeholder policy.
+ * Real Privacy Policy, matched against what the app actually does as of
+ * PRIVACY_VERSION below — not a generic template. Sections describing specific
+ * data (the `profiles_private` fields, the AI/Resend/Supabase sub-processors,
+ * the guardian-consent mechanism) were written by reading the schema and
+ * service code, not assumed. The [MAILING ADDRESS TO BE PROVIDED] / [ZIP CODE]
+ * placeholders match the ones in TERMS_OF_SERVICE and should be filled with the
+ * same values at the same time.
  *
- * TODO(legal): replace `blocks` below with the real Privacy Policy — most
- * likely the Termly Privacy Policy export, converted the same way the Terms
- * were. Until then this page deliberately says the policy is not finished
- * rather than implying a complete one exists. The route itself is stable now
- * so nothing in the app or the store listings links to a 404.
- *
- * At minimum the finished policy must cover what Comly actually collects
- * today: date of birth (age gating), neighborhood and approximate job
- * location, profile photos, job and application content, device push tokens,
- * and reports filed about other users.
+ * Two things this document is honest about because the app currently is:
+ *   - Account deletion is support-request-only; there is no self-service
+ *     delete button yet. (Apple requires one for apps that support account
+ *     creation — this is worth building before submission, not just
+ *     disclosing around.)
+ *   - Push notification permission code exists but no device token is
+ *     currently stored anywhere, so that paragraph is phrased conditionally
+ *     rather than as a present-tense claim.
  */
 export const PRIVACY_POLICY: LegalDocument = {
   title: 'Privacy Policy',
-  lastUpdated: 'Not yet published',
+  lastUpdated: 'September 06, 2026',
   version: PRIVACY_VERSION,
   blocks: [
-    { type: 'h2', text: `Our full Privacy Policy is coming soon` },
+    { type: 'h2', text: `AGREEMENT TO THIS PRIVACY POLICY` },
     {
       type: 'p',
-      text: `Comly's complete Privacy Policy is still being finalized and is not published yet. This page exists so that every link to it in the app and in our app store listings resolves to a real page rather than a broken one.`,
+      text: `This Privacy Policy for Comly ("Company," "we," "us," or "our") describes how and why we might access, collect, store, use, and/or share ("process") your personal information when you use our services ("Services"), including when you download and use our mobile application (Comly), or engage with us in any other related way, including any sales, marketing, or events.`,
     },
     {
       type: 'p',
-      text: `This page is not a privacy policy and should not be relied on as one.`,
-    },
-    { type: 'h3', text: `What we can tell you today` },
-    {
-      type: 'p',
-      text: `Comly collects the information you give us when you create an account and use the app. That includes your name, email address, date of birth, neighborhood, and — if you add one — a profile photo. Your date of birth is used to determine which jobs are safe and legal for you to apply to, and cannot be changed by you after sign-up.`,
+      text: `We are Comly ("Company," "we," "us," or "our"), operated by co-founders Raphael Muthu and Marcel Afsar, and based in Philadelphia, Pennsylvania, United States. You can contact us by email at raphaelmuthu21@gmail.com or marceldonk777@gmail.com, or by mail at [MAILING ADDRESS TO BE PROVIDED], Philadelphia, Pennsylvania [ZIP CODE], United States.`,
     },
     {
       type: 'p',
-      text: `Job posts include an approximate location only. Exact addresses and contact details stay hidden until a job application has been accepted by both sides.`,
+      text: `Reading this Privacy Policy will help you understand your privacy rights and choices. If you do not agree with our policies and practices, please do not use our Services. If you still have questions or concerns, please contact us using the details at the end of this document.`,
+    },
+
+    { type: 'h2', text: `1. WHAT INFORMATION DO WE COLLECT?` },
+    { type: 'h3', text: `Personal information you disclose to us` },
+    {
+      type: 'p',
+      text: `We collect personal information that you voluntarily provide when you register on the Services, express an interest in obtaining information about us or our Services, or otherwise contact us.`,
     },
     {
       type: 'p',
-      text: `If you enable push notifications, we store a device token so we can send them.`,
+      text: `The personal information we collect depends on the context of your interactions with us and the Services, but may include the following:`,
+    },
+    { type: 'li', text: `Name and email address` },
+    {
+      type: 'li',
+      text: `Date of birth — required at sign-up to determine which safety tier of jobs you may see or post, and cannot be edited by you after your account is created`,
+    },
+    { type: 'li', text: `Neighborhood (a general area, not your exact address)` },
+    { type: 'li', text: `Profile photo, if you choose to add one` },
+    {
+      type: 'li',
+      text: `A short bio, skills, and preferred job categories, if you choose to add them`,
+    },
+    {
+      type: 'li',
+      text: `Phone number and preferred contact method, if you choose to add them — kept in a separate, more restricted part of our database and never shown to another user until a job application between you has been accepted by both sides`,
+    },
+    {
+      type: 'li',
+      text: `If you are a minor and your account requires guardian approval: your parent or guardian's name and email address, and a school email address if you choose to provide one`,
+    },
+    {
+      type: 'li',
+      text: `Job listings you post, applications you submit, messages sent through the application flow, reviews you write or receive, and reports you or others file about a job`,
+    },
+    {
+      type: 'li',
+      text: `Records of which version of this Privacy Policy and our Terms of Service you accepted, and when`,
     },
     {
       type: 'p',
-      text: `We do not sell personal information.`,
+      text: `If you sign in using Google or Apple, we receive your name and email address from that provider so we can create and secure your account. We do not receive your password for those accounts.`,
     },
-    { type: 'h3', text: `Questions before the full policy is published` },
     {
       type: 'p',
-      text: `Contact us through Help & Support in the app, and we will answer questions about your data in the meantime.`,
+      text: `All personal information that you provide to us must be true, complete, and accurate, and you must notify us of any changes to such personal information.`,
+    },
+    { type: 'h3', text: `Information collected automatically` },
+    {
+      type: 'p',
+      text: `We do not currently use any third-party analytics, advertising, or crash-reporting service in the Services. Our infrastructure providers, described below, automatically log standard technical information needed to operate the Services (such as request timestamps and error logs), the way any server does.`,
+    },
+
+    { type: 'h2', text: `2. HOW DO WE PROCESS YOUR INFORMATION?` },
+    { type: 'p', text: `We process your personal information for a variety of reasons, including:` },
+    {
+      type: 'li',
+      text: `To create and manage your account, verify your age, and determine which jobs are safe and legal for you to see, post, or apply to.`,
+    },
+    {
+      type: 'li',
+      text: `To operate the guardian-approval process for helpers under 18, where a request is required, including sending the approval email and recording the outcome.`,
+    },
+    {
+      type: 'li',
+      text: `To connect residents and helpers: showing your listing or profile to other users, matching job posts with helpers, and unlocking contact details only after both sides accept a specific job.`,
+    },
+    {
+      type: 'li',
+      text: `To automatically screen job listings and application messages for safety and to suggest a fair pay range and realistic duration, using the AI processing described in Section 4.`,
+    },
+    {
+      type: 'li',
+      text: `To operate reviews, ratings, and the no-show reporting system, and to act on confirmed reports (including applying or reversing a strike on an account).`,
+    },
+    {
+      type: 'li',
+      text: `To respond to support requests you send us and to enforce our Terms of Service.`,
+    },
+    {
+      type: 'li',
+      text: `To keep the Services secure, including preventing a user from editing their own age, verification status, strikes, or account standing.`,
+    },
+    { type: 'p', text: `We do not use your personal information for advertising, and we do not sell it.` },
+
+    { type: 'h2', text: `3. WHAT LEGAL BASES DO WE RELY ON?` },
+    {
+      type: 'p',
+      text: `We only process your personal information when we believe it is necessary and we have a valid legal reason to do so, such as with your consent, to comply with the law, to provide you services in order to enter into or fulfill our contractual obligations, to protect your rights, or to fulfill our legitimate business interests.`,
+    },
+
+    { type: 'h2', text: `4. WHEN AND WITH WHOM DO WE SHARE YOUR PERSONAL INFORMATION?` },
+    {
+      type: 'p',
+      text: `We may need to share your personal information in the following situations:`,
+    },
+    {
+      type: 'li',
+      text: `With other users of the Services. Your name, profile photo, neighborhood, bio, rating, and reviews are visible to other users as part of how the marketplace works. Your exact address and contact details are never shown to another user until a specific job application between you has been accepted by both sides.`,
+    },
+    {
+      type: 'li',
+      text: `With Supabase, our database, authentication, and file storage provider, which stores and processes the personal information described in this policy on our behalf.`,
+    },
+    {
+      type: 'li',
+      text: `With Google, whose Gemini AI model we use, through our own server, to help classify a job's safety tier and suggest fair pay — the job or application text you submit is sent for this processing. If you sign in with a Google or Apple account, those providers also process the account information needed to authenticate you.`,
+    },
+    {
+      type: 'li',
+      text: `With Resend, our email delivery provider, solely to send a one-time guardian-approval email — only the parent or guardian's email address and the helper's name are shared with them for this purpose.`,
+    },
+    {
+      type: 'li',
+      text: `With law enforcement, government authorities, or other third parties, if required by law, to enforce our Terms of Service, or to protect the rights, property, or safety of Comly, our users, or others — for example, in response to a confirmed report involving a minor's safety.`,
+    },
+    {
+      type: 'li',
+      text: `In connection with, or during negotiations of, any merger, sale of company assets, financing, or acquisition of all or a portion of our business by another company.`,
+    },
+
+    { type: 'h2', text: `5. HOW DO WE HANDLE YOUR SOCIAL LOGINS?` },
+    {
+      type: 'p',
+      text: `Our Services offer you the ability to register and log in using your Google or Apple account. Where you choose to do this, we receive certain profile information about you from that provider, such as your name and email address. We will use the information we receive only for the purposes described in this Privacy Policy. We do not have access to, and do not store, your password for those accounts.`,
+    },
+
+    { type: 'h2', text: `6. DO WE OFFER PUSH NOTIFICATIONS?` },
+    {
+      type: 'p',
+      text: `If you grant permission, the Services can send you push notifications about activity on your account, such as a new application or a message. If push notifications are active on your device, we may store a device token, which we use only to deliver these notifications and never to identify you across other apps or services. You can withdraw this permission at any time in your device settings.`,
+    },
+
+    { type: 'h2', text: `7. HOW LONG DO WE KEEP YOUR INFORMATION?` },
+    {
+      type: 'p',
+      text: `We keep your personal information for as long as necessary to provide the Services and fulfill the purposes described in this Privacy Policy, unless a longer retention period is required or permitted by law. Job, review, and no-show records tied to another user's account may be retained after your own account is closed, to the extent needed to keep those other records accurate.`,
+    },
+    {
+      type: 'p',
+      text: `When we have no ongoing legitimate business need to process your personal information, we will either delete or anonymize it, or, if this is not possible, securely store it and isolate it from further processing until deletion is possible.`,
+    },
+
+    { type: 'h2', text: `8. HOW DO WE KEEP YOUR INFORMATION SAFE?` },
+    {
+      type: 'p',
+      text: `We use role- and row-level access controls in our database so that a user's more sensitive information — such as a phone number or a guardian's contact details — cannot be read by other users directly, and so that safety-relevant fields, such as your age, strikes, or verification status, cannot be edited by anyone but our own server-side systems, not even by you. Information is transmitted to and from our servers over encrypted connections.`,
+    },
+    {
+      type: 'p',
+      text: `Although we take reasonable technical and organizational measures, no electronic transmission or storage system is completely secure, and we cannot guarantee that hackers, cybercriminals, or other unauthorized third parties will not be able to defeat our security. You should only access the Services within a secure environment.`,
+    },
+
+    { type: 'h2', text: `9. DO WE COLLECT INFORMATION FROM MINORS?` },
+    {
+      type: 'p',
+      text: `The Services are intended for users who are at least 13 years of age. We do not knowingly collect, solicit data from, or market to children under 13 years of age. By using the Services, you represent that you are at least 13.`,
+    },
+    {
+      type: 'p',
+      text: `If you are between 13 and 17, some jobs will be unavailable to you outright based on your age, and some jobs require your parent or guardian to approve your account first. That approval works without your guardian ever creating a Comly account: we email them a one-time link, which they can use once to record their approval. We store only the fact and time of that approval and the guardian's name and email — not a password or any other account for them.`,
+    },
+    {
+      type: 'p',
+      text: `If we learn that we have collected personal information from a user under 13 without the verifiable consent required by law, we will deactivate the account and take reasonable measures to promptly delete such data from our records. If you become aware of any data we may have collected from children under 13, please contact us using the details below.`,
+    },
+
+    { type: 'h2', text: `10. WHAT ARE YOUR PRIVACY RIGHTS?` },
+    {
+      type: 'p',
+      text: `You can review, change, or update most of your account information at any time by editing your profile in the app. Your date of birth, age classification, verification status, and account standing cannot be self-edited, for the safety reasons described above — contact us if any of that information is inaccurate.`,
+    },
+    {
+      type: 'p',
+      text: `To request that we delete your account and associated personal information, contact us through Help & Support in the app or using the details below. We will confirm and act on deletion requests within a reasonable time, subject to the retention needs described in Section 7 — for example, keeping a record of a confirmed no-show strike that is also tied to another user's account.`,
+    },
+    {
+      type: 'p',
+      text: `Withdrawing consent: If we are relying on your consent to process your personal information, you have the right to withdraw your consent at any time. Withdrawing consent will not affect the lawfulness of any processing conducted before you withdraw it.`,
+    },
+
+    { type: 'h2', text: `11. CONTROLS FOR DO-NOT-TRACK FEATURES` },
+    {
+      type: 'p',
+      text: `Most web browsers and some mobile operating systems include a Do-Not-Track ("DNT") feature. We do not currently use tracking technology that responds to DNT signals, so no additional action is taken in response to them. If a standard for online tracking is adopted that we must follow in the future, we will inform you about that practice in a revised version of this Privacy Policy.`,
+    },
+
+    { type: 'h2', text: `12. DO CALIFORNIA RESIDENTS HAVE SPECIFIC PRIVACY RIGHTS?` },
+    {
+      type: 'p',
+      text: `California Civil Code Section 1798.83 permits California residents to request certain information regarding our disclosure of personal information to third parties for their direct marketing purposes. We do not disclose personal information to third parties for their own direct marketing purposes. If you have questions about this section, you may contact the Complaint Assistance Unit of the Division of Consumer Services of the California Department of Consumer Affairs in writing at 1625 North Market Blvd., Suite N 112, Sacramento, California 95834, or by telephone at (800) 952-5210 or (916) 445-1254.`,
+    },
+
+    { type: 'h2', text: `13. DO WE MAKE UPDATES TO THIS POLICY?` },
+    {
+      type: 'p',
+      text: `We may update this Privacy Policy from time to time. When we do, the version and date at the top of this document will change, and the new version will be recorded against your account the next time you accept it. Material changes may require you to re-accept this policy before continuing to use certain features.`,
+    },
+
+    { type: 'h2', text: `14. HOW CAN YOU CONTACT US ABOUT THIS POLICY?` },
+    {
+      type: 'p',
+      text: `If you have questions or comments about this notice, you may contact us by email at raphaelmuthu21@gmail.com or marceldonk777@gmail.com, or by mail at Comly, [MAILING ADDRESS TO BE PROVIDED], Philadelphia, Pennsylvania [ZIP CODE], United States.`,
     },
   ],
 };

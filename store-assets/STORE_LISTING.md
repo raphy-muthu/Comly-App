@@ -106,7 +106,7 @@ posture of the business.
 
 ## Screenshots
 
-In `store-assets/screenshots/`, captured at 1206×2622 from an iPhone 16
+In `store-assets/screenshots/`, captured at 1179×2556 from an iPhone 16
 simulator in mock mode. Order matters — the first two are what most people
 actually see in search results:
 
@@ -127,9 +127,10 @@ Three things have to be fixed before these can be uploaded:
    screenshots showing development chrome.
 2. **They came from a debug build.** Store screenshots should come from a
    release build, which has no dev menu at all.
-3. **They are the wrong size.** These were captured at 1206×2622 (iPhone 16
-   Pro, 6.3"). Apple's primary required iPhone size is **6.9" — 1320×2868**
-   (iPhone 16 Pro Max). Recapture on that device, not the one used here.
+3. **They are the wrong size.** These were captured at 1179×2556 (the 6.1"
+   class — iPhone 15 Pro / 16). Apple's primary required iPhone size is
+   **6.9" — 1320×2868** (iPhone 16 Pro Max or 17 Pro Max). Recapture on that
+   device, not the one used here.
 
 All three are fixed by one recapture from a release build on a 16 Pro Max.
 That cannot currently be produced on this machine, and the cause is more

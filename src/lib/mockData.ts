@@ -52,6 +52,17 @@ export const currentUser: UserProfile = {
   preferredCategories: ['tutoring', 'snow_removal', 'pet_care'],
   bio: 'Long-time Bryn Mawr resident. Happy to help neighbors and grateful for a hand when I need one.',
   isAdmin: true,
+  // Accepted the documents current as of this fixture. Without a record the
+  // re-consent gate blocks every demo session at launch, which also blocks the
+  // E2E suite and store screenshots. Deliberately literal rather than pinned to
+  // TERMS_VERSION: bumping a version should still exercise the gate in mock
+  // mode, and acceptLegalVersions now records it there so it can be cleared.
+  legalConsent: {
+    termsVersion: '2026-09-06',
+    termsAcceptedAt: daysAgo(1),
+    privacyVersion: '2026-09-07',
+    privacyAcceptedAt: daysAgo(1),
+  },
   memberSince: daysAgo(420),
 };
 

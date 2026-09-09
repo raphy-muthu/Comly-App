@@ -193,7 +193,22 @@ export async function acceptLegalVersions(
   termsVersion: string,
   privacyVersion: string
 ): Promise<AuthResult> {
-  if (USE_MOCKS || !hasSupabaseConfig) return { ok: true };
+  if (USE_MOCKS) {
+    // Record it on the demo profile rather than returning a bare ok. The gate
+    // re-reads the profile to decide whether to stop rendering, so a no-op
+    // here leaves it mounted over a save it was told had succeeded.
+    // Imported lazily so the fixtures stay out of a production bundle.
+    const { currentUser } = await import('@/lib/mockData');
+    const now = new Date().toISOString();
+    currentUser.legalConsent = {
+      termsVersion,
+      termsAcceptedAt: now,
+      privacyVersion,
+      privacyAcceptedAt: now,
+    };
+    return { ok: true };
+  }
+  if (!hasSupabaseConfig) return { ok: true };
 
   const { error } = await getSupabase().rpc('accept_legal_versions', {
     p_terms_version: termsVersion,

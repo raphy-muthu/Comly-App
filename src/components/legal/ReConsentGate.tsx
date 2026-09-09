@@ -57,7 +57,6 @@ export function ReConsentGate() {
       const result = await acceptLegalVersions(TERMS_VERSION, PRIVACY_VERSION);
       if (!result.ok) {
         toast.error(result.message ?? 'Could not record your agreement.');
-        setSaving(false);
         return;
       }
       // Re-read the profile so the new versions land in the store and this
@@ -66,6 +65,12 @@ export function ReConsentGate() {
       await adoptSession();
     } catch {
       toast.error('Could not record your agreement.');
+    } finally {
+      // Also runs on the success path, where this component usually unmounts
+      // and the call is a no-op. It matters when the write succeeded but the
+      // re-read came back without the new versions: the gate stays mounted,
+      // and leaving `saving` true would spin forever with both buttons
+      // disabled — no way forward and no way out.
       setSaving(false);
     }
   };
@@ -112,12 +117,9 @@ export function ReConsentGate() {
             disabled={saving}
             style={styles.agree}
           />
-          <Button
-            title="Sign out instead"
-            variant="ghost"
-            onPress={signOut}
-            disabled={saving}
-          />
+          {/* Never disabled: this is the only exit from a non-dismissible
+              modal, so a stuck save must not take it away too. */}
+          <Button title="Sign out instead" variant="ghost" onPress={signOut} />
         </View>
       </View>
     </Modal>

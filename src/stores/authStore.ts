@@ -59,8 +59,11 @@ const startingRole = (roles: Role[]): Role =>
  * startup path.
  */
 async function mockProfile(): Promise<UserProfile> {
-  const { currentUser } = await import('@/lib/mockData');
-  return currentUser;
+  // Reads the mock backend's session persona rather than the seed directly, so
+  // a flow that signed in as a reserved test address (see signInAsMockPersona)
+  // gets that persona instead of the default.
+  const { currentMockUser } = await import('@/services/mockBackend');
+  return currentMockUser();
 }
 
 /**

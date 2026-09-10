@@ -64,6 +64,37 @@ const db = {
   blocked: new Set<string>(),
 };
 
+/**
+ * Mock-only persona switch, so an E2E flow can sign in as someone the
+ * eligibility gate is actually able to refuse.
+ *
+ * The seeded default (Sarah) is an adult, and `eligibilityFor` short-circuits
+ * to `canApply: true` for every adult before it looks at the tier — so while
+ * signed in as her, no seeded job can produce a refusal and the teen-safety
+ * gate cannot be exercised end to end at all.
+ *
+ * Unreachable in production: every caller sits inside a `USE_MOCKS` branch,
+ * and production resolves to supabaseBackend instead of this module.
+ */
+const MOCK_PERSONAS: Record<string, string> = {
+  'teen@example.com': 'u_jordan', // 16-17, parent-approved helper
+};
+
+export function signInAsMockPersona(email: string): void {
+  const id = MOCK_PERSONAS[email.trim().toLowerCase()];
+  if (!id) return; // Any other address keeps the default persona.
+  // Must point at the object already inside db.users — `db` was built once at
+  // module load with sessionUser substituted in, so rebinding to a detached
+  // copy would desync the two.
+  const found = db.users.find((u) => u.id === id);
+  if (found) sessionUser = found;
+}
+
+/** The persona the mock session is currently signed in as. */
+export function currentMockUser(): UserProfile {
+  return sessionUser;
+}
+
 const delay = <T>(value: T, ms = 320): Promise<T> =>
   new Promise((resolve) => setTimeout(() => resolve(value), ms));
 

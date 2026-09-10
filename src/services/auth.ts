@@ -226,6 +226,11 @@ export async function signInWithEmail(
 ): Promise<AuthResult> {
   if (USE_MOCKS) {
     await delay(600);
+    // Mock mode accepts any credentials, but a few reserved addresses select a
+    // specific seeded persona — the E2E suite needs a teen helper to exercise
+    // the eligibility refusal, which no adult account can trigger.
+    const { signInAsMockPersona } = await import('./mockBackend');
+    signInAsMockPersona(email);
     return { ok: true };
   }
   if (!hasSupabaseConfig) return configError();

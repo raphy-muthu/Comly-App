@@ -1,0 +1,32 @@
+WARNING: Final field parent in class maestro.cli.command.TestCommand has been mutated reflectively by class picocli.CommandLine$Model$FieldBinding in unnamed module @358c99f5 (file:/Users/puneetmuthu/.maestro/lib/picocli-4.6.3.jar)
+WARNING: Use --enable-final-field-mutation=ALL-UNNAMED to avoid a warning
+WARNING: Mutating final fields will be blocked in a future release unless final field mutation is enabled
+Running on iPhone 17 Pro Max - iOS 26.5 - E57F337E-DC83-4C0E-8014-DF1ED728E5B4
+ > Flow 01-signup
+Launch app "com.comly.app" with clear state... COMPLETED
+Tap on "Get Started"... COMPLETED
+Assert that "Create your account" is visible... COMPLETED
+Tap on "I want to help"... FAILED
+
+Element not found: Text matching regex: I want to help
+
+Element with Text matching regex: I want to help not found. Check the UI hierarchy in debug artifacts to verify if the element exists.
+
+Possible causes:
+- Element selector may be incorrect - check if there are similar elements with slightly different names/properties.
+- Element may be temporarily unavailable due to loading state.
+- This could be a real regression that needs to be addressed.
+
+==== Debug output (logs & screenshots) ====
+
+/Users/puneetmuthu/.maestro/tests/2026-09-09_180725
+╭────────────────────────────────────────────────────────────────────────────────────────────────╮
+│                                                                                                │
+│   Debug tests faster by easy access to test recordings, maestro logs, screenshots, and more.   │
+│                                                                                                │
+│   Run your flows on Maestro Cloud:                                                             │
+│   maestro cloud app_file flows_folder/                                                         │
+│                                                                                                │
+╰────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+exit=1

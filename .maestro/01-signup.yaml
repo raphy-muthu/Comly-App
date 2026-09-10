@@ -1,8 +1,23 @@
-# Sign up — including that the age floor actually refuses an under-13 date.
+# Sign up — proves the age floor actually refuses an under-13 date.
 #
 # The age check is the reason this flow exists. Everything else here is setup;
 # the assertion that matters is that a birth date under the minimum is refused
 # at the point of submission, not silently accepted.
+#
+# How the refusal is reached (all verified against SignUpScreen.tsx):
+#   - DateTimeField opens a native iOS spinner at TODAY, bounded by
+#     maximumDate={new Date()}. It only commits a value once actually moved
+#     (onChange fires on `event.type === 'set'`), so the swipe below is what
+#     makes dateOfBirth non-null. Because the picker cannot go past today,
+#     ANY date it yields is under 13 — no need to dial a specific one.
+#   - The Create Account button is `disabled={busy || !acceptedLegal}`, so the
+#     legal checkbox MUST be ticked or the tap silently does nothing and the
+#     refusal never fires. This is why the checkbox step exists.
+#   - `authenticate()` then finds `complete === false` (it requires
+#     ageBracket !== null) and falls through its guard chain to
+#     `toast.error("You must be at least 13 years old to use Comly.")`.
+#     The same string also renders inline under the date field, so the
+#     assertion matches whichever of the two is on screen.
 appId: com.comly.app
 ---
 - launchApp:
@@ -11,23 +26,55 @@ appId: com.comly.app
 - tapOn: "Get Started"
 - assertVisible: "Create your account"
 
-# Role and the fields that don't gate anything
-- tapOn: "I want to help"
+# Role card is a Pressable wrapping an Ionicons icon + Text, which React Native
+# merges into one accessibility element whose label is the icon glyph plus the
+# visible text — so the selector must be substring-tolerant.
 - tapOn:
-    id: "input-name"
-    optional: true
-- inputText: "Maestro Helper"
+    text: ".*I want to help.*"
 
-# The age gate. A date under the minimum must not produce an account.
-# Note: the date picker is a native spinner; setting it reliably is the part of
-# this flow most likely to need adjusting on first run.
-- tapOn: "Select your date of birth"
+# Open the date-of-birth spinner and move it, committing an under-13 date.
+- tapOn:
+    text: ".*Select your date of birth.*"
+- swipe:
+    start: 200,620
+    end: 200,480
+    duration: 300
+
+# Tap away from the spinner to dismiss it.
+- tapOn:
+    point: "50%,25%"
+
+# Reach the legal checkbox. Explicit swipes rather than `scroll` /
+# `scrollUntilVisible`: neither moved this form at all (the accessibility tree
+# came back byte-identical before and after).
+- swipe:
+    start: 220,700
+    end: 220,260
+    duration: 400
+- swipe:
+    start: 220,700
+    end: 220,260
+    duration: 400
+- swipe:
+    start: 220,700
+    end: 220,260
+    duration: 400
+
+# Ticking this is what enables the submit button (see header note).
+- tapOn:
+    text: ".*I agree to Comly.*"
+
+- tapOn:
+    text: ".*Create Account.*"
+
+# THE ASSERTION THAT MATTERS. Not optional: if the age gate ever stops
+# refusing an under-13 date, this flow must fail.
 - assertVisible:
-    text: ".*at least 13.*"
-    optional: true
+    text: ".*at least 13 years old.*"
 
-- back
-
-# A complete, valid signup should reach either the confirm-email notice or the
-# signed-in dashboard, depending on whether email confirmation is on.
-- assertVisible: "Create your account"
+# And no account was created — still on the signup form. Asserted via the
+# submit button rather than the "Create your account" heading, because by this
+# point the form is scrolled down and the heading is off-screen. Had signup
+# succeeded, the app would have navigated away and this button would be gone.
+- assertVisible:
+    text: ".*Create Account.*"

@@ -158,6 +158,15 @@ export const users: UserProfile[] = [
     skills: ['Snow shoveling', 'Time management', 'Reliability'],
     preferredCategories: ['snow_removal', 'leaf_cleanup', 'dog_walking'],
     bio: 'Sophomore at Lower Merion HS. Reliable and happy to help nearby neighbors after school.',
+    // Needed because this profile is selectable as a mock session persona (see
+    // signInAsMockPersona). Without a consent record the re-consent gate blocks
+    // the session at launch, exactly as it did for the default persona.
+    legalConsent: {
+      termsVersion: '2026-09-06',
+      termsAcceptedAt: daysAgo(1),
+      privacyVersion: '2026-09-07',
+      privacyAcceptedAt: daysAgo(1),
+    },
     memberSince: daysAgo(140),
   },
   {

@@ -17,8 +17,34 @@ appId: com.comly.app
 - tapOn: "Your password"
 - inputText: "password123"
 - hideKeyboard
+
+# iOS may show the native "Save Password?" Keychain sheet as soon as the
+# password field loses focus (observed in practice), covering the Log In
+# button before it can even be tapped — even though AutoFillPasswords was
+# disabled on the simulator, it does not suppress this sheet. Dismiss
+# optionally here, and again after the tap below, since the sheet's timing
+# is not fully deterministic.
+- tapOn:
+    text: "Not Now"
+    optional: true
+
+# Optional, not a selector change: the password field's onSubmitEditing
+# fires on the keyboard's "Go" return key (see LoginScreen.tsx), and
+# Maestro's hideKeyboard on iOS dismisses the keyboard by pressing that
+# return key. So authentication can already be in flight (or complete) by
+# the time this step runs, and this button may no longer exist on screen.
+# The text stays exactly "^Log In$" — only optional:true was added so an
+# already-completed login doesn't fail the flow.
 - tapOn:
     text: "^Log In$"
+    optional: true
+
+# The sheet may instead appear only after Log In is tapped (this is the
+# timing originally observed). Optional so the flow is resilient whether or
+# not it appears here.
+- tapOn:
+    text: "Not Now"
+    optional: true
 
 # A seeded listing that already has an applicant.
 - assertVisible: "Active Jobs"
@@ -26,8 +52,13 @@ appId: com.comly.app
     text: ".*applicant.*"
 
 # Before acceptance the exact address and phone number must not be on screen.
+# NOTE: seeded phone numbers are formatted "(610) 555-0142" (parens around the
+# area code, a space, one hyphen) — see src/lib/mockData.ts and the verbatim
+# render in src/components/job/ContactCard.tsx. Do not "simplify" this back to
+# a XXX-XXX-XXXX pattern; that format is never rendered by the app, which
+# would make this negative assertion pass vacuously.
 - assertNotVisible:
-    text: ".*[0-9]{3}-[0-9]{3}-[0-9]{4}.*"
+    text: ".*\\([0-9]{3}\\) [0-9]{3}-[0-9]{4}.*"
 - assertVisible:
     text: ".*(hidden until accepted|CONTACT UNLOCKED).*"
 
@@ -36,7 +67,39 @@ appId: com.comly.app
 - assertVisible: "Applications"
 - tapOn: "Accept"
 
-# After acceptance the contact card appears.
+# Accepting shows a success toast ("<name> accepted — contact unlocked.")
+# that renders at `top: insets.top + spacing.base` (src/components/ui/Toast.tsx)
+# — i.e. directly over the header, overlapping the back button — and stays
+# up for 2.8s, auto-dismissing on its own timer. The toast's own Pressable
+# sits at a higher z-index than the header, so a tap in that area while it is
+# up hits the toast (dismissing it early) instead of the back button
+# underneath. Wait for it to clear before tapping back, otherwise the next
+# step silently does nothing (verified: first attempt below without this
+# wait left the app stuck on the Applications screen with the header still
+# reading "Applications").
+- extendedWaitUntil:
+    notVisible: ".*contact unlocked.*"
+    timeout: 5000
+
+# The ContactCard (which shows "CONTACT UNLOCKED" and the phone number) is
+# rendered only on the Job Detail screen, not on Applications. Accepting an
+# applicant stays on Applications (it just updates the row), so we must
+# navigate back to Job Detail before asserting the card is visible. This
+# step is required, not redundant — do not delete it.
+#
+# Maestro's `- back` (platform back/edge-swipe gesture) was tried first but
+# left the app on the Applications screen (verified against a captured
+# hierarchy: the header still read "Applications" after `back` completed).
+# Instead we tap the screen's own header back button directly. Its
+# accessibility label "arrow back" is generated deterministically by
+# src/components/ui/IconButton.tsx's labelFromIcon() from icon="arrow-back"
+# (see JobApplicationsScreen.tsx: <IconButton icon="arrow-back"
+# onPress={() => navigation.goBack()} />), so this is a stable selector, not
+# a guess.
+- tapOn: "arrow back"
+
+# After acceptance the contact card appears. Same phone format note as above:
+# the app renders "(610) 555-0142" style numbers, never "XXX-XXX-XXXX".
 - assertVisible: "CONTACT UNLOCKED"
 - assertVisible:
-    text: ".*[0-9]{3}-[0-9]{3}-[0-9]{4}.*"
+    text: ".*\\([0-9]{3}\\) [0-9]{3}-[0-9]{4}.*"

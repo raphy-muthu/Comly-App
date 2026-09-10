@@ -17,14 +17,44 @@ appId: com.comly.app
 - tapOn: "Your password"
 - inputText: "password123"
 - hideKeyboard
+
+# iOS may show the native "Save Password?" Keychain sheet as soon as the
+# password field loses focus (observed in practice), covering the Log In
+# button before it can even be tapped — even though AutoFillPasswords was
+# disabled on the simulator, it does not suppress this sheet. Dismiss
+# optionally here, and again after the tap below, since the sheet's timing
+# is not fully deterministic.
+- tapOn:
+    text: "Not Now"
+    optional: true
+
+# Optional, not a selector change: the password field's onSubmitEditing
+# fires on the keyboard's "Go" return key (see LoginScreen.tsx), and
+# Maestro's hideKeyboard on iOS dismisses the keyboard by pressing that
+# return key. So authentication can already be in flight (or complete) by
+# the time this step runs, and this button may no longer exist on screen.
+# The text stays exactly "^Log In$" — only optional:true was added so an
+# already-completed login doesn't fail the flow.
 - tapOn:
     text: "^Log In$"
+    optional: true
+
+# The sheet may instead appear only after Log In is tapped (this is the
+# timing originally observed). Optional so the flow is resilient whether or
+# not it appears here.
+- tapOn:
+    text: "Not Now"
+    optional: true
 
 - assertVisible: "Post a Job"
 - tapOn: "Post a Job"
 - assertVisible: "Job Details"
 
-- tapOn: "Snow Shoveling"
+# Category chip is an icon + Text merged into one accessibility label by
+# Pressable (e.g. a snowflake glyph + ", Snow Shoveling"), so it needs a
+# substring-tolerant selector like the role card above.
+- tapOn:
+    text: ".*Snow Shoveling.*"
 - tapOn: "e.g., Shovel 2-car driveway"
 - inputText: "Shovel the front walk"
 - hideKeyboard
@@ -33,9 +63,24 @@ appId: com.comly.app
 - inputText: "Front walk and steps cleared after the storm."
 - hideKeyboard
 
-- tapOn: "Continue"
+# Button.tsx supports a trailing icon prop, so this Continue button's label
+# is also icon-glyph + text. At this point in the flow "Continue to Review"
+# (a later step's button) is not yet on screen, so ".*Continue.*" is
+# unambiguous here.
+- tapOn:
+    text: ".*Continue.*"
 
 # Step 2 is the AI preview: fair-pay guidance and the safety classification.
 - assertVisible: "AI Preview"
+
+# Assert a real safety TIER was assigned, not merely that the word "safety"
+# appears. The previous assertion (".*[Ss]afety.*") was vacuous: this screen
+# renders the static header 'Here are suggestions for fair pay and safety.'
+# (CreateJobScreen.tsx:546) regardless of whether classification ran at all,
+# so it would have passed even if the tier system silently stopped working.
+# The alternatives below are the exact tier labels from src/types/domain.ts
+# (~lines 191-211). Deliberately not pinned to one tier — the classifier's
+# judgement for a given job is not this flow's business; that SOME tier was
+# assigned is precisely what the header comment says matters.
 - assertVisible:
-    text: ".*[Ss]afety.*"
+    text: ".*(Teen Safe|Caution|Adult Supervision|16\\+ Only|18\\+ Only).*"

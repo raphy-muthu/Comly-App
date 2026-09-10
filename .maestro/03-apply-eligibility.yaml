@@ -12,36 +12,80 @@ appId: com.comly.app
 - tapOn: "Log In"
 - assertVisible: "Welcome back"
 - tapOn: "you@neighborhood.com"
-- inputText: "maestro@example.com"
+# Reserved mock address: signs in as the seeded teen helper Jordan Lee (16-17,
+# parent-approved) rather than the default adult persona. This matters because
+# `eligibilityFor` returns canApply:true for EVERY adult before it even looks
+# at the tier — so signed in as the adult default, no seeded job can produce a
+# refusal and this flow's whole point is untestable. See signInAsMockPersona
+# in src/services/mockBackend.ts.
+- inputText: "teen@example.com"
 - tapOn: "Your password"
 - inputText: "password123"
 - hideKeyboard
+
+# iOS may show the native "Save Password?" Keychain sheet as soon as the
+# password field loses focus (observed in practice), covering the Log In
+# button before it can even be tapped — even though AutoFillPasswords was
+# disabled on the simulator, it does not suppress this sheet. Dismiss
+# optionally here, and again after the tap below, since the sheet's timing
+# is not fully deterministic.
+- tapOn:
+    text: "Not Now"
+    optional: true
+
 # Anchored regex, not a bare string: the subtitle on this screen reads "Log in
 # to pick up where you left off", which a substring match also hits.
+#
+# Optional, not a selector change: the password field's onSubmitEditing
+# fires on the keyboard's "Go" return key (see LoginScreen.tsx), and
+# Maestro's hideKeyboard on iOS dismisses the keyboard by pressing that
+# return key. So authentication can already be in flight (or complete) by
+# the time this step runs, and this button may no longer exist on screen.
+# The text stays exactly "^Log In$" — only optional:true was added so an
+# already-completed login doesn't fail the flow.
 - tapOn:
     text: "^Log In$"
+    optional: true
 
-# Switch to the helper side, where the feed and its safety labels live.
-- tapOn: "Jobs"
+# The sheet may instead appear only after Log In is tapped (this is the
+# timing originally observed). Optional so the flow is resilient whether or
+# not it appears here.
+- tapOn:
+    text: "Not Now"
+    optional: true
+
+# Jordan Lee holds only the 'helper' role, so the app already starts on the
+# helper side (startingRole in src/stores/authStore.ts) — no role switch is
+# needed or possible here: the Profile role switcher only renders for accounts
+# holding BOTH roles.
+#
+# The tab bar item's real accessibility label (confirmed from a captured
+# hierarchy) is "Jobs, tab, 2 of 5". A loose ".*Jobs.*" would also match the
+# "Active Jobs" heading elsewhere, so anchor on the "Jobs, tab" prefix.
+- tapOn:
+    text: "^Jobs, tab.*"
 - assertVisible:
     text: ".*(Teen Safe|Caution|16\\+|18\\+).*"
 
-# Open the first listing. Selected by testID rather than by text — a feed card
-# has no stable text of its own, and the previous `text: ".*"` selector matched
-# any element on screen.
+# Open a listing this helper is specifically NOT allowed to take: 'Gutter
+# cleaning (ladder)' is seeded as tier eighteen_plus_only and owned by another
+# user, so it appears in the feed. Chosen by name rather than index:0 because
+# whichever job happens to sort first is not necessarily one that refuses, and
+# the refusal is the entire point of this flow.
+- scrollUntilVisible:
+    element:
+      text: ".*Gutter cleaning.*"
+    direction: DOWN
 - tapOn:
-    id: "job-card"
-    index: 0
+    text: ".*Gutter cleaning.*"
 
-# The tier badge and the apply affordance must agree with each other: either
-# apply is offered, or a reason is given. Never a dead button.
+# The gate must refuse, and must say why. Both assertions are unconditional:
+# previously the refusal lived behind `runFlow: when: visible: "Not eligible"`,
+# which silently SKIPPED whenever the opened job happened to be one the helper
+# could take — so the flow passed without ever testing a refusal.
+# Substring-tolerant: the button is a Pressable wrapping an icon + Text, which
+# React Native merges into one accessibility label (real value: ", Not eligible").
 - assertVisible:
-    text: ".*(Apply for Job|Not eligible).*"
-
-# When ineligible, the refusal must be explained rather than left bare.
-- runFlow:
-    when:
-      visible: "Not eligible"
-    commands:
-      - assertVisible:
-          text: ".*(cannot apply|approval is required|under 1[68]).*"
+    text: ".*Not eligible.*"
+- assertVisible:
+    text: ".*(cannot apply|approval is required|under 1[68]).*"

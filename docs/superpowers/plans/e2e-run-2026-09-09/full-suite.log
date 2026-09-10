@@ -1,0 +1,12 @@
+WARNING: Final field parent in class maestro.cli.command.TestCommand has been mutated reflectively by class picocli.CommandLine$Model$FieldBinding in unnamed module @358c99f5 (file:/Users/puneetmuthu/.maestro/lib/picocli-4.6.3.jar)
+WARNING: Use --enable-final-field-mutation=ALL-UNNAMED to avoid a warning
+WARNING: Mutating final fields will be blocked in a future release unless final field mutation is enabled
+
+Waiting for flows to complete...
+[Passed] 02-post-job (48s)
+[Passed] 03-apply-eligibility (39s)
+[Passed] 01-signup (20s)
+[Passed] 04-accept-contact-unlock (37s)
+
+4/4 Flows Passed in 2m 24s
+

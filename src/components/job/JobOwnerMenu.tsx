@@ -12,7 +12,7 @@
 import { Modal, Pressable, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, radius, shadows, spacing } from '@/theme';
-import { Divider, Text, useToast } from '@/components/ui';
+import { Divider, IconButton, Text, useToast } from '@/components/ui';
 import { useDeleteJob, useRequestJobCompletion, useSetJobStatus } from '@/hooks';
 import { Job } from '@/types/domain';
 
@@ -164,16 +164,49 @@ export function JobOwnerMenu({
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose}>
-        <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
+      {/* accessible={false} on both wrapping Pressables: a Pressable defaults
+          accessible=true whenever it has onPress, and an accessible=true View
+          merges its ENTIRE subtree into one accessibility element. Left
+          unset, VoiceOver got a single element the size of the screen with
+          every row's icon and label concatenated into one unreadable,
+          unselectable string — the whole menu was unusable non-visually.
+          Setting it false here only changes what's exposed to accessibility;
+          the backdrop's own tap-to-dismiss keeps working for everyone else. */}
+      <Pressable style={styles.backdrop} onPress={onClose} accessible={false}>
+        <Pressable
+          style={styles.sheet}
+          onPress={(e) => e.stopPropagation()}
+          accessible={false}
+        >
           <View style={styles.handle} />
-          <Text variant="labelMd" color="textSecondary" style={styles.title}>
-            MANAGE LISTING
-          </Text>
+          <View style={styles.titleRow}>
+            <Text
+              variant="labelMd"
+              color="textSecondary"
+              style={styles.title}
+              accessibilityRole="header"
+            >
+              MANAGE LISTING
+            </Text>
+            {/* An explicit way out: with the backdrop no longer exposed to
+                accessibility, a VoiceOver user needs a real close control
+                rather than only the destructive actions below. */}
+            <IconButton
+              icon="close"
+              size={20}
+              onPress={onClose}
+              accessibilityLabel="Close menu"
+            />
+          </View>
           {actions.map((a, i) => (
             <View key={a.key}>
               {i > 0 && <Divider />}
-              <Pressable style={styles.row} onPress={a.run}>
+              <Pressable
+                style={styles.row}
+                onPress={a.run}
+                accessibilityRole="button"
+                accessibilityLabel={a.label}
+              >
                 <Ionicons
                   name={a.icon}
                   size={20}
@@ -218,7 +251,13 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginBottom: spacing.sm,
   },
-  title: { marginBottom: spacing.base },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.base,
+  },
+  title: { flex: 1 },
   row: {
     flexDirection: 'row',
     alignItems: 'center',

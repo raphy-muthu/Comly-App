@@ -20,7 +20,7 @@
  *     prompt into a hostage situation.
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -34,13 +34,38 @@ import {
   consentIsCurrent,
 } from '@/legal/content';
 
+/** Walks a nested navigation state to the name of the currently active leaf route. */
+function activeRouteName(state: any): string | undefined {
+  if (!state) return undefined;
+  const route = state.routes?.[state.index ?? state.routes.length - 1];
+  if (!route) return undefined;
+  return route.state ? activeRouteName(route.state) : route.name;
+}
+
 export function ReConsentGate() {
   const user = useAuthStore((s) => s.user);
   const signOut = useAuthStore((s) => s.signOut);
   const adoptSession = useAuthStore((s) => s.adoptSession);
   const [saving, setSaving] = useState(false);
+  const [openedTerms, setOpenedTerms] = useState(false);
+  const [openedPrivacy, setOpenedPrivacy] = useState(false);
+  // This Modal sits above every screen (see RootNavigator) so the gate can
+  // cover whichever screen a stale-consent user lands on — including the
+  // Terms/Privacy screens it links to. Without tracking this, tapping "Read
+  // the Terms of Service" navigates there but the modal stays on top,
+  // blocking the very document it just opened. Hidden whenever the active
+  // route is one of the two legal screens; reappears the moment navigation
+  // moves on (back, or anywhere else).
+  const [viewingDoc, setViewingDoc] = useState(false);
   const toast = useToast();
   const navigation = useNavigation<any>();
+
+  useEffect(() => {
+    return navigation.addListener('state', (e: any) => {
+      const name = activeRouteName(e.data?.state);
+      setViewingDoc(name === 'Terms' || name === 'Privacy');
+    });
+  }, [navigation]);
 
   // Nothing to ask while signed out, and nothing to ask of an account whose
   // consent is already current.
@@ -49,9 +74,13 @@ export function ReConsentGate() {
   if (consentIsCurrent(consent?.termsVersion, consent?.privacyVersion)) return null;
 
   const firstTime = !consent?.termsVersion && !consent?.privacyVersion;
+  // A tap only proves the document was opened, not read — the same ceiling
+  // every app with this pattern accepts. It's still a real requirement: "I
+  // agree" was previously reachable without ever opening either document.
+  const reviewedBoth = openedTerms && openedPrivacy;
 
   const accept = async () => {
-    if (saving) return;
+    if (saving || !reviewedBoth) return;
     setSaving(true);
     try {
       const result = await acceptLegalVersions(TERMS_VERSION, PRIVACY_VERSION);
@@ -75,10 +104,19 @@ export function ReConsentGate() {
     }
   };
 
-  const open = (screen: 'Terms' | 'Privacy') => navigation.navigate(screen);
+  const open = (screen: 'Terms' | 'Privacy') => {
+    if (screen === 'Terms') setOpenedTerms(true);
+    else setOpenedPrivacy(true);
+    navigation.navigate(screen);
+  };
 
   return (
-    <Modal visible transparent animationType="fade" onRequestClose={() => {}}>
+    <Modal
+      visible={!viewingDoc}
+      transparent
+      animationType="fade"
+      onRequestClose={() => {}}
+    >
       <View style={styles.backdrop}>
         <View style={styles.card}>
           <View style={styles.titleRow}>
@@ -96,25 +134,51 @@ export function ReConsentGate() {
             </Text>
 
             <Pressable onPress={() => open('Terms')} style={styles.link}>
-              <Text variant="labelMd" color="textLink">
-                Read the Terms of Service
-              </Text>
+              <View style={styles.linkLabel}>
+                {openedTerms && (
+                  <Ionicons
+                    name="checkmark-circle"
+                    size={16}
+                    color={colors.tertiary}
+                    style={styles.linkCheck}
+                  />
+                )}
+                <Text variant="labelMd" color="textLink">
+                  Read the Terms of Service
+                </Text>
+              </View>
               <Ionicons name="chevron-forward" size={16} color={colors.primary} />
             </Pressable>
 
             <Pressable onPress={() => open('Privacy')} style={styles.link}>
-              <Text variant="labelMd" color="textLink">
-                Read the Privacy Policy
-              </Text>
+              <View style={styles.linkLabel}>
+                {openedPrivacy && (
+                  <Ionicons
+                    name="checkmark-circle"
+                    size={16}
+                    color={colors.tertiary}
+                    style={styles.linkCheck}
+                  />
+                )}
+                <Text variant="labelMd" color="textLink">
+                  Read the Privacy Policy
+                </Text>
+              </View>
               <Ionicons name="chevron-forward" size={16} color={colors.primary} />
             </Pressable>
+
+            {!reviewedBoth && (
+              <Text variant="caption" color="textSecondary" style={styles.hint}>
+                Open both documents above to continue.
+              </Text>
+            )}
           </ScrollView>
 
           <Button
             title={saving ? 'Saving…' : 'I agree'}
             onPress={accept}
             loading={saving}
-            disabled={saving}
+            disabled={saving || !reviewedBoth}
             style={styles.agree}
           />
           {/* Never disabled: this is the only exit from a non-dismissible
@@ -151,5 +215,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: spacing.sm,
   },
+  linkLabel: { flexDirection: 'row', alignItems: 'center' },
+  linkCheck: { marginRight: spacing.xs },
+  hint: { marginTop: spacing.xs },
   agree: { marginTop: spacing.md, marginBottom: spacing.sm },
 });

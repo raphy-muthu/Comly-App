@@ -90,6 +90,29 @@ export function signInAsMockPersona(email: string): void {
   if (found) sessionUser = found;
 }
 
+/**
+ * Records legal consent on the mock session's actual live user, not the
+ * pristine `currentUser` fixture import.
+ *
+ * `sessionUser` is a copy taken from that fixture once, at module load (see
+ * above) — mutating the original import afterward touches an object nothing
+ * else reads. `acceptLegalVersions` in auth.ts did exactly that until this
+ * existed: the write reported success, but `currentMockUser()` kept
+ * returning the unmodified copy, so the re-consent gate never saw the new
+ * versions and stayed up after a successful "I agree" with no error shown.
+ * Same failure shape as the original re-consent lockout, in the mock-only
+ * code added later to support it.
+ */
+export function recordMockConsent(termsVersion: string, privacyVersion: string): void {
+  const now = new Date().toISOString();
+  sessionUser.legalConsent = {
+    termsVersion,
+    termsAcceptedAt: now,
+    privacyVersion,
+    privacyAcceptedAt: now,
+  };
+}
+
 /** The persona the mock session is currently signed in as. */
 export function currentMockUser(): UserProfile {
   return sessionUser;

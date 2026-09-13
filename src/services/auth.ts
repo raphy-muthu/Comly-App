@@ -194,18 +194,16 @@ export async function acceptLegalVersions(
   privacyVersion: string
 ): Promise<AuthResult> {
   if (USE_MOCKS) {
-    // Record it on the demo profile rather than returning a bare ok. The gate
-    // re-reads the profile to decide whether to stop rendering, so a no-op
-    // here leaves it mounted over a save it was told had succeeded.
+    // Record it on the mock session's actual live user rather than returning
+    // a bare ok. The gate re-reads the profile to decide whether to stop
+    // rendering, so a no-op here leaves it mounted over a save it was told
+    // had succeeded. Goes through mockBackend rather than mutating the
+    // `currentUser` fixture import directly — that import is a detached
+    // fixture once the session starts (see recordMockConsent), so writing to
+    // it silently doesn't reach whatever `currentMockUser()` returns.
     // Imported lazily so the fixtures stay out of a production bundle.
-    const { currentUser } = await import('@/lib/mockData');
-    const now = new Date().toISOString();
-    currentUser.legalConsent = {
-      termsVersion,
-      termsAcceptedAt: now,
-      privacyVersion,
-      privacyAcceptedAt: now,
-    };
+    const { recordMockConsent } = await import('./mockBackend');
+    recordMockConsent(termsVersion, privacyVersion);
     return { ok: true };
   }
   if (!hasSupabaseConfig) return { ok: true };

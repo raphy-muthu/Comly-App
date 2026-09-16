@@ -44,10 +44,22 @@
         }
       ],
       "@react-native-community/datetimepicker",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "@sentry/react-native/expo",
+        {
+          "organization": "comly",
+          "project": "react-native",
+          "url": "https://sentry.io/"
+        }
+      ]
     ],
     "extra": {
-      "useMocks": false
-    }
+      "useMocks": false,
+      "eas": {
+        "projectId": "c03206d8-6445-49b9-a5cc-affab4523ce1"
+      }
+    },
+    "owner": "raphy-muthus-team"
   }
 }

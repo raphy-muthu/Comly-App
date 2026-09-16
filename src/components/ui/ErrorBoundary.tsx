@@ -10,6 +10,7 @@
 import { Component, ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Sentry from '@sentry/react-native';
 import { colors, radius, spacing } from '@/theme';
 import { Text } from './Text';
 import { Button } from './Button';
@@ -31,9 +32,11 @@ export class ErrorBoundary extends Component<Props, State> {
     return { hasError: true };
   }
 
-  componentDidCatch(error: unknown) {
-    // Central crash log point — swap for Sentry/Crashlytics in production.
+  componentDidCatch(error: unknown, info: { componentStack: string }) {
     console.error('[Comly] Render error caught by boundary:', error);
+    Sentry.captureException(error, {
+      contexts: { react: { componentStack: info.componentStack } },
+    });
   }
 
   private reset = () => this.setState({ hasError: false });

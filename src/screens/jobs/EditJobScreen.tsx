@@ -30,6 +30,8 @@ import {
   PayType,
 } from '@/types/domain';
 import { AppStackParamList } from '@/navigation/types';
+import { ai } from '@/services/ai';
+import { safetyFieldsForEdit } from '@/lib/jobEdits';
 
 type Nav = NativeStackNavigationProp<AppStackParamList>;
 type Rt = RouteProp<AppStackParamList, 'EditJob'>;
@@ -52,6 +54,7 @@ export function EditJobScreen() {
   const [equipmentDetails, setEquipmentDetails] = useState('');
   const [tags, setTags] = useState<Set<CommunityTag>>(new Set());
   const [seeded, setSeeded] = useState(false);
+  const [reviewing, setReviewing] = useState(false);
 
   // Seed form once the job loads.
   useEffect(() => {
@@ -89,21 +92,36 @@ export function EditJobScreen() {
       return next;
     });
 
-  const save = () => {
+  const save = async () => {
+    if (reviewing || updateJob.isPending) return;
+    const nextTitle = limited ? job.title : title.trim();
+    const nextDescription = description.trim();
+
+    // New wording needs a fresh safety review — the old tier judged old text.
+    // ai.safetyReview never throws: it falls back to the keyword review.
+    setReviewing(true);
+    const safetyFields = await safetyFieldsForEdit(
+      job,
+      nextTitle,
+      nextDescription,
+      ai.safetyReview
+    ).finally(() => setReviewing(false));
+
     updateJob.mutate(
       {
         id: job.id,
         patch: limited
-          ? { description: description.trim(), scheduledFor: scheduledFor.trim() }
+          ? { description: nextDescription, scheduledFor: scheduledFor.trim(), ...safetyFields }
           : {
-              title: title.trim(),
-              description: description.trim(),
+              title: nextTitle,
+              description: nextDescription,
               pay: Number(pay) || job.pay,
               payType,
               scheduledFor: scheduledFor.trim(),
               equipmentStatus: equipment,
               equipmentDetails: equipmentDetails.trim() || undefined,
               communityTags: Array.from(tags),
+              ...safetyFields,
             },
       },
       {
@@ -237,7 +255,11 @@ export function EditJobScreen() {
       </ScrollView>
 
       <View style={styles.footer}>
-        <Button title="Save Changes" onPress={save} loading={updateJob.isPending} />
+        <Button
+          title={reviewing ? 'Checking safety…' : 'Save Changes'}
+          onPress={save}
+          loading={reviewing || updateJob.isPending}
+        />
       </View>
     </SafeAreaView>
   );

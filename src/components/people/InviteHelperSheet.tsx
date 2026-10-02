@@ -14,7 +14,7 @@
 import { Modal, Pressable, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, radius, shadows, spacing } from '@/theme';
-import { Divider, EmptyState, Text, useToast } from '@/components/ui';
+import { Divider, EmptyState, IconButton, Text, useToast } from '@/components/ui';
 import { useInviteHelper, useMyJobs } from '@/hooks';
 import { categoryLabel, Job } from '@/types/domain';
 
@@ -57,12 +57,30 @@ export function InviteHelperSheet({
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose}>
-        <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
+      {/* accessible={false} on both wrapping Pressables, same as JobOwnerMenu:
+          a Pressable with onPress defaults to accessible=true, which merges
+          its whole subtree into ONE VoiceOver element — every job row read
+          as one string, none individually selectable. */}
+      <Pressable style={styles.backdrop} onPress={onClose} accessible={false}>
+        <Pressable
+          style={styles.sheet}
+          onPress={(e) => e.stopPropagation()}
+          accessible={false}
+        >
           <View style={styles.handle} />
-          <Text variant="labelMd" color="textSecondary" style={styles.title}>
-            INVITE {helperName.toUpperCase()} TO APPLY
-          </Text>
+          <View style={styles.titleRow}>
+            <Text
+              variant="labelMd"
+              color="textSecondary"
+              style={styles.title}
+              accessibilityRole="header"
+            >
+              INVITE {helperName.toUpperCase()} TO APPLY
+            </Text>
+            {/* The backdrop is no longer exposed to accessibility, so
+                VoiceOver users need a real way out. */}
+            <IconButton icon="close" size={20} onPress={onClose} accessibilityLabel="Close" />
+          </View>
           <Text variant="caption" color="textSecondary" style={styles.note}>
             They'll get a notification pointing at your listing. Phone numbers
             stay private until you accept their application.
@@ -78,7 +96,15 @@ export function InviteHelperSheet({
             openJobs.map((job, i) => (
               <View key={job.id}>
                 {i > 0 && <Divider />}
-                <Pressable style={styles.row} onPress={() => send(job.id)}>
+                <Pressable
+                  style={styles.row}
+                  onPress={() => send(job.id)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Invite to ${job.title}, ${categoryLabel(
+                    job.category,
+                    job.customCategoryText
+                  )}, ${job.scheduledFor}`}
+                >
                   <Ionicons name="briefcase-outline" size={20} color={colors.primary} />
                   <View style={styles.rowBody}>
                     <Text variant="bodyLg" numberOfLines={1}>
@@ -123,7 +149,13 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginBottom: spacing.sm,
   },
-  title: { marginBottom: 4 },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  title: { flex: 1 },
   note: { marginBottom: spacing.sm },
   row: {
     flexDirection: 'row',

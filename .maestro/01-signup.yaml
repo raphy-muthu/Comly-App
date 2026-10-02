@@ -12,7 +12,8 @@
 #     ANY date it yields is under 13 — no need to dial a specific one.
 #   - The Create Account button is `disabled={busy || !acceptedLegal}`, so the
 #     legal checkbox MUST be ticked or the tap silently does nothing and the
-#     refusal never fires. This is why the checkbox step exists.
+#     refusal never fires. The box itself only ticks once both documents have
+#     been opened, which is why the flow opens each one first.
 #   - `authenticate()` then finds `complete === false` (it requires
 #     ageBracket !== null) and falls through its guard chain to
 #     `toast.error("You must be at least 13 years old to use Comly.")`.
@@ -59,6 +60,15 @@ appId: com.comly.app
     start: 220,700
     end: 220,260
     duration: 400
+
+# The agreement box only ticks after both documents have been opened (same
+# rule as the re-consent gate), so open each one and come back first.
+- tapOn:
+    text: ".*Read the Terms of Service.*"
+- tapOn: "arrow back"
+- tapOn:
+    text: ".*Read the Privacy Policy.*"
+- tapOn: "arrow back"
 
 # Ticking this is what enables the submit button (see header note).
 - tapOn:

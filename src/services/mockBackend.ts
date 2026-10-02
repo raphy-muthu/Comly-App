@@ -14,6 +14,7 @@ import {
   ImpactStats,
   Job,
   JobInvite,
+  jobAcceptsDecisions,
   JobStatus,
   NoShowEvent,
   NO_SHOW_POLICY,
@@ -21,9 +22,17 @@ import {
   PRIORITY_REASON_PRO_HELPER,
   Report,
   Review,
+  SafetyTier,
+  stricterTier,
   SupportTicket,
   UserProfile,
 } from '@/types/domain';
+import { keywordTier } from '@/lib/safetyKeywords';
+
+/** Same floor as the enforce_safety_keyword_floor trigger (migration 0027). */
+function flooredTier(tier: SafetyTier, title: string, description: string): SafetyTier {
+  return stricterTier(tier, keywordTier(`${title} ${description}`).tier);
+}
 import {
   applications as seedApplications,
   currentUser as seedCurrentUser,
@@ -81,8 +90,9 @@ const MOCK_PERSONAS: Record<string, string> = {
 };
 
 export function signInAsMockPersona(email: string): void {
-  const id = MOCK_PERSONAS[email.trim().toLowerCase()];
-  if (!id) return; // Any other address keeps the default persona.
+  // Any other address signs in as the default account — including after a
+  // persona was used, which previously stuck until the app restarted.
+  const id = MOCK_PERSONAS[email.trim().toLowerCase()] ?? seedCurrentUser.id;
   // Must point at the object already inside db.users — `db` was built once at
   // module load with sessionUser substituted in, so rebinding to a detached
   // copy would desync the two.
@@ -217,9 +227,11 @@ export const mockBackend: DataBackend = {
       pay: input.pay,
       payType: input.payType,
       status: 'open',
-      safetyTier: input.safetyTier,
+      safetyTier: flooredTier(input.safetyTier, input.title, input.description),
       safetyNotes: input.safetyNotes,
-      requiresAdultSupervision: input.requiresAdultSupervision,
+      requiresAdultSupervision:
+        input.requiresAdultSupervision ||
+        flooredTier(input.safetyTier, input.title, input.description) === 'adult_supervision',
       equipmentStatus: input.equipmentStatus,
       equipmentDetails: input.equipmentDetails,
       communityTags: input.communityTags,
@@ -253,6 +265,8 @@ export const mockBackend: DataBackend = {
     if (job.customerId !== sessionUser.id)
       throw new Error('You can only edit your own jobs.');
     Object.assign(job, patch);
+    job.safetyTier = flooredTier(job.safetyTier, job.title, job.description);
+    if (job.safetyTier === 'adult_supervision') job.requiresAdultSupervision = true;
     return delay(job);
   },
 
@@ -334,7 +348,8 @@ export const mockBackend: DataBackend = {
     if (!job) throw new Error('Job not found');
     if (job.customerId !== sessionUser.id)
       throw new Error('Only the job owner can accept applications.');
-    if (['accepted', 'completed', 'cancelled'].includes(job.status))
+    // Same rule as the server's accept_application (open/reviewing only).
+    if (!jobAcceptsDecisions(job.status))
       throw new Error('This job already has an outcome.');
 
     const accepted = db.applications.find((a) => a.id === applicationId);

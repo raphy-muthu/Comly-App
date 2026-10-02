@@ -60,10 +60,13 @@ Deno.serve(async (req) => {
       'eighteen_plus_only',
       'blocked',
     ];
+    // An unrecognized tier means the review was inconclusive — never report
+    // that as `safe`. (The keyword floor still applies on top, client- and
+    // server-side; see migration 0027.)
     if (!TIERS.includes(parsed?.tier)) {
       parsed.tier = 'caution';
-      parsed.safe = true;
-      parsed.note = parsed?.note ?? 'Safety review was inconclusive.';
+      parsed.safe = false;
+      parsed.note = 'Safety review was inconclusive.';
     }
 
     return json(parsed);

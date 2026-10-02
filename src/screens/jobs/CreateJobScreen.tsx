@@ -185,9 +185,14 @@ function StandardFlow() {
   useEffect(() => {
     if (step !== 'ai' || !hasFetchedAiRef.current) return;
     let active = true;
-    ai.suggestPay(category, title, payType).then((p) => {
-      if (active) setPaySuggestion(p);
-    });
+    ai.suggestPay(category, title, payType)
+      .then((p) => {
+        if (active) setPaySuggestion(p);
+      })
+      .catch(() => {
+        // Advisory only — keep the previous suggestion rather than surface an
+        // unhandled rejection when the pay type is switched offline.
+      });
     return () => {
       active = false;
     };

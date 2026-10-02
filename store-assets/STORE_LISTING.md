@@ -98,17 +98,17 @@ answer rather than a default:
 - It does **not** contain purchases of digital goods today, and Comly handles
   no payments at all.
 
-Worth having the exemption question answered by a lawyer before you commit to
-answers here, since some of them are effectively statements about the legal
-posture of the business.
+The casual-labor exemption question has been answered: counsel approved the
+§2 clause in the Terms (2026-09-20), so answers here can be made consistent
+with that posture.
 
 ---
 
 ## Screenshots
 
-In `store-assets/screenshots/`, captured at 1179×2556 from an iPhone 16
-simulator in mock mode. Order matters — the first two are what most people
-actually see in search results:
+In `store-assets/screenshots-69/`, captured at **1320×2868** (Apple's required
+6.9" size) from a Release build in mock mode — no dev-client overlay. Order
+matters — the first two are what most people actually see in search results:
 
 | File | Shows |
 | --- | --- |
@@ -116,54 +116,14 @@ actually see in search results:
 | `02-ai-preview-safety-and-pay.png` | Pay suggestion + "Teen Safe" classification, with the human-override link |
 | `03-contact-unlocked.png` | Contact revealed only after acceptance |
 | `04-onboarding-safe-by-design.png` | Onboarding |
+| `05-leave-a-review.png` | Two-sided review after a completed job |
 | `06-profile-trust.png` | Verification badges and reputation score |
 
-### These are drafts, not submission assets
-
-Three things have to be fixed before these can be uploaded:
-
-1. **They carry the Expo dev-client overlay** — the blue gear in the top-right
-   corner is the "Tools" button, not part of the app. Apple will reject
-   screenshots showing development chrome.
-2. **They came from a debug build.** Store screenshots should come from a
-   release build, which has no dev menu at all.
-3. **They are the wrong size.** These were captured at 1179×2556 (the 6.1"
-   class — iPhone 15 Pro / 16). Apple's primary required iPhone size is
-   **6.9" — 1320×2868** (iPhone 16 Pro Max or 17 Pro Max). Recapture on that
-   device, not the one used here.
-
-All three are fixed by one recapture from a release build on a 16 Pro Max.
-That cannot currently be produced on this machine, and the cause is more
-specific than previously recorded: the Xcode scheme has **no eligible build
-destinations at all**.
-
-```
-$ xcodebuild -workspace ios/Comly.xcworkspace -scheme Comly -showdestinations
-    Ineligible destinations for the "Comly" scheme:
-        { platform:iOS, ..., error:iOS 26.5 is not installed. }
-```
-
-The installed Xcode offers only iOS 26.5 and that platform is not downloaded;
-the one installed simulator runtime (iOS 18.6) is not accepted for this scheme.
-This is not a matter of passing the right `--device` flag — it was tried three
-ways, including driving `xcodebuild` directly with an explicit simulator
-destination, and all fail the same way.
-
-**To unblock:** Xcode → Settings → Components → install the iOS platform, then:
-
-```bash
-# set EXPO_PUBLIC_USE_MOCKS=true in .env for seeded demo data, then:
-npx expo run:ios --configuration Release --device "iPhone 16 Pro Max"
-# ...capture, then set EXPO_PUBLIC_USE_MOCKS back to false
-```
-
-What these drafts are good for right now: reviewing composition, ordering, and
-whether the listing tells the right story, and showing a partner what the
-listing will look like.
+These six are submission-ready for the iPhone slot.
 
 ### Still missing
 
-- **`05` — the review screen.** Needs a job carried through to completion and
-  mutual confirmation first.
 - **iPad captures**, since `app.json` sets `supportsTablet: true`. An app that
   declares iPad support must supply iPad screenshots.
+- **Google Play** needs its own phone screenshots (any 16:9–9:16 ratio,
+  1080px+ recommended); the iPhone set can likely be reused after a size check.

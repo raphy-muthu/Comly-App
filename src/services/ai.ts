@@ -10,7 +10,8 @@
  * realAI.generateResumeSummary.
  */
 
-import { JobCategory, JOB_CATEGORIES, PayType, UserProfile } from '@/types/domain';
+import { JobCategory, JOB_CATEGORIES, PayType, stricterTier, UserProfile } from '@/types/domain';
+import { keywordTier } from '@/lib/safetyKeywords';
 import type { SafetyTier } from '@/types/domain';
 import { USE_MOCKS, hasSupabaseConfig } from '@/config/env';
 import {
@@ -222,12 +223,48 @@ const HOURLY_PAY_BANDS: Record<JobCategory, [number, number]> = {
 const payBandsFor = (payType: PayType) =>
   payType === 'hourly' ? HOURLY_PAY_BANDS : FIXED_PAY_BANDS;
 
-// Keyword → safety tier signals (most severe wins).
-const BLOCKED_TERMS = ['roof', 'electrical', 'wiring', 'heavy machinery', 'chainsaw', 'firearm', 'gun'];
-const EIGHTEEN_TERMS = ['ladder', 'gutter', 'chemical', 'pressure washer', 'power tool', 'driving', 'deliver', 'door-to-door', 'door to door', 'canvassing'];
-const SIXTEEN_TERMS = ['mow', 'weed whacker', 'string trimmer', 'hedge trimmer'];
-const SUPERVISION_TERMS = ['pool', 'chemical', 'basement', 'attic'];
-const CAUTION_TERMS = ['snow', 'ice', 'lift', 'carry', 'heavy', 'outdoor'];
+/**
+ * The deterministic keyword review (see lib/safetyKeywords.ts). It is the
+ * whole review in mock mode and when the AI call fails, and the floor under
+ * the AI's answer otherwise — the same floor the database enforces.
+ */
+function keywordReview(title: string, description: string): SafetyResult {
+  const { tier, term } = keywordTier(`${title} ${description}`);
+  switch (tier) {
+    case 'blocked':
+      return {
+        safe: false,
+        tier,
+        note: `Mentions "${term}", which is not allowed on Comly for safety reasons.`,
+      };
+    case 'eighteen_plus_only':
+      return {
+        safe: false,
+        tier,
+        note: `Mentions "${term}" — helpers under 18 cannot apply to this task.`,
+      };
+    case 'sixteen_plus_only':
+      return {
+        safe: true,
+        tier,
+        note: `Mentions "${term}" — helpers under 16 cannot apply to this task.`,
+      };
+    case 'adult_supervision':
+      return {
+        safe: true,
+        tier,
+        note: 'Comly recommends adult supervision; teen helpers need parent approval.',
+      };
+    case 'caution':
+      return {
+        safe: true,
+        tier,
+        note: 'May involve weather or light physical work. Helpers should only accept jobs they can safely complete.',
+      };
+    default:
+      return { safe: true, tier: 'teen_safe', note: 'This task looks safe for teen helpers.' };
+  }
+}
 
 const mockAI: AIService = {
   async suggestPay(category, _title, payType) {
@@ -256,49 +293,7 @@ const mockAI: AIService = {
   },
 
   async safetyReview(title, description) {
-    const text = `${title} ${description}`.toLowerCase();
-    const has = (terms: string[]) => terms.find((t) => text.includes(t));
-
-    const blocked = has(BLOCKED_TERMS);
-    if (blocked) {
-      return delay({
-        safe: false,
-        tier: 'blocked' as SafetyTier,
-        note: `Mentions "${blocked}", which is not allowed on Comly for safety reasons.`,
-      });
-    }
-    const eighteen = has(EIGHTEEN_TERMS);
-    if (eighteen) {
-      return delay({
-        safe: false,
-        tier: 'eighteen_plus_only' as SafetyTier,
-        note: `Mentions "${eighteen}" — helpers under 18 cannot apply to this task.`,
-      });
-    }
-    const sixteenPlus = has(SIXTEEN_TERMS);
-    if (sixteenPlus) {
-      return delay({
-        safe: true,
-        tier: 'sixteen_plus_only' as SafetyTier,
-        note: `Mentions "${sixteenPlus}" — helpers under 16 cannot apply to this task.`,
-      });
-    }
-    const supervision = has(SUPERVISION_TERMS);
-    if (supervision) {
-      return delay({
-        safe: true,
-        tier: 'adult_supervision' as SafetyTier,
-        note: 'Comly recommends adult supervision; teen helpers need parent approval.',
-      });
-    }
-    const caution = has(CAUTION_TERMS);
-    return delay({
-      safe: true,
-      tier: (caution ? 'caution' : 'teen_safe') as SafetyTier,
-      note: caution
-        ? 'May involve weather or light physical work. Helpers should only accept jobs they can safely complete.'
-        : 'This task looks safe for teen helpers.',
-    });
+    return delay(keywordReview(title, description));
   },
 
   async checkRealism(input) {
@@ -465,6 +460,11 @@ const realAI: AIService = {
       if (!data || !VALID.includes(data.tier)) {
         throw new Error(`Unrecognized safety tier from model: ${data?.tier}`);
       }
+      // The model's tier is a proposal, not the final word: a description
+      // can talk a model out of its instructions. The keyword floor — the same
+      // one the database enforces (migration 0027) — can only raise it.
+      const floor = keywordReview(title, description);
+      if (stricterTier(data.tier as SafetyTier, floor.tier) !== data.tier) return floor;
       return {
         safe: !!data.safe,
         tier: data.tier as SafetyTier,
@@ -472,7 +472,7 @@ const realAI: AIService = {
       };
     } catch (err) {
       console.warn('[Comly] ai-safety-review failed, using local keyword check:', err);
-      return mockAI.safetyReview(title, description);
+      return keywordReview(title, description);
     }
   },
 

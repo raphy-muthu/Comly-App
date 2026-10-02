@@ -294,16 +294,30 @@ async function uid(): Promise<string> {
   return data.user.id;
 }
 
+/** Ids of users I blocked, as a PostgREST `in` list, or null when there are none. */
+async function blockedInList(me: string): Promise<string | null> {
+  const { data, error } = await sb()
+    .from('blocked_users')
+    .select('blocked_user_id')
+    .eq('user_id', me);
+  if (error) throw error;
+  const ids = (data ?? []).map((r: any) => r.blocked_user_id as string);
+  return ids.length ? `(${ids.join(',')})` : null;
+}
+
 export const supabaseBackend: DataBackend = {
   async listFeedJobs() {
     const me = await uid();
-    const { data, error } = await sb()
+    const blocked = await blockedInList(me);
+    let query = sb()
       .from('jobs')
       .select(JOB_SELECT)
       .eq('status', 'open')
       .is('deleted_at', null)
-      .neq('customer_id', me)
-      .order('created_at', { ascending: false });
+      .neq('customer_id', me);
+    // Mirrors the mock: a blocked customer's listings leave my feed.
+    if (blocked) query = query.not('customer_id', 'in', blocked);
+    const { data, error } = await query.order('created_at', { ascending: false });
     if (error) throw error;
     // The full precedence keys off the *joined* customer's plan and an
     // expiry-aware boost, neither of which PostgREST can order by, so the
@@ -387,6 +401,7 @@ export const supabaseBackend: DataBackend = {
         equipment_details: patch.equipmentDetails,
         community_tags: patch.communityTags,
         safety_tier: patch.safetyTier,
+        safety_notes: patch.safetyNotes,
       })
       .eq('id', id)
       .select(JOB_SELECT)
@@ -576,10 +591,17 @@ export const supabaseBackend: DataBackend = {
   },
 
   async listRecommendedHelpers() {
-    const { data, error } = await sb()
+    const me = await uid();
+    const blocked = await blockedInList(me);
+    let query = sb()
       .from('profiles')
       .select('*, verification_status(*)')
       .contains('roles', ['helper'])
+      .neq('id', me);
+    // Filtered in the query, before the limit, so blocking someone doesn't
+    // just shrink the list below 10.
+    if (blocked) query = query.not('id', 'in', blocked);
+    const { data, error } = await query
       .order('reputation_score', { ascending: false })
       .limit(10);
     if (error) throw error;

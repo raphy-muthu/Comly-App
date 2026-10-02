@@ -16,7 +16,7 @@ import { useState } from 'react';
 import { Modal, Pressable, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, radius, shadows, spacing } from '@/theme';
-import { Button, Input, Text, useToast } from '@/components/ui';
+import { Button, IconButton, Input, Text, useToast } from '@/components/ui';
 import { parentConsent } from '@/services/parentConsent';
 import { ParentApprovalStatus } from '@/types/domain';
 
@@ -70,9 +70,22 @@ export function ParentConsentSheet({
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose}>
-        <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
+      {/* accessible={false} on both wrapping Pressables, same as JobOwnerMenu:
+          left at the default, VoiceOver merged the entire sheet — including
+          the email field and Send button — into one unselectable element, so
+          a blind teen could not request guardian approval at all. */}
+      <Pressable style={styles.backdrop} onPress={onClose} accessible={false}>
+        <Pressable
+          style={styles.sheet}
+          onPress={(e) => e.stopPropagation()}
+          accessible={false}
+        >
           <View style={styles.handle} />
+          {/* The backdrop is no longer exposed to accessibility, so
+              VoiceOver users need a real way out. */}
+          <View style={styles.closeRow}>
+            <IconButton icon="close" size={20} onPress={onClose} accessibilityLabel="Close" />
+          </View>
 
           {status === 'approved' ? (
             <>
@@ -89,7 +102,12 @@ export function ParentConsentSheet({
             </>
           ) : (
             <>
-              <Text variant="labelMd" color="textSecondary" style={styles.title}>
+              <Text
+                variant="labelMd"
+                color="textSecondary"
+                style={styles.title}
+                accessibilityRole="header"
+              >
                 PARENT OR GUARDIAN APPROVAL
               </Text>
               <Text variant="caption" color="textSecondary" style={styles.note}>
@@ -155,6 +173,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   title: { marginBottom: 4 },
+  closeRow: { alignItems: 'flex-end', marginTop: -spacing.xs },
   note: { marginBottom: spacing.md },
   field: { marginBottom: spacing.md },
   approvedRow: {

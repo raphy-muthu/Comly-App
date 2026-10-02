@@ -28,7 +28,7 @@ import {
   useJob,
   useJobApplications,
 } from '@/hooks';
-import { Application } from '@/types/domain';
+import { Application, jobAcceptsDecisions } from '@/types/domain';
 import { formatPayShort } from '@/lib/format';
 import { AppStackParamList } from '@/navigation/types';
 
@@ -44,10 +44,15 @@ export function JobApplicationsScreen() {
   const decline = useDeclineApplication();
   const toast = useToast();
 
-  const jobDecided =
-    job?.status === 'accepted' ||
-    job?.status === 'completed' ||
-    job?.status === 'cancelled';
+  // Hidden until the job loads, and whenever the server would refuse anyway
+  // (filled, paused, in progress…) — not just accepted/completed/cancelled.
+  const jobDecided = !job || !jobAcceptsDecisions(job.status);
+  const deciding = accept.isPending || decline.isPending;
+  const decidingId = accept.isPending
+    ? accept.variables?.applicationId
+    : decline.isPending
+      ? decline.variables?.applicationId
+      : undefined;
 
   const onAccept = (applicationId: string, name: string) =>
     accept.mutate(
@@ -108,7 +113,8 @@ export function JobApplicationsScreen() {
           <ApplicationCard
             application={app}
             jobDecided={jobDecided}
-            busy={accept.isPending || decline.isPending}
+            busy={decidingId === app.id}
+            locked={deciding}
             onAccept={() => onAccept(app.id, app.helper.name)}
             onDecline={() => onDecline(app.id)}
             onViewProfile={() =>
@@ -136,13 +142,17 @@ function ApplicationCard({
   application,
   jobDecided,
   busy,
+  locked,
   onAccept,
   onDecline,
   onViewProfile,
 }: {
   application: Application;
   jobDecided: boolean;
+  /** This row's accept/decline is in flight. */
   busy: boolean;
+  /** Some row's decision is in flight — lock every row against a second one. */
+  locked: boolean;
   onAccept: () => void;
   onDecline: () => void;
   onViewProfile: () => void;
@@ -201,7 +211,7 @@ function ApplicationCard({
             variant="secondary"
             size="md"
             onPress={onDecline}
-            disabled={busy}
+            disabled={locked}
             style={styles.actionBtn}
           />
           <Button
@@ -209,6 +219,7 @@ function ApplicationCard({
             size="md"
             onPress={onAccept}
             loading={busy}
+            disabled={locked}
             style={styles.actionBtn}
           />
         </View>

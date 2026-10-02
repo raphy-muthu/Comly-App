@@ -15,15 +15,16 @@
 // gateway's default JWT check would reject it before this code ever runs, and
 // the entire flow would be dead on arrival.
 //
-// Turning the gateway check off does NOT make the POST side public: it calls
-// isAuthenticatedUser() explicitly below, the same in-code check the AI
-// functions already rely on rather than trusting the gateway (see
-// _shared/auth.ts — the public anon key satisfies the gateway but is not a
-// signed-in user). The GET is *intentionally* unauthenticated; possession of
-// an unguessable, single-use, expiring token is the authorization.
+// Turning the gateway check off means nothing has verified a caller's JWT
+// signature, so the POST side must NOT just decode the token (a forged,
+// unsigned token would pass). It calls verifiedUserId(), which has Supabase
+// Auth validate the token. The GET is *intentionally* unauthenticated;
+// possession of an unguessable, single-use, expiring token is the
+// authorization.
 
 import { corsHeaders, json } from '../_shared/cors.ts';
-import { isAuthenticatedUser, userIdFromRequest } from '../_shared/auth.ts';
+import { verifiedUserId } from '../_shared/auth.ts';
+import { escapeHtml } from '../_shared/html.ts';
 
 const TOKEN_TTL_DAYS = 7;
 
@@ -120,10 +121,11 @@ Deno.serve(async (req) => {
   }
 
   // ── Minor requests approval ──────────────────────────────────────────────
-  if (!isAuthenticatedUser(req)) {
-    return json({ error: 'Sign in required' }, 401);
-  }
-  const userId = userIdFromRequest(req);
+  // This function runs with the gateway's JWT check OFF (see header), so the
+  // token's signature has not been verified by anything yet. Decoding it
+  // would let a forged token claim any minor's id and approve them with the
+  // forger's own email as "guardian". Supabase Auth must confirm it instead.
+  const userId = await verifiedUserId(req);
   if (!userId) return json({ error: 'Sign in required' }, 401);
 
   try {
@@ -198,6 +200,10 @@ Deno.serve(async (req) => {
 
     const link = `${Deno.env.get('SUPABASE_URL')}/functions/v1/parent-consent?token=${token}`;
     const helperName = typeof profile.name === 'string' && profile.name ? profile.name : 'A helper';
+    // The display name is user-controlled; unescaped it could inject a
+    // working link into a genuine Comly email to a parent. The subject line
+    // is plain text, so it keeps the raw name.
+    const safeName = escapeHtml(helperName);
 
     const mailRes = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -210,11 +216,11 @@ Deno.serve(async (req) => {
         to: [email],
         subject: `${helperName} is asking for your approval on Comly`,
         html:
-          `<p><strong>${helperName}</strong> has listed you as their parent or guardian on Comly, ` +
+          `<p><strong>${safeName}</strong> has listed you as their parent or guardian on Comly, ` +
           `a neighborhood app where teens do small local jobs like yard work and pet sitting.</p>` +
           `<p>Approving lets them accept jobs that specifically ask for guardian approval. ` +
           `Jobs marked 18+ stay unavailable to them either way.</p>` +
-          `<p><a href="${link}">Approve ${helperName}</a></p>` +
+          `<p><a href="${link}">Approve ${safeName}</a></p>` +
           `<p style="color:#666;font-size:13px">This link works once and expires in ${TOKEN_TTL_DAYS} days. ` +
           `If you weren't expecting this, you can ignore it — nothing changes unless you follow the link.</p>`,
       }),

@@ -36,6 +36,7 @@ import { PRIVACY_VERSION, TERMS_VERSION } from '@/legal/content';
 import { bracketFromDateOfBirth, MIN_SIGNUP_AGE, Role } from '@/types/domain';
 import { money, minimumWageFor } from '@/lib/wage';
 import { PublicStackParamList } from '@/navigation/types';
+import { OAUTH_SIGN_IN_ENABLED } from '@/config/features';
 
 type Props = NativeStackScreenProps<PublicStackParamList, 'SignUp'>;
 
@@ -75,6 +76,8 @@ export function SignUpScreen({ navigation }: Props) {
   // gates every account-creation path on this screen — including the OAuth
   // buttons, which never reach the form validation below.
   const [acceptedLegal, setAcceptedLegal] = useState(false);
+  const [openedTerms, setOpenedTerms] = useState(false);
+  const [openedPrivacy, setOpenedPrivacy] = useState(false);
 
   const signUp = useAuthStore((s) => s.signUp);
   const adoptSession = useAuthStore((s) => s.adoptSession);
@@ -100,9 +103,26 @@ export function SignUpScreen({ navigation }: Props) {
       ? `You must be at least ${MIN_SIGNUP_AGE} years old to use Comly.`
       : undefined;
 
+  // Same requirement as ReConsentGate: agreeing must follow opening both
+  // documents. A tap proves they were opened, not read — the accepted ceiling
+  // for this pattern — but the box was previously checkable having opened
+  // neither.
+  const reviewedBoth = openedTerms && openedPrivacy;
+
+  const toggleConsent = () => {
+    if (busy) return;
+    if (!reviewedBoth) {
+      toast.info('Please open the Terms of Service and Privacy Policy before agreeing.');
+      return;
+    }
+    setAcceptedLegal((v) => !v);
+  };
+
   const legalError =
     touched && !acceptedLegal
-      ? 'Please accept the Terms of Service and Privacy Policy to continue.'
+      ? reviewedBoth
+        ? 'Please accept the Terms of Service and Privacy Policy to continue.'
+        : 'Please open and accept the Terms of Service and Privacy Policy to continue.'
       : undefined;
 
   const complete =
@@ -327,19 +347,52 @@ export function SignUpScreen({ navigation }: Props) {
         containerStyle={styles.input}
       />
 
-      {/* Checkbox and sentence are separate press targets on purpose. A
-          Pressable wrapping a Text that itself contains pressable links makes
-          which handler wins ambiguous — tapping "Terms of Service" would also
-          toggle the box. Nested Text presses ARE well defined per text range,
-          so the sentence toggles and the two links navigate. */}
+      {/* The two documents are their own rows — the same pattern as
+          ReConsentGate — rather than links nested inside the agreement
+          sentence. Nested Text links can't be reached individually by
+          VoiceOver, and a row can show that it has been opened. */}
+      {(
+        [
+          { key: 'Terms', label: 'Read the Terms of Service', opened: openedTerms, mark: setOpenedTerms },
+          { key: 'Privacy', label: 'Read the Privacy Policy', opened: openedPrivacy, mark: setOpenedPrivacy },
+        ] as const
+      ).map((doc) => (
+        <Pressable
+          key={doc.key}
+          style={styles.docLink}
+          onPress={() => {
+            doc.mark(true);
+            navigation.navigate(doc.key);
+          }}
+          accessibilityRole="link"
+          accessibilityLabel={doc.opened ? `${doc.label}, opened` : doc.label}
+        >
+          <View style={styles.docLinkLabel}>
+            {doc.opened && (
+              <Ionicons
+                name="checkmark-circle"
+                size={16}
+                color={colors.tertiary}
+                style={styles.docCheck}
+              />
+            )}
+            <Text variant="labelMd" color="textLink">
+              {doc.label}
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={16} color={colors.primary} />
+        </Pressable>
+      ))}
+
       <View style={styles.consentRow}>
         <Pressable
-          onPress={() => setAcceptedLegal((v) => !v)}
+          onPress={toggleConsent}
           disabled={busy}
           hitSlop={10}
           accessibilityRole="checkbox"
-          accessibilityState={{ checked: acceptedLegal }}
+          accessibilityState={{ checked: acceptedLegal, disabled: !reviewedBoth }}
           accessibilityLabel="I agree to Comly's Terms of Service and Privacy Policy"
+          accessibilityHint={reviewedBoth ? undefined : 'Open both documents first.'}
         >
           <View
             style={StyleSheet.flatten([
@@ -357,27 +410,16 @@ export function SignUpScreen({ navigation }: Props) {
           variant="bodyMd"
           color="textSecondary"
           style={styles.consentText}
-          onPress={() => !busy && setAcceptedLegal((v) => !v)}
+          onPress={toggleConsent}
         >
-          I agree to Comly's{' '}
-          <Text
-            variant="bodyMd"
-            color="primary"
-            onPress={() => navigation.navigate('Terms')}
-          >
-            Terms of Service
-          </Text>{' '}
-          and{' '}
-          <Text
-            variant="bodyMd"
-            color="primary"
-            onPress={() => navigation.navigate('Privacy')}
-          >
-            Privacy Policy
-          </Text>
-          .
+          I agree to Comly's Terms of Service and Privacy Policy.
         </Text>
       </View>
+      {!reviewedBoth && !legalError && (
+        <Text variant="caption" color="textSecondary" style={styles.legalHint}>
+          Open both documents above before agreeing.
+        </Text>
+      )}
       {!!legalError && (
         <Text variant="caption" color="danger" style={styles.legalError}>
           {legalError}
@@ -392,32 +434,36 @@ export function SignUpScreen({ navigation }: Props) {
         style={styles.cta}
       />
 
-      <View style={styles.dividerRow}>
-        <View style={styles.line} />
-        <Text variant="caption" color="outline" style={styles.orText}>
-          OR
-        </Text>
-        <View style={styles.line} />
-      </View>
+      {OAUTH_SIGN_IN_ENABLED && (
+        <>
+          <View style={styles.dividerRow}>
+            <View style={styles.line} />
+            <Text variant="caption" color="outline" style={styles.orText}>
+              OR
+            </Text>
+            <View style={styles.line} />
+          </View>
 
-      <Button
-        title="Continue with Google"
-        variant="secondary"
-        icon="logo-google"
-        onPress={() => oauth('google')}
-        loading={oauthPending === 'google'}
-        disabled={busy}
-        style={styles.social}
-      />
-      <Button
-        title="Continue with Apple"
-        variant="secondary"
-        icon="logo-apple"
-        onPress={() => oauth('apple')}
-        loading={oauthPending === 'apple'}
-        disabled={busy}
-        style={styles.social}
-      />
+          <Button
+            title="Continue with Google"
+            variant="secondary"
+            icon="logo-google"
+            onPress={() => oauth('google')}
+            loading={oauthPending === 'google'}
+            disabled={busy}
+            style={styles.social}
+          />
+          <Button
+            title="Continue with Apple"
+            variant="secondary"
+            icon="logo-apple"
+            onPress={() => oauth('apple')}
+            loading={oauthPending === 'apple'}
+            disabled={busy}
+            style={styles.social}
+          />
+        </>
+      )}
 
       <Pressable
         onPress={() => navigation.navigate('Login')}
@@ -472,6 +518,15 @@ const styles = StyleSheet.create({
   checkboxError: { borderColor: colors.error },
   consentText: { flex: 1, lineHeight: 20 },
   legalError: { color: colors.error, marginTop: spacing.xs },
+  legalHint: { marginTop: spacing.xs },
+  docLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: spacing.sm,
+  },
+  docLinkLabel: { flexDirection: 'row', alignItems: 'center' },
+  docCheck: { marginRight: spacing.xs },
   input: { marginBottom: spacing.sm },
   wageCard: {
     marginBottom: spacing.sm,

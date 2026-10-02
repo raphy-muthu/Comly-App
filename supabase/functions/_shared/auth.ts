@@ -14,9 +14,13 @@
 // The signature is already verified upstream, so decoding the payload here is
 // sufficient — we are reading claims, not establishing trust in them.
 
-function decodeClaims(req: Request): Record<string, unknown> | null {
+function bearerToken(req: Request): string {
   const auth = req.headers.get('Authorization') ?? '';
-  const token = auth.replace(/^Bearer\s+/i, '').trim();
+  return auth.replace(/^Bearer\s+/i, '').trim();
+}
+
+function decodeClaims(req: Request): Record<string, unknown> | null {
+  const token = bearerToken(req);
   if (!token) return null;
 
   const parts = token.split('.');
@@ -48,4 +52,45 @@ export function userIdFromRequest(req: Request): string | null {
   const claims = decodeClaims(req);
   if (claims?.role !== 'authenticated') return null;
   return typeof claims?.sub === 'string' ? claims.sub : null;
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function envOrUndefined(key: string): string | undefined {
+  // Deno in the edge runtime; absent under Jest, where deps are injected.
+  const d = (globalThis as { Deno?: { env: { get(k: string): string | undefined } } }).Deno;
+  return d?.env.get(key);
+}
+
+/**
+ * The caller's user id, as confirmed by Supabase Auth itself.
+ *
+ * Everything above trusts that the gateway already verified the JWT's
+ * signature. That is false for a function deployed with --no-verify-jwt
+ * (parent-consent): there, an unsigned token claiming any `sub` sails through
+ * decodeClaims(). This asks the Auth server to validate the token instead —
+ * it rejects anything not signed with the project's key, expired, or revoked
+ * — and fails closed on any error. Use it wherever the gateway check is off.
+ */
+export async function verifiedUserId(
+  req: Request,
+  deps: { supabaseUrl?: string; anonKey?: string; fetchImpl?: typeof fetch } = {}
+): Promise<string | null> {
+  const token = bearerToken(req);
+  const supabaseUrl = deps.supabaseUrl ?? envOrUndefined('SUPABASE_URL');
+  const anonKey = deps.anonKey ?? envOrUndefined('SUPABASE_ANON_KEY');
+  if (!token || !supabaseUrl || !anonKey) return null;
+
+  const doFetch = deps.fetchImpl ?? fetch;
+  try {
+    const res = await doFetch(`${supabaseUrl}/auth/v1/user`, {
+      headers: { apikey: anonKey, Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return null;
+    const user = await res.json();
+    // The id is later spliced into PostgREST URLs; accept only a real UUID.
+    return typeof user?.id === 'string' && UUID.test(user.id) ? user.id : null;
+  } catch {
+    return null;
+  }
 }

@@ -13,7 +13,8 @@
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "Comly uses your photo library so you can choose a profile photo or upload photos related to a job listing.",
         "NSPhotoLibraryAddUsageDescription": "Comly may save images you create or upload, such as profile or job photos, to your photo library only when you request it.",
-        "NSCameraUsageDescription": "Comly uses your camera so you can take a profile photo or add photos related to a job listing."
+        "NSCameraUsageDescription": "Comly uses your camera so you can take a profile photo or add photos related to a job listing.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -49,7 +50,7 @@
         "@sentry/react-native/expo",
         {
           "organization": "comly",
-          "project": "react-native",
+          "project": "comly-app",
           "url": "https://sentry.io/"
         }
       ]

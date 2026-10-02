@@ -66,6 +66,7 @@ export type JobUpdateInput = Partial<
     | 'equipmentDetails'
     | 'communityTags'
     | 'safetyTier'
+    | 'safetyNotes'
   >
 >;
 

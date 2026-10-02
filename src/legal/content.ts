@@ -1,26 +1,27 @@
 /**
  * Comly legal documents — single source of truth.
  *
- * The Terms of Service began as a Termly-generated document but has since been
- * edited to match the product. Changes from the generated original:
- *   - Removed PURCHASES AND PAYMENT, SUBSCRIPTIONS, and the no-refund POLICY
- *     section. Comly processes no money, has no subscriptions, and does not
- *     accept cards; leaving those in meant users were agreeing to terms about
- *     a payment system that does not exist. Sections renumbered accordingly.
- *   - Added "Our role, and payment between users" under §1, which is what
- *     those deleted sections should have said in the first place.
- *   - Scoped the "non-commercial use" language in §2 and the
- *     "revenue-generating endeavor" prohibition in §5, which together banned
- *     the exact activity the app exists for (helpers being paid for work).
- *   - Dropped the self-contradicting opener in §6 ("The Services does not
- *     offer users to submit or post content" — it does).
+ * The Terms of Service began as a Termly-generated document. On 2026-10-02
+ * it was replaced wholesale by a marketplace-specific rewrite (drafted by the
+ * founders with AI assistance, then revised section by section with them):
+ * contracting party named as the two founders individually d/b/a Comly; the
+ * real safety-tier list; arbitration and class waiver limited to adults with a
+ * 30-day opt-out; a carve-out-bearing liability cap; an adults-only release
+ * and indemnity that never waive a minor's claims; App Store–only billing
+ * terms for future paid features; and Apple's required EULA terms.
  *
- * Two known gaps, both needing counsel rather than an engineer:
- *   1. No child-labor-law clause. Given the product puts minors into paid work,
- *      this is the most conspicuous omission. It would slot into §5 or as its
- *      own section after §1.
- *   2. No legal entity is named — the document identifies two individuals, so
- *      there is no corporate shield behind the liability and indemnity clauses.
+ * The 2026-09-20 counsel review covered the earlier casual-labor wording,
+ * which this rewrite replaces (now §3 and §6). That approval does not carry
+ * over — the 2026-10-02 text has not been reviewed by counsel.
+ *
+ * Known gaps remaining, needing counsel or the founders rather than an
+ * engineer:
+ *   - No legal entity: the founders contract personally, so nothing shields
+ *     them from the liability the release, cap, and indemnity do not reach.
+ *   - No mailing address: Apple's EULA terms expect a developer address;
+ *     only city and email are given.
+ *   - No DMCA designated agent registered with the Copyright Office, so the
+ *     §27 notice procedure does not by itself secure the safe harbor.
  *
  * Rendered natively by LegalDocumentScreen (mobile + Expo web) and exported to
  * standalone pages under web/legal/ by scripts/build-legal-html.mjs, so the
@@ -52,8 +53,8 @@ export interface LegalDocument {
  * and re-consent is driven by comparing these against `terms_version` /
  * `privacy_version` on the profile.
  */
-export const TERMS_VERSION = '2026-09-06';
-export const PRIVACY_VERSION = '2026-09-07';
+export const TERMS_VERSION = '2026-10-02';
+export const PRIVACY_VERSION = '2026-09-20';
 
 /**
  * The oldest version still considered acceptable without re-agreeing.
@@ -73,13 +74,24 @@ export const PRIVACY_VERSION = '2026-09-07';
  *                        no-funds clause added, commercial-use scope corrected.
  *   2026-09-06 privacy — the policy went from an explicit placeholder to a
  *                        real document.
+ *   2026-09-20 terms   — added the casual-labor and child-labor-law section
+ *                        (counsel-reviewed); this is new substantive
+ *                        obligations and protections, squarely the kind of
+ *                        change re-consent exists for.
+ *   2026-09-20 privacy — disclosed Sentry as a new crash-reporting recipient
+ *                        of technical data; a new third party receiving data
+ *                        is exactly the kind of change re-consent exists for.
+ *   2026-10-02 terms   — full rewrite: arbitration and class waiver, a
+ *                        release of claims, indemnity, a one-year claim
+ *                        deadline, and a new contracting party. Every one of
+ *                        those changes a user's rights.
  *
  * The 2026-09-07 privacy revision (documenting in-app account deletion) is
  * deliberately NOT a re-consent event: it grants a right rather than changing
  * what the user agreed to.
  */
-export const TERMS_RECONSENT_SINCE = '2026-09-06';
-export const PRIVACY_RECONSENT_SINCE = '2026-09-06';
+export const TERMS_RECONSENT_SINCE = '2026-10-02';
+export const PRIVACY_RECONSENT_SINCE = '2026-09-20';
 
 /**
  * Whether a stored consent version is still current enough to stand.
@@ -114,491 +126,695 @@ export const LEGAL_URLS = {
 
 export const TERMS_OF_SERVICE: LegalDocument = {
   title: 'Terms of Service',
-  lastUpdated: 'September 06, 2026',
+  lastUpdated: 'October 02, 2026',
   version: TERMS_VERSION,
   blocks: [
-    { type: 'h2', text: `AGREEMENT TO OUR LEGAL TERMS` },
+    { type: 'h2', text: `1. ABOUT THESE TERMS AND COMLY` },
     {
       type: 'p',
-      text: `We are Comly ("Company," "we," "us," or "our"), operated by co-founders Raphael Muthu and Marcel Afsar, and based in Philadelphia, Pennsylvania, United States.`,
+      text: `These Terms of Service ("Terms") govern your access to and use of Comly's mobile application and any related websites, software, features, and services that link to these Terms (collectively, the "Services").`,
     },
     {
       type: 'p',
-      text: `We operate the mobile application Comly (the "App"), as well as any other related products and services that refer or link to these legal terms (the "Legal Terms") (collectively, the "Services").`,
+      text: `The Services are provided by Raphael Muthu and Marcel Afsar, individually, doing business as "Comly" ("Comly," "we," "us," or "our"), based in Philadelphia, Pennsylvania, United States. Comly is not currently a separately incorporated or registered business entity. If Comly's operations are later transferred to a business entity, that entity may assume these Terms as described in the Miscellaneous section.`,
     },
     {
       type: 'p',
-      text: `Comly is a local neighborhood help marketplace that connects residents who need help with small tasks to trusted local helpers. Users can post service listings, apply for local jobs, review profiles, and use safety features like parent approval, ratings, reporting, and task safety labels.`,
+      text: `Comly is a neighborhood-services marketplace that connects residents who need help with small local tasks ("Customers") with nearby people who may be willing to perform those tasks ("Helpers"). The Services may allow users to create profiles, post job or task listings, apply to listings, accept or decline applications, review other users, report safety concerns, and receive safety or pay guidance.`,
     },
     {
       type: 'p',
-      text: `You can contact us by email at raphaelmuthu21@gmail.com or marceldonk777@gmail.com, or by mail at [MAILING ADDRESS TO BE PROVIDED], Philadelphia, Pennsylvania [ZIP CODE], United States.`,
+      text: `By creating an account, checking the box indicating acceptance, or otherwise using the Services, you agree to these Terms and to our Privacy Policy, available at https://comly.app/privacy. If you do not agree, do not use the Services.`,
     },
     {
       type: 'p',
-      text: `These Legal Terms constitute a legally binding agreement made between you, whether personally or on behalf of an entity ("you"), and Comly, concerning your access to and use of the Services. You agree that by accessing the Services, you have read, understood, and agreed to be bound by all of these Legal Terms. IF YOU DO NOT AGREE WITH ALL OF THESE LEGAL TERMS, THEN YOU ARE EXPRESSLY PROHIBITED FROM USING THE SERVICES AND YOU MUST DISCONTINUE USE IMMEDIATELY.`,
-    },
-    {
-      type: 'p',
-      text: `The Services are intended for users who are at least 13 years of age. All users who are minors in the jurisdiction in which they reside (generally under the age of 18) must have the permission of, and be directly supervised by, their parent or guardian to use the Services. If you are a minor, you must have your parent or guardian read and agree to these Legal Terms prior to you using the Services.`,
-    },
-    {
-      type: 'p',
-      text: `We recommend that you print a copy of these Legal Terms for your records.`,
+      text: `The Services are currently intended for users in the United States. If you access the Services from another location, you are responsible for determining whether your use is lawful there, and we may limit availability by location.`,
     },
 
-    { type: 'h2', text: `1. OUR SERVICES` },
+    { type: 'h2', text: `2. ELIGIBILITY AND MINOR USERS` },
     {
       type: 'p',
-      text: `The information provided when using the Services is not intended for distribution to or use by any person or entity in any jurisdiction or country where such distribution or use would be contrary to law or regulation or which would subject us to any registration requirement within such jurisdiction or country. Accordingly, those persons who choose to access the Services from other locations do so on their own initiative and are solely responsible for compliance with local laws, if and to the extent local laws are applicable.`,
+      text: `You must be at least 13 years old to use the Services. Users under 13 may not create an account or use Comly.`,
     },
     {
       type: 'p',
-      text: `The Services are not tailored to comply with industry-specific regulations (Health Insurance Portability and Accountability Act (HIPAA), Federal Information Security Management Act (FISMA), etc.), so if your interactions would be subjected to such laws, you may not use the Services. You may not use the Services in a way that would violate the Gramm-Leach-Bliley Act (GLBA).`,
-    },
-    { type: 'h3', text: `Our role, and payment between users` },
-    {
-      type: 'p',
-      text: `Comly is a venue that connects users with one another. We are not a party to any agreement reached between a customer and a helper, we do not supervise or direct the performance of any job, and we do not employ helpers.`,
+      text: `If you are under the age of majority where you live, generally under 18, you may use the Services only with the permission and supervision of a parent or legal guardian, and your parent or guardian must review and agree to these Terms on your behalf before you use the Services. By using the Services as a minor, you represent that your parent or guardian has done so. Where Comly requires parent or guardian approval for an account, task category, application, or other activity, you may not bypass that process, misrepresent your age, use another person's account, or provide false guardian information.`,
     },
     {
       type: 'p',
-      text: `We do not process, hold, collect, or transfer payment of any kind between users, and we take no commission or fee from any job. Any pay rate, range, or wage guideline shown in the Services is a non-binding suggestion offered for information only. The amount, method, and timing of payment are agreed and settled directly between the users involved.`,
+      text: `A parent or guardian who authorizes a minor's use of Comly is expected to review these Terms, supervise the minor's use of the Services, review task details and safety information, and help ensure that any task the minor accepts is lawful and appropriate.`,
     },
     {
       type: 'p',
-      text: `Because we are not a party to those arrangements, we are not responsible for non-payment, underpayment, the quality or completion of any job, or any other aspect of the agreement between users. Any such dispute must be resolved between the users themselves.`,
+      text: `Comly is designed for teens and adults, not children under 13. If we learn that an account belongs to a user under 13, we may suspend or delete the account and associated information as appropriate and as described in our Privacy Policy.`,
     },
 
-    { type: 'h2', text: `2. INTELLECTUAL PROPERTY RIGHTS` },
-    { type: 'h3', text: `Our intellectual property` },
+    { type: 'h2', text: `3. COMLY'S MARKETPLACE ROLE` },
     {
       type: 'p',
-      text: `We are the owner or the licensee of all intellectual property rights in our Services, including all source code, databases, functionality, software, website designs, audio, video, text, photographs, and graphics in the Services (collectively, the "Content"), as well as the trademarks, service marks, and logos contained therein (the "Marks").`,
-    },
-    {
-      type: 'p',
-      text: `Our Content and Marks are protected by copyright and trademark laws (and various other intellectual property rights and unfair competition laws) and treaties in the United States and around the world.`,
+      text: `Comly provides technology that helps users discover and connect with one another. Comly is not the employer of Helpers, does not employ Customers, and does not itself perform the tasks posted through the Services.`,
     },
     {
       type: 'p',
-      text: `The Content and Marks are provided in or through the Services "AS IS" for your personal, non-commercial use only.`,
-    },
-    { type: 'h3', text: `Your use of our Services` },
-    {
-      type: 'p',
-      text: `Subject to your compliance with these Legal Terms, including the "PROHIBITED ACTIVITIES" section below, we grant you a non-exclusive, non-transferable, revocable license to:`,
-    },
-    { type: 'li', text: `access the Services; and` },
-    {
-      type: 'li',
-      text: `download or print a copy of any portion of the Content to which you have properly gained access,`,
-    },
-    { type: 'p', text: `solely for your personal, non-commercial use.` },
-    {
-      type: 'p',
-      text: `For clarity, "non-commercial use" in this section refers to our Content and Marks — our software, designs, branding, and other materials. It does not restrict use of the Services for their intended purpose: posting jobs, applying for jobs, and being paid by another user for work you complete through the Services.`,
+      text: `When a Customer and a Helper agree on a task, the agreement regarding the task's scope, timing, payment, equipment, location, and performance is between those users. Comly is not a party to that user-to-user agreement unless we expressly state otherwise for a specific feature.`,
     },
     {
       type: 'p',
-      text: `Except as set out in this section or elsewhere in our Legal Terms, no part of the Services and no Content or Marks may be copied, reproduced, aggregated, republished, uploaded, posted, publicly displayed, encoded, translated, transmitted, distributed, sold, licensed, or otherwise exploited for any commercial purpose whatsoever, without our express prior written permission.`,
+      text: `Comly does not determine whether a relationship between two users legally constitutes employment, independent contracting, casual work, domestic service, or another legal relationship. That determination depends on the facts and applicable law. Nothing in these Terms is intended to waive or reduce rights that a user may have under labor, wage, consumer-protection, or other applicable laws.`,
     },
     {
       type: 'p',
-      text: `If you wish to make any use of the Services, Content, or Marks other than as set out in this section or elsewhere in our Legal Terms, please address your request to: raphaelmuthu21@gmail.com or marceldonk777@gmail.com. If we ever grant you the permission to post, reproduce, or publicly display any part of our Services or Content, you must identify us as the owners or licensors of the Services, Content, or Marks and ensure that any copyright or proprietary notice appears or is visible on posting, reproducing, or displaying our Content.`,
+      text: `Unless expressly stated in the Services, Comly does not perform government-ID verification, criminal background checks, professional-license verification, or in-person identity verification. Profile photos, ratings, badges, school-email indicators, parent-approval indicators, trust scores, safety labels, and other profile signals are limited platform features and are not guarantees of identity, character, qualifications, licensing, reliability, or safety.`,
     },
     {
       type: 'p',
-      text: `We reserve all rights not expressly granted to you in and to the Services, Content, and Marks.`,
-    },
-    {
-      type: 'p',
-      text: `Any breach of these Intellectual Property Rights will constitute a material breach of our Legal Terms and your right to use our Services will terminate immediately.`,
-    },
-    { type: 'h3', text: `Your submissions` },
-    {
-      type: 'p',
-      text: `Please review this section and the "PROHIBITED ACTIVITIES" section carefully prior to using our Services to understand the (a) rights you give us and (b) obligations you have when you post or upload any content through the Services.`,
-    },
-    {
-      type: 'p',
-      text: `Submissions: By directly sending us any question, comment, suggestion, idea, feedback, or other information about the Services ("Submissions"), you agree to assign to us all intellectual property rights in such Submission. You agree that we shall own this Submission and be entitled to its unrestricted use and dissemination for any lawful purpose, commercial or otherwise, without acknowledgment or compensation to you.`,
-    },
-    {
-      type: 'p',
-      text: `You are responsible for what you post or upload: By sending us Submissions through any part of the Services you:`,
-    },
-    {
-      type: 'li',
-      text: `confirm that you have read and agree with our "PROHIBITED ACTIVITIES" and will not post, send, publish, upload, or transmit through the Services any Submission that is illegal, harassing, hateful, harmful, defamatory, obscene, bullying, abusive, discriminatory, threatening to any person or group, sexually explicit, false, inaccurate, deceitful, or misleading;`,
-    },
-    {
-      type: 'li',
-      text: `to the extent permissible by applicable law, waive any and all moral rights to any such Submission;`,
-    },
-    {
-      type: 'li',
-      text: `warrant that any such Submission are original to you or that you have the necessary rights and licenses to submit such Submissions and that you have full authority to grant us the above-mentioned rights in relation to your Submissions; and`,
-    },
-    {
-      type: 'li',
-      text: `warrant and represent that your Submissions do not constitute confidential information.`,
-    },
-    {
-      type: 'p',
-      text: `You are solely responsible for your Submissions and you expressly agree to reimburse us for any and all losses that we may suffer because of your breach of (a) this section, (b) any third party’s intellectual property rights, or (c) applicable law.`,
+      text: `Users are responsible for evaluating one another, communicating clearly, exercising reasonable judgment, and taking appropriate precautions before meeting or performing a task.`,
     },
 
-    { type: 'h2', text: `3. USER REPRESENTATIONS` },
+    { type: 'h2', text: `4. ACCOUNTS, PROFILES, AND ACCOUNT SECURITY` },
     {
       type: 'p',
-      text: `By using the Services, you represent and warrant that: (1) all registration information you submit will be true, accurate, current, and complete; (2) you will maintain the accuracy of such information and promptly update such registration information as necessary; (3) you have the legal capacity and you agree to comply with these Legal Terms; (4) you are not under the age of 13; (5) you are not a minor in the jurisdiction in which you reside, or if a minor, you have received parental permission to use the Services; (6) you will not access the Services through automated or non-human means, whether through a bot, script or otherwise; (7) you will not use the Services for any illegal or unauthorized purpose; and (8) your use of the Services will not violate any applicable law or regulation.`,
+      text: `You may need an account to use some or all of the Services. You agree to provide accurate, current, and complete information and to keep it updated.`,
     },
     {
       type: 'p',
-      text: `If you provide any information that is untrue, inaccurate, not current, or incomplete, we have the right to suspend or terminate your account and refuse any and all current or future use of the Services (or any portion thereof).`,
+      text: `You are responsible for maintaining the confidentiality of your login credentials and for activity that occurs through your account. Notify us promptly if you believe your account has been accessed without authorization.`,
+    },
+    {
+      type: 'p',
+      text: `You may not sell, transfer, rent, share, or give your account or profile to another person. You may not impersonate another person, create deceptive accounts, or use false information to evade a suspension or safety restriction.`,
+    },
+    {
+      type: 'p',
+      text: `Public profiles may include information such as a profile photo, display name, role, approximate neighborhood or area, skills, ratings, reviews, completed-task history, badges, or trust indicators. Private contact information, exact addresses, parent contact information, full birth dates, and private moderation information are not displayed publicly except where the Services expressly provide a controlled sharing feature.`,
     },
 
-    { type: 'h2', text: `4. USER REGISTRATION` },
+    { type: 'h2', text: `5. JOB LISTINGS, APPLICATIONS, ACCEPTANCE, AND COMPLETION` },
     {
       type: 'p',
-      text: `You may be required to register to use the Services. You agree to keep your password confidential and will be responsible for all use of your account and password. We reserve the right to remove, reclaim, or change a username you select if we determine, in our sole discretion, that such username is inappropriate, obscene, or otherwise objectionable.`,
+      text: `Customers may post local task listings containing information such as a title, category, description, proposed pay, date or time, estimated duration, approximate location, equipment information, age or safety restrictions, and other relevant details.`,
+    },
+    {
+      type: 'p',
+      text: `Customers must describe tasks accurately and disclose material conditions that could affect a Helper's decision to apply or perform the task, including safety hazards, required equipment, animals, transportation expectations, physical demands, supervision requirements, or special skills or licenses.`,
+    },
+    {
+      type: 'p',
+      text: `Helpers are responsible for reviewing the listing and deciding whether they are able and legally permitted to perform the task. Applying to a listing does not guarantee selection.`,
+    },
+    {
+      type: 'p',
+      text: `A Customer may accept or decline applications through the Services. When an application is accepted, Comly may unlock additional contact or location information for the Customer and accepted Helper according to the app's safety and privacy controls.`,
+    },
+    {
+      type: 'p',
+      text: `Users should promptly communicate material changes, cancellations, delays, or inability to attend. No-shows, payment disputes, unsafe behavior, or other problems may be reported through Comly's reporting tools.`,
+    },
+    {
+      type: 'p',
+      text: `Where the Services include task-completion confirmation or reviews, users must use those features honestly and may not falsely claim that a task was completed, not completed, paid, unpaid, or performed by someone who was not involved.`,
     },
 
-    { type: 'h2', text: `5. PROHIBITED ACTIVITIES` },
+    { type: 'h2', text: `6. TEEN SAFETY, CHILD-LABOR RULES, AND TASK RESTRICTIONS` },
     {
       type: 'p',
-      text: `You may not access or use the Services for any purpose other than that for which we make the Services available. The Services may not be used in connection with any commercial endeavors except those that are specifically endorsed or approved by us.`,
+      text: `Safety features are central to Comly because some Helpers may be minors. Comly assigns task-safety categories, which currently are:`,
     },
-    { type: 'p', text: `As a user of the Services, you agree not to:` },
+    { type: 'li', text: `Teen Safe — generally appropriate for teen Helpers;` },
     {
       type: 'li',
-      text: `Systematically retrieve data or other content from the Services to create or compile, directly or indirectly, a collection, compilation, database, or directory without written permission from us.`,
-    },
-    {
-      type: 'li',
-      text: `Trick, defraud, or mislead us and other users, especially in any attempt to learn sensitive account information such as user passwords.`,
+      text: `Caution — may involve weather or light physical work, and Helpers should accept it only if they can complete it safely;`,
     },
     {
       type: 'li',
-      text: `Circumvent, disable, or otherwise interfere with security-related features of the Services, including features that prevent or restrict the use or copying of any Content or enforce limitations on the use of the Services and/or the Content contained therein.`,
+      text: `Adult Supervision — a minor may apply only after a parent or guardian has approved the minor through the in-app approval process;`,
+    },
+    { type: 'li', text: `16+ Only — Helpers under 16 may not apply, regardless of parent approval;` },
+    { type: 'li', text: `18+ Only — Helpers under 18 may not apply; and` },
+    { type: 'li', text: `Blocked — not permitted on Comly.` },
+    {
+      type: 'p',
+      text: `Comly may add, rename, or adjust these categories. They are screening and informational tools. They do not guarantee that a task is safe or lawful for a particular person. A task that is generally appropriate for one person may be inappropriate for another based on age, location, equipment, weather, health, skill, supervision, or applicable law.`,
     },
     {
-      type: 'li',
-      text: `Disparage, tarnish, or otherwise harm, in our opinion, us and/or the Services.`,
+      type: 'p',
+      text: `Users who post tasks are responsible for ensuring that the task they offer is lawful for the person who may perform it. Parents and guardians remain responsible for supervising a minor's use of Comly and evaluating whether a task is appropriate for that minor.`,
     },
     {
-      type: 'li',
-      text: `Use any information obtained from the Services in order to harass, abuse, or harm another person.`,
+      type: 'p',
+      text: `Minors may not apply to tasks that Comly restricts by age for their age group, tasks that require parent or guardian approval they have not obtained, or tasks marked Blocked. Users may not attempt to bypass age restrictions or safety controls.`,
     },
     {
-      type: 'li',
-      text: `Make improper use of our support services or submit false reports of abuse or misconduct.`,
+      type: 'p',
+      text: `Users must comply with applicable federal, state, and local youth-employment, child-labor, wage, hour, work-permit, licensing, and safety laws. Federal and state rules can differ, and the more protective rule may apply. Comly's safety labels, time guidance, pay guidance, or parent-approval features are not legal advice and do not replace those laws.`,
     },
     {
-      type: 'li',
-      text: `Use the Services in a manner inconsistent with any applicable laws or regulations.`,
-    },
-    { type: 'li', text: `Engage in unauthorized framing of or linking to the Services.` },
-    {
-      type: 'li',
-      text: `Upload or transmit (or attempt to upload or to transmit) viruses, Trojan horses, or other material, including excessive use of capital letters and spamming (continuous posting of repetitive text), that interferes with any party’s uninterrupted use and enjoyment of the Services or modifies, impairs, disrupts, alters, or interferes with the use, features, functions, operation, or maintenance of the Services.`,
-    },
-    {
-      type: 'li',
-      text: `Engage in any automated use of the system, such as using scripts to send comments or messages, or using any data mining, robots, or similar data gathering and extraction tools.`,
-    },
-    {
-      type: 'li',
-      text: `Delete the copyright or other proprietary rights notice from any Content.`,
-    },
-    {
-      type: 'li',
-      text: `Attempt to impersonate another user or person or use the username of another user.`,
-    },
-    {
-      type: 'li',
-      text: `Upload or transmit (or attempt to upload or to transmit) any material that acts as a passive or active information collection or transmission mechanism, including without limitation, clear graphics interchange formats ("gifs"), 1×1 pixels, web bugs, cookies, or other similar devices (sometimes referred to as "spyware" or "passive collection mechanisms" or "pcms").`,
-    },
-    {
-      type: 'li',
-      text: `Interfere with, disrupt, or create an undue burden on the Services or the networks or services connected to the Services.`,
-    },
-    {
-      type: 'li',
-      text: `Harass, annoy, intimidate, or threaten any of our employees or agents engaged in providing any portion of the Services to you.`,
-    },
-    {
-      type: 'li',
-      text: `Attempt to bypass any measures of the Services designed to prevent or restrict access to the Services, or any portion of the Services.`,
-    },
-    {
-      type: 'li',
-      text: `Copy or adapt the Services' software, including but not limited to Flash, PHP, HTML, JavaScript, or other code.`,
-    },
-    {
-      type: 'li',
-      text: `Except as permitted by applicable law, decipher, decompile, disassemble, or reverse engineer any of the software comprising or in any way making up a part of the Services.`,
-    },
-    {
-      type: 'li',
-      text: `Except as may be the result of standard search engine or Internet browser usage, use, launch, develop, or distribute any automated system, including without limitation, any spider, robot, cheat utility, scraper, or offline reader that accesses the Services, or use or launch any unauthorized script or other software.`,
-    },
-    {
-      type: 'li',
-      text: `Use a buying agent or purchasing agent to make purchases on the Services.`,
-    },
-    {
-      type: 'li',
-      text: `Make any unauthorized use of the Services, including collecting usernames and/or email addresses of users by electronic or other means for the purpose of sending unsolicited email, or creating user accounts by automated means or under false pretenses.`,
-    },
-    {
-      type: 'li',
-      text: `Use the Services as part of any effort to compete with us. This does not restrict posting jobs, applying for jobs, or being paid by another user for work completed through the Services, which is what the Services are for.`,
-    },
-    { type: 'li', text: `Sell or otherwise transfer your profile.` },
-    {
-      type: 'li',
-      text: `Users may not post, request, offer, or accept tasks that are illegal, unsafe, exploitative, discriminatory, or inappropriate for minors.`,
-    },
-    {
-      type: 'li',
-      text: `Users may not post or accept tasks involving weapons, alcohol, tobacco or vaping products, drugs, gambling, adult services, hazardous chemicals, dangerous heights, heavy machinery, electrical work, or other unsafe conditions.`,
-    },
-    {
-      type: 'li',
-      text: `Users may not bypass parent or guardian approval requirements, misrepresent their age, impersonate another person, or create fake profiles.`,
-    },
-    {
-      type: 'li',
-      text: `Users may not harass, threaten, discriminate against, scam, exploit, or pressure other users.`,
-    },
-    {
-      type: 'li',
-      text: `Users may not share private contact information, exact addresses, or arrange unsafe off-platform contact before a job is accepted through Comly.`,
-    },
-    {
-      type: 'li',
-      text: `Users may not refuse agreed payment, request unpaid work, or use Comly to exploit helpers.`,
+      type: 'p',
+      text: `Comly does not guarantee that every task posted, accepted, or completed through the Services complies with all applicable labor or safety laws. If a task requires a professional license, formal employment relationship, hazardous work, or other legal requirements, users are responsible for complying with those requirements.`,
     },
 
-    { type: 'h2', text: `6. USER GENERATED CONTRIBUTIONS` },
+    { type: 'h2', text: `7. PAYMENTS BETWEEN CUSTOMERS AND HELPERS; FAIR-PAY GUIDANCE` },
     {
       type: 'p',
-      text: `The Services provide you with the opportunity to create, submit, post, display, transmit, perform, publish, distribute, or broadcast content and materials to us or on the Services, including but not limited to text, writings, video, audio, photographs, graphics, comments, suggestions, or personal information or other material (collectively, "Contributions"). Contributions may be viewable by other users of the Services and through third-party websites. When you create or make available any Contributions, you thereby represent and warrant that:`,
+      text: `Comly may allow Customers to state proposed compensation and payment methods for a task. Comly does not receive, hold, escrow, transmit, or process payment for neighborhood tasks, and takes no commission or fee from them. Customers and Helpers arrange and complete task payment directly with one another.`,
+    },
+    {
+      type: 'p',
+      text: `Users are responsible for agreeing on the amount, timing, method, and conditions of payment before the task is performed. Customers may not intentionally refuse agreed payment for completed work, request unpaid work through deception, or use Comly to exploit Helpers.`,
+    },
+    {
+      type: 'p',
+      text: `Any pay estimate, minimum-wage notice, recommended rate, duration estimate, or similar guidance shown by Comly or an automated feature is informational only. It may be incomplete, outdated, or inapplicable to a particular legal relationship or location. Users remain responsible for complying with any wage, tax, reporting, or payment obligations that apply to them.`,
+    },
+    {
+      type: 'p',
+      text: `Because task payments occur outside Comly, Comly cannot reverse those payments, issue refunds for them, or guarantee collection. Users should use appropriate payment methods and should report suspected scams or payment abuse.`,
+    },
+
+    { type: 'h2', text: `8. PREMIUM FEATURES AND COMLY PURCHASES` },
+    {
+      type: 'p',
+      text: `Comly does not currently offer any paid features, subscriptions, or in-app purchases. If we introduce them, the terms in this section will apply to them, together with any additional terms shown at the time of purchase.`,
+    },
+    {
+      type: 'p',
+      text: `Paid features may include premium status, listing boosts, enhanced recommendations, premium badges, or application or profile visibility features. Premium status or boosts may affect how listings, profiles, or applications are ordered or displayed. Ranking may also consider safety eligibility, relevance, distance, ratings, completed tasks, recency, or other factors. Higher placement is not an endorsement or guarantee of quality, safety, selection, or results.`,
+    },
+    {
+      type: 'p',
+      text: `No paid feature will change a task's safety category, any age restriction, any parent-approval requirement, or whether a user is eligible to see or apply to a task.`,
+    },
+    {
+      type: 'p',
+      text: `Paid features will be sold only through the Apple App Store or Google Play (each an "App Distributor," as defined in the Mobile Application section). The price, billing period, included benefits, renewal terms, and other material terms will be displayed before purchase. Payment is charged to your App Distributor account when you confirm the purchase. An auto-renewing subscription renews at the end of each period unless you turn off auto-renewal at least 24 hours before the current period ends.`,
+    },
+    {
+      type: 'p',
+      text: `Billing, renewal, cancellation, and refunds are administered by the App Distributor under its own terms and policies. You must manage or cancel a subscription through the App Distributor's subscription-management tools. Unless otherwise required by law or stated at purchase, cancellation stops future renewals and does not refund the current billing period. Deleting your Comly account does not cancel a subscription.`,
+    },
+    {
+      type: 'p',
+      text: `Comly does not promise a free trial unless one is expressly offered with specific terms. Any trial, promotional offer, or discounted period is governed by the terms shown when the user enrolls.`,
+    },
+    {
+      type: 'p',
+      text: `Prices and plan features may change prospectively. If a change affects an active auto-renewing subscription, we will provide any notice required by applicable law or the App Distributor before the change takes effect.`,
+    },
+    {
+      type: 'p',
+      text: `Users are responsible for taxes arising from their own task income or payments. Taxes on purchases from Comly will be handled as required by applicable law and by the App Distributor.`,
+    },
+
+    { type: 'h2', text: `9. AI AND AUTOMATED FEATURES` },
+    {
+      type: 'p',
+      text: `Comly may use artificial intelligence, algorithms, rules-based systems, or other automated tools to assist with functions such as improving job descriptions, estimating duration, suggesting fair pay, classifying teen-task safety, recommending jobs or Helpers, calculating match or risk scores, suggesting application messages, moderating reports, or generating profile or resume summaries.`,
+    },
+    {
+      type: 'p',
+      text: `Automated outputs can be inaccurate, incomplete, outdated, biased, or unsuitable for a specific situation. They are suggestions and screening tools, not professional, legal, employment, medical, financial, or safety advice.`,
+    },
+    {
+      type: 'p',
+      text: `A safety classification does not guarantee that a task is safe. A pay suggestion does not guarantee compliance with wage laws. A match score does not guarantee that a user is trustworthy, qualified, available, or appropriate. A risk score does not by itself establish that a user violated these Terms.`,
+    },
+    {
+      type: 'p',
+      text: `Users must review automated outputs and exercise independent judgment. Comly may allow users to request review of certain automated classifications, and administrators may adjust or override automated results.`,
+    },
+    {
+      type: 'p',
+      text: `Some automated features use third-party technology providers. Relevant inputs may be processed by those providers as necessary to provide the feature, subject to our Privacy Policy and applicable provider terms.`,
+    },
+
+    { type: 'h2', text: `10. USER CONTENT AND LICENSE TO COMLY` },
+    {
+      type: 'p',
+      text: `"User Content" means content users submit, upload, post, display, or transmit through the Services, including profile information, profile photos, job listings, job photos, application messages, reviews, ratings, reports, support requests, and other materials.`,
+    },
+    {
+      type: 'p',
+      text: `You retain ownership of your User Content. You grant Comly a worldwide, non-exclusive, royalty-free, sublicensable license to host, store, reproduce, display, transmit, distribute, adapt for technical formatting, and otherwise use your User Content only as reasonably necessary to operate, secure, improve, moderate, and provide the Services and to display the content to users for the purposes for which it was submitted.`,
+    },
+    {
+      type: 'p',
+      text: `This license continues for as long as the User Content remains in the Services and for a reasonable period afterward in backups, logs, legal records, or moderation records where retention is reasonably necessary or legally required.`,
+    },
+    {
+      type: 'p',
+      text: `You represent that you have the rights and permissions necessary to submit your User Content and grant this license. You may not submit content that infringes intellectual-property, privacy, publicity, or other rights.`,
+    },
+    {
+      type: 'p',
+      text: `Feedback, ideas, suggestions, or product-improvement comments that you voluntarily send to Comly may be used by Comly without restriction or compensation, provided that this does not transfer ownership of unrelated User Content.`,
+    },
+
+    { type: 'h2', text: `11. REVIEWS, RATINGS, AND TRUST SIGNALS` },
+    {
+      type: 'p',
+      text: `Reviews and ratings must reflect genuine firsthand experience with the user or task being reviewed. You may not post fabricated reviews, retaliatory reviews, reviews for tasks you did not participate in, discriminatory content, threats, harassment, or knowingly false statements.`,
+    },
+    {
+      type: 'p',
+      text: `Comly may remove or restrict reviews that violate these Terms, appear fraudulent, disclose private information, or create a safety risk. We may use automated or human moderation to identify suspicious reviews.`,
+    },
+    {
+      type: 'p',
+      text: `Ratings, badges, trust scores, completion counts, response indicators, premium labels, and similar features are informational signals generated from limited platform data. They are not warranties, background checks, guarantees, or professional certifications.`,
+    },
+
+    { type: 'h2', text: `12. PROHIBITED CONDUCT` },
+    {
+      type: 'p',
+      text: `You may not use the Services to engage in conduct that is unlawful, fraudulent, abusive, exploitative, unsafe, or inconsistent with Comly's purpose. Without limiting the above, you may not:`,
     },
     {
       type: 'li',
-      text: `The creation, distribution, transmission, public display, or performance, and the accessing, downloading, or copying of your Contributions do not and will not infringe the proprietary rights, including but not limited to the copyright, patent, trademark, trade secret, or moral rights of any third party.`,
+      text: `post, request, offer, accept, or perform tasks that are illegal, deceptive, exploitative, discriminatory, or inappropriate for the user's age;`,
     },
     {
       type: 'li',
-      text: `You are the creator and owner of or have the necessary licenses, rights, consents, releases, and permissions to use and to authorize us, the Services, and other users of the Services to use your Contributions in any manner contemplated by the Services and these Legal Terms.`,
+      text: `post or accept tasks involving weapons, illegal drugs, tobacco or vaping products, alcohol where unlawful or age-inappropriate, gambling, adult or sexual services, hazardous chemicals, dangerous heights, electrical work requiring qualified professionals, heavy or power-driven machinery, or other prohibited or unreasonably dangerous activities;`,
     },
     {
       type: 'li',
-      text: `You have the written consent, release, and/or permission of each and every identifiable individual person in your Contributions to use the name or likeness of each and every such identifiable individual person to enable inclusion and use of your Contributions in any manner contemplated by the Services and these Legal Terms.`,
-    },
-    { type: 'li', text: `Your Contributions are not false, inaccurate, or misleading.` },
-    {
-      type: 'li',
-      text: `Your Contributions are not unsolicited or unauthorized advertising, promotional materials, pyramid schemes, chain letters, spam, mass mailings, or other forms of solicitation.`,
+      text: `evade parent or guardian approval, age restrictions, safety classifications, account restrictions, or moderation actions;`,
     },
     {
       type: 'li',
-      text: `Your Contributions are not obscene, lewd, lascivious, filthy, violent, harassing, libelous, slanderous, or otherwise objectionable (as determined by us).`,
+      text: `misrepresent your identity, age, qualifications, licensing, experience, task conditions, payment terms, or intentions;`,
     },
     {
       type: 'li',
-      text: `Your Contributions do not ridicule, mock, disparage, intimidate, or abuse anyone.`,
+      text: `harass, threaten, stalk, bully, discriminate against, exploit, coerce, scam, or pressure another user;`,
     },
     {
       type: 'li',
-      text: `Your Contributions are not used to harass or threaten (in the legal sense of those terms) any other person and to promote violence against a specific person or class of people.`,
-    },
-    { type: 'li', text: `Your Contributions do not violate any applicable law, regulation, or rule.` },
-    {
-      type: 'li',
-      text: `Your Contributions do not violate the privacy or publicity rights of any third party.`,
+      text: `publicly disclose another person's exact address, phone number, email address, private guardian information, or other sensitive information without authorization;`,
     },
     {
       type: 'li',
-      text: `Your Contributions do not violate any applicable law concerning child pornography, or otherwise intended to protect the health or well-being of minors.`,
+      text: `use Comly to solicit unsafe off-platform contact, especially with a minor, before the platform's acceptance and contact-unlock process permits it;`,
     },
     {
       type: 'li',
-      text: `Your Contributions do not include any offensive comments that are connected to race, national origin, gender, sexual preference, or physical handicap.`,
+      text: `refuse agreed payment in bad faith, deceive another user about compensation, or use the Services to obtain unpaid labor through misrepresentation;`,
     },
     {
       type: 'li',
-      text: `Your Contributions do not otherwise violate, or link to material that violates, any provision of these Legal Terms, or any applicable law or regulation.`,
+      text: `submit false reports, manipulate ratings, coordinate fake reviews, or abuse safety or support systems;`,
     },
     {
-      type: 'p',
-      text: `Any use of the Services in violation of the foregoing violates these Legal Terms and may result in, among other things, termination or suspension of your rights to use the Services.`,
+      type: 'li',
+      text: `upload malware, interfere with the Services, bypass technical restrictions, scrape or harvest data without authorization, use bots or automated accounts, reverse engineer the Services except where applicable law expressly permits it, or attempt unauthorized access;`,
+    },
+    {
+      type: 'li',
+      text: `collect user information for spam, unsolicited marketing, surveillance, or another purpose unrelated to a legitimate Comly interaction;`,
+    },
+    { type: 'li', text: `infringe intellectual-property, privacy, publicity, or other rights;` },
+    { type: 'li', text: `sell, transfer, or rent your account; or` },
+    {
+      type: 'li',
+      text: `use the Services for organized commercial staffing, reselling, or another business use that Comly has not expressly authorized.`,
     },
 
-    { type: 'h2', text: `7. CONTRIBUTION LICENSE` },
+    { type: 'h2', text: `13. LOCATION, CONTACT INFORMATION, AND IN-PERSON SAFETY` },
     {
       type: 'p',
-      text: `You and Services agree that we may access, store, process, and use any information and personal data that you provide and your choices (including settings).`,
+      text: `Comly may use approximate location information, such as the neighborhood you enter, to help users discover nearby tasks. Public job listings use an approximate neighborhood or area rather than a private residential address.`,
     },
     {
       type: 'p',
-      text: `By submitting suggestions or other feedback regarding the Services, you agree that we can use and share such feedback for any purpose without compensation to you.`,
+      text: `The Services may reveal more specific contact or location information after a Customer accepts a Helper, where necessary to coordinate the task and consistent with Comly's privacy and safety controls.`,
     },
     {
       type: 'p',
-      text: `We do not assert any ownership over your Contributions. You retain full ownership of all of your Contributions and any intellectual property rights or other proprietary rights associated with your Contributions. We are not liable for any statements or representations in your Contributions provided by you in any area on the Services. You are solely responsible for your Contributions to the Services and you expressly agree to exonerate us from any and all responsibility and to refrain from any legal action against us regarding your Contributions.`,
-    },
-
-    { type: 'h2', text: `8. GUIDELINES FOR REVIEWS` },
-    {
-      type: 'p',
-      text: `We may provide you areas on the Services to leave reviews or ratings. When posting a review, you must comply with the following criteria: (1) you should have firsthand experience with the person/entity being reviewed; (2) your reviews should not contain offensive profanity, or abusive, racist, offensive, or hateful language; (3) your reviews should not contain discriminatory references based on religion, race, gender, national origin, age, marital status, sexual orientation, or disability; (4) your reviews should not contain references to illegal activity; (5) you should not be affiliated with competitors if posting negative reviews; (6) you should not make any conclusions as to the legality of conduct; (7) you may not post any false or misleading statements; and (8) you may not organize a campaign encouraging others to post reviews, whether positive or negative.`,
+      text: `Do not share more personal information than reasonably necessary. Use caution before meeting another user, tell a trusted person where you are going when appropriate, and do not proceed with a task if circumstances materially differ from the listing or feel unsafe.`,
     },
     {
       type: 'p',
-      text: `We may accept, reject, or remove reviews in our sole discretion. We have absolutely no obligation to screen reviews or to delete reviews, even if anyone considers reviews objectionable or inaccurate. Reviews are not endorsed by us, and do not necessarily represent our opinions or the views of any of our affiliates or partners. We do not assume liability for any review or for any claims, liabilities, or losses resulting from any review. By posting a review, you hereby grant to us a perpetual, non-exclusive, worldwide, royalty-free, fully paid, assignable, and sublicensable right and license to reproduce, modify, translate, transmit by any means, display, perform, and/or distribute all content relating to review.`,
+      text: `Comly is not an emergency service. If there is an immediate threat to life or safety, contact appropriate emergency services.`,
     },
 
-    { type: 'h2', text: `9. MOBILE APPLICATION LICENSE` },
-    { type: 'h3', text: `Use License` },
+    { type: 'h2', text: `14. ASSUMPTION OF RISK AND RELEASE` },
     {
       type: 'p',
-      text: `If you access the Services via the App, then we grant you a revocable, non-exclusive, non-transferable, limited right to install and use the App on wireless electronic devices owned or controlled by you, and to access and use the App on such devices strictly in accordance with the terms and conditions of this mobile application license contained in these Legal Terms. You shall not: (1) except as permitted by applicable law, decompile, reverse engineer, disassemble, attempt to derive the source code of, or decrypt the App; (2) make any modification, adaptation, improvement, enhancement, translation, or derivative work from the App; (3) violate any applicable laws, rules, or regulations in connection with your access or use of the App; (4) remove, alter, or obscure any proprietary notice (including any notice of copyright or trademark) posted by us or the licensors of the App; (5) use the App for any revenue-generating endeavor, commercial enterprise, or other purpose for which it is not designed or intended; (6) make the App available over a network or other environment permitting access or use by multiple devices or users at the same time; (7) use the App for creating a product, service, or software that is, directly or indirectly, competitive with or in any way a substitute for the App; (8) use the App to send automated queries to any website or to send any unsolicited commercial email; or (9) use any proprietary information or any of our interfaces or our other intellectual property in the design, development, manufacture, licensing, or distribution of any applications, accessories, or devices for use with the App.`,
-    },
-    { type: 'h3', text: `Apple and Android Devices` },
-    {
-      type: 'p',
-      text: `The following terms apply when you use the App obtained from either the Apple Store or Google Play (each an "App Distributor") to access the Services: (1) the license granted to you for our App is limited to a non-transferable license to use the application on a device that utilizes the Apple iOS or Android operating systems, as applicable, and in accordance with the usage rules set forth in the applicable App Distributor’s terms of service; (2) we are responsible for providing any maintenance and support services with respect to the App as specified in the terms and conditions of this mobile application license contained in these Legal Terms or as otherwise required under applicable law, and you acknowledge that each App Distributor has no obligation whatsoever to furnish any maintenance and support services with respect to the App; (3) in the event of any failure of the App to conform to any applicable warranty, you may notify the applicable App Distributor, and the App Distributor, in accordance with its terms and policies, may refund the purchase price, if any, paid for the App, and to the maximum extent permitted by applicable law, the App Distributor will have no other warranty obligation whatsoever with respect to the App; (4) you represent and warrant that (i) you are not located in a country that is subject to a US government embargo, or that has been designated by the US government as a "terrorist supporting" country and (ii) you are not listed on any US government list of prohibited or restricted parties; (5) you must comply with applicable third-party terms of agreement when using the App, e.g., if you have a VoIP application, then you must not be in violation of their wireless data service agreement when using the App; and (6) you acknowledge and agree that the App Distributors are third-party beneficiaries of the terms and conditions in this mobile application license contained in these Legal Terms, and that each App Distributor will have the right (and will be deemed to have accepted the right) to enforce the terms and conditions in this mobile application license contained in these Legal Terms against you as a third-party beneficiary thereof.`,
-    },
-
-    { type: 'h2', text: `10. SERVICES MANAGEMENT` },
-    {
-      type: 'p',
-      text: `We reserve the right, but not the obligation, to: (1) monitor the Services for violations of these Legal Terms; (2) take appropriate legal action against anyone who, in our sole discretion, violates the law or these Legal Terms, including without limitation, reporting such user to law enforcement authorities; (3) in our sole discretion and without limitation, refuse, restrict access to, limit the availability of, or disable (to the extent technologically feasible) any of your Contributions or any portion thereof; (4) in our sole discretion and without limitation, notice, or liability, to remove from the Services or otherwise disable all files and content that are excessive in size or are in any way burdensome to our systems; and (5) otherwise manage the Services in a manner designed to protect our rights and property and to facilitate the proper functioning of the Services.`,
-    },
-
-    { type: 'h2', text: `11. TERM AND TERMINATION` },
-    {
-      type: 'p',
-      text: `These Legal Terms shall remain in full force and effect while you use the Services. WITHOUT LIMITING ANY OTHER PROVISION OF THESE LEGAL TERMS, WE RESERVE THE RIGHT TO, IN OUR SOLE DISCRETION AND WITHOUT NOTICE OR LIABILITY, DENY ACCESS TO AND USE OF THE SERVICES (INCLUDING BLOCKING CERTAIN IP ADDRESSES), TO ANY PERSON FOR ANY REASON OR FOR NO REASON, INCLUDING WITHOUT LIMITATION FOR BREACH OF ANY REPRESENTATION, WARRANTY, OR COVENANT CONTAINED IN THESE LEGAL TERMS OR OF ANY APPLICABLE LAW OR REGULATION. WE MAY TERMINATE YOUR USE OR PARTICIPATION IN THE SERVICES OR DELETE YOUR ACCOUNT AND ANY CONTENT OR INFORMATION THAT YOU POSTED AT ANY TIME, WITHOUT WARNING, IN OUR SOLE DISCRETION.`,
+      text: `Tasks arranged through Comly take place in person, away from Comly, between users whom Comly does not employ, supervise, or control. Tasks can involve physical activity, travel, tools, animals, weather, private property, and people you have not met before. To the fullest extent permitted by law, you acknowledge that you alone decide whether to post, accept, or perform a task, and you assume the risks of the tasks you choose to take part in.`,
     },
     {
       type: 'p',
-      text: `If we terminate or suspend your account for any reason, you are prohibited from registering and creating a new account under your name, a fake or borrowed name, or the name of any third party, even if you may be acting on behalf of the third party. In addition to terminating or suspending your account, we reserve the right to take appropriate legal action, including without limitation pursuing civil, criminal, and injunctive redress.`,
+      text: `Release. If you are an adult, to the fullest extent permitted by law, you release Comly and its operators, contractors, agents, and affiliates from claims, demands, losses, and damages of every kind, known and unknown, arising out of or relating to the conduct of other users, the performance or non-performance of any task, or any dispute between you and another user. This release does not apply to claims arising from Comly's own gross negligence, willful misconduct, or fraud, or to any claim that applicable law does not permit to be released.`,
+    },
+    {
+      type: 'p',
+      text: `If you are a California resident, you waive California Civil Code Section 1542, which says: "A general release does not extend to claims that the creditor or releasing party does not know or suspect to exist in his or her favor at the time of executing the release and that, if known by him or her, would have materially affected his or her settlement with the debtor or released party." If you are a resident of another jurisdiction with a similar rule, you waive it to the extent permitted.`,
+    },
+    {
+      type: 'p',
+      text: `Minors. Nothing in this section waives or releases any claim belonging to a minor, and a parent or guardian does not waive a minor's claims by accepting these Terms or approving a minor's use of the Services.`,
     },
 
-    { type: 'h2', text: `12. MODIFICATIONS AND INTERRUPTIONS` },
+    { type: 'h2', text: `15. REPORTING, BLOCKING, AND MODERATION` },
     {
       type: 'p',
-      text: `We reserve the right to change, modify, or remove the contents of the Services at any time or for any reason at our sole discretion without notice. However, we have no obligation to update any information on our Services. We also reserve the right to modify or discontinue all or part of the Services without notice at any time. We will not be liable to you or any third party for any modification, price change, suspension, or discontinuance of the Services.`,
+      text: `Users may report job listings, profiles, reviews, unsafe behavior, inappropriate contact, scams, payment issues, no-shows, harassment, underage-safety concerns, dangerous tasks, or other violations through available reporting tools.`,
     },
     {
       type: 'p',
-      text: `We cannot guarantee the Services will be available at all times. We may experience hardware, software, or other problems or need to perform maintenance related to the Services, resulting in interruptions, delays, or errors. We reserve the right to change, revise, update, suspend, discontinue, or otherwise modify the Services at any time or for any reason without notice to you. You agree that we have no liability whatsoever for any loss, damage, or inconvenience caused by your inability to access or use the Services during any downtime or discontinuance of the Services. Nothing in these Legal Terms will be construed to obligate us to maintain and support the Services or to supply any corrections, updates, or releases in connection therewith.`,
-    },
-
-    { type: 'h2', text: `13. GOVERNING LAW` },
-    {
-      type: 'p',
-      text: `These Legal Terms and your use of the Services are governed by and construed in accordance with the laws of the Commonwealth of Pennsylvania applicable to agreements made and to be entirely performed within the Commonwealth of Pennsylvania, without regard to its conflict of law principles.`,
-    },
-
-    { type: 'h2', text: `14. DISPUTE RESOLUTION` },
-    { type: 'h3', text: `Informal Negotiations` },
-    {
-      type: 'p',
-      text: `To expedite resolution and control the cost of any dispute, controversy, or claim related to these Legal Terms (each a "Dispute" and collectively, the "Disputes") brought by either you or us (individually, a "Party" and collectively, the "Parties"), the Parties agree to first attempt to negotiate any Dispute (except those Disputes expressly provided below) informally for at least thirty (30) days before initiating arbitration. Such informal negotiations commence upon written notice from one Party to the other Party.`,
-    },
-    { type: 'h3', text: `Binding Arbitration` },
-    {
-      type: 'p',
-      text: `If the Parties are unable to resolve a Dispute through informal negotiations, the Dispute (except those Disputes expressly excluded below) will be finally and exclusively resolved by binding arbitration. YOU UNDERSTAND THAT WITHOUT THIS PROVISION, YOU WOULD HAVE THE RIGHT TO SUE IN COURT AND HAVE A JURY TRIAL. The arbitration shall be commenced and conducted under the Commercial Arbitration Rules of the American Arbitration Association ("AAA") and, where appropriate, the AAA’s Supplementary Procedures for Consumer Related Disputes ("AAA Consumer Rules"), both of which are available at the American Arbitration Association (AAA) website. Your arbitration fees and your share of arbitrator compensation shall be governed by the AAA Consumer Rules and, where appropriate, limited by the AAA Consumer Rules. If such costs are determined by the arbitrator to be excessive, we will pay all arbitration fees and expenses. The arbitration may be conducted in person, through the submission of documents, by phone, or online. The arbitrator will make a decision in writing, but need not provide a statement of reasons unless requested by either Party. The arbitrator must follow applicable law, and any award may be challenged if the arbitrator fails to do so. Except where otherwise required by the applicable AAA rules or applicable law, the arbitration will take place in Philadelphia, Pennsylvania, United States. Except as otherwise provided herein, the Parties may litigate in court to compel arbitration, stay proceedings pending arbitration, or to confirm, modify, vacate, or enter judgment on the award entered by the arbitrator.`,
+      text: `Users may block other users. Blocking may limit future interactions but may not erase prior records that Comly reasonably retains for safety, legal, fraud-prevention, or moderation purposes.`,
     },
     {
       type: 'p',
-      text: `If for any reason, a Dispute proceeds in court rather than arbitration, the Dispute shall be commenced or prosecuted in the state and federal courts located in Philadelphia, Pennsylvania, United States, and the Parties hereby consent to, and waive all defenses of lack of personal jurisdiction, and forum non conveniens with respect to venue and jurisdiction in such state and federal courts. Application of the United Nations Convention on Contracts for the International Sale of Goods and the Uniform Computer Information Transaction Act (UCITA) are excluded from these Legal Terms.`,
+      text: `Comly may review reports using human moderators, automated systems, or both. We may warn users, restrict features, remove content, suspend or terminate accounts, adjust safety classifications, preserve relevant records, or take other proportionate action to protect users and the Services.`,
     },
     {
       type: 'p',
-      text: `If this provision is found to be illegal or unenforceable, then neither Party will elect to arbitrate any Dispute falling within that portion of this provision found to be illegal or unenforceable and such Dispute shall be decided by a court of competent jurisdiction within the courts listed for jurisdiction above, and the Parties agree to submit to the personal jurisdiction of that court.`,
-    },
-    { type: 'h3', text: `Restrictions` },
-    {
-      type: 'p',
-      text: `The Parties agree that any arbitration shall be limited to the Dispute between the Parties individually. To the full extent permitted by law, (a) no arbitration shall be joined with any other proceeding; (b) there is no right or authority for any Dispute to be arbitrated on a class-action basis or to utilize class action procedures; and (c) there is no right or authority for any Dispute to be brought in a purported representative capacity on behalf of the general public or any other persons.`,
-    },
-    { type: 'h3', text: `Exceptions to Informal Negotiations and Arbitration` },
-    {
-      type: 'p',
-      text: `The Parties agree that the following Disputes are not subject to the above provisions concerning informal negotiations binding arbitration: (a) any Disputes seeking to enforce or protect, or concerning the validity of, any of the intellectual property rights of a Party; (b) any Dispute related to, or arising from, allegations of theft, piracy, invasion of privacy, or unauthorized use; and (c) any claim for injunctive relief. If this provision is found to be illegal or unenforceable, then neither Party will elect to arbitrate any Dispute falling within that portion of this provision found to be illegal or unenforceable and such Dispute shall be decided by a court of competent jurisdiction within the courts listed for jurisdiction above, and the Parties agree to submit to the personal jurisdiction of that court.`,
+      text: `We do not promise to resolve every user-to-user dispute, and we do not automatically report every complaint to law enforcement. We may contact appropriate authorities when we reasonably believe it is necessary to address serious safety concerns, suspected criminal conduct, or legal obligations.`,
     },
 
-    { type: 'h2', text: `15. CORRECTIONS` },
+    { type: 'h2', text: `16. THIRD-PARTY SERVICES, INTEGRATIONS, AND LINKS` },
     {
       type: 'p',
-      text: `There may be information on the Services that contains typographical errors, inaccuracies, or omissions, including descriptions, pricing, availability, and various other information. We reserve the right to correct any errors, inaccuracies, or omissions and to change or update the information on the Services at any time, without prior notice.`,
+      text: `The Services rely on third-party products or services for functions such as authentication, hosting, databases, storage, maps, email delivery, app distribution, crash and error reporting, artificial intelligence, and notifications. Our Privacy Policy identifies the providers that process personal information.`,
+    },
+    {
+      type: 'p',
+      text: `Third-party services are governed by their own terms and privacy practices. Comly is not responsible for third-party services that we do not control, including their availability, accuracy, security, or changes.`,
+    },
+    {
+      type: 'p',
+      text: `The Services may contain links to third-party websites or services. A link does not mean Comly endorses or guarantees the third party.`,
     },
 
-    { type: 'h2', text: `16. DISCLAIMER` },
+    { type: 'h2', text: `17. COMLY INTELLECTUAL PROPERTY` },
     {
       type: 'p',
-      text: `THE SERVICES ARE PROVIDED ON AN AS-IS AND AS-AVAILABLE BASIS. YOU AGREE THAT YOUR USE OF THE SERVICES WILL BE AT YOUR SOLE RISK. TO THE FULLEST EXTENT PERMITTED BY LAW, WE DISCLAIM ALL WARRANTIES, EXPRESS OR IMPLIED, IN CONNECTION WITH THE SERVICES AND YOUR USE THEREOF, INCLUDING, WITHOUT LIMITATION, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT. WE MAKE NO WARRANTIES OR REPRESENTATIONS ABOUT THE ACCURACY OR COMPLETENESS OF THE SERVICES' CONTENT OR THE CONTENT OF ANY WEBSITES OR MOBILE APPLICATIONS LINKED TO THE SERVICES AND WE WILL ASSUME NO LIABILITY OR RESPONSIBILITY FOR ANY (1) ERRORS, MISTAKES, OR INACCURACIES OF CONTENT AND MATERIALS, (2) PERSONAL INJURY OR PROPERTY DAMAGE, OF ANY NATURE WHATSOEVER, RESULTING FROM YOUR ACCESS TO AND USE OF THE SERVICES, (3) ANY UNAUTHORIZED ACCESS TO OR USE OF OUR SECURE SERVERS AND/OR ANY AND ALL PERSONAL INFORMATION AND/OR FINANCIAL INFORMATION STORED THEREIN, (4) ANY INTERRUPTION OR CESSATION OF TRANSMISSION TO OR FROM THE SERVICES, (5) ANY BUGS, VIRUSES, TROJAN HORSES, OR THE LIKE WHICH MAY BE TRANSMITTED TO OR THROUGH THE SERVICES BY ANY THIRD PARTY, AND/OR (6) ANY ERRORS OR OMISSIONS IN ANY CONTENT AND MATERIALS OR FOR ANY LOSS OR DAMAGE OF ANY KIND INCURRED AS A RESULT OF THE USE OF ANY CONTENT POSTED, TRANSMITTED, OR OTHERWISE MADE AVAILABLE VIA THE SERVICES. WE DO NOT WARRANT, ENDORSE, GUARANTEE, OR ASSUME RESPONSIBILITY FOR ANY PRODUCT OR SERVICE ADVERTISED OR OFFERED BY A THIRD PARTY THROUGH THE SERVICES, ANY HYPERLINKED WEBSITE, OR ANY WEBSITE OR MOBILE APPLICATION FEATURED IN ANY BANNER OR OTHER ADVERTISING, AND WE WILL NOT BE A PARTY TO OR IN ANY WAY BE RESPONSIBLE FOR MONITORING ANY TRANSACTION BETWEEN YOU AND ANY THIRD-PARTY PROVIDERS OF PRODUCTS OR SERVICES. AS WITH THE PURCHASE OF A PRODUCT OR SERVICE THROUGH ANY MEDIUM OR IN ANY ENVIRONMENT, YOU SHOULD USE YOUR BEST JUDGMENT AND EXERCISE CAUTION WHERE APPROPRIATE.`,
+      text: `Except for User Content and third-party materials, Comly and its licensors own or license the software, source code, designs, interfaces, graphics, text, logos, trademarks, service marks, databases, features, and other content that make up the Services ("Comly Content").`,
+    },
+    {
+      type: 'p',
+      text: `Subject to these Terms, Comly grants you a limited, personal, non-exclusive, non-transferable, non-sublicensable, revocable license to access and use the Services for their intended purpose.`,
+    },
+    {
+      type: 'p',
+      text: `You may not copy, reproduce, sell, sublicense, publicly distribute, modify, create derivative works from, or commercially exploit Comly Content except with our prior written permission or as expressly permitted by applicable law. All rights not expressly granted are reserved.`,
     },
 
-    { type: 'h2', text: `17. LIMITATIONS OF LIABILITY` },
+    { type: 'h2', text: `18. MOBILE APPLICATION LICENSE AND APP DISTRIBUTORS` },
     {
       type: 'p',
-      text: `IN NO EVENT WILL WE OR OUR DIRECTORS, EMPLOYEES, OR AGENTS BE LIABLE TO YOU OR ANY THIRD PARTY FOR ANY DIRECT, INDIRECT, CONSEQUENTIAL, EXEMPLARY, INCIDENTAL, SPECIAL, OR PUNITIVE DAMAGES, INCLUDING LOST PROFIT, LOST REVENUE, LOSS OF DATA, OR OTHER DAMAGES ARISING FROM YOUR USE OF THE SERVICES, EVEN IF WE HAVE BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES. NOTWITHSTANDING ANYTHING TO THE CONTRARY CONTAINED HEREIN, OUR LIABILITY TO YOU FOR ANY CAUSE WHATSOEVER AND REGARDLESS OF THE FORM OF THE ACTION, WILL AT ALL TIMES BE LIMITED TO $100.00 USD.`,
+      text: `If you download the App, Comly grants you a limited, revocable, non-exclusive, non-transferable license to install and use the App on devices that you own or control, subject to these Terms and the applicable app-store rules.`,
     },
     {
       type: 'p',
-      text: `CERTAIN US STATE LAWS AND INTERNATIONAL LAWS DO NOT ALLOW LIMITATIONS ON IMPLIED WARRANTIES OR THE EXCLUSION OR LIMITATION OF CERTAIN DAMAGES. IF THESE LAWS APPLY TO YOU, SOME OR ALL OF THE ABOVE DISCLAIMERS OR LIMITATIONS MAY NOT APPLY TO YOU, AND YOU MAY HAVE ADDITIONAL RIGHTS.`,
+      text: `If the App is obtained through the Apple App Store or Google Play, the applicable store operator is an "App Distributor." The following terms apply to any App obtained from Apple's App Store, and apply to Google Play to the extent consistent with Google's terms:`,
+    },
+    {
+      type: 'li',
+      text: `Acknowledgement. These Terms are between you and Comly only, not the App Distributor. Comly, not the App Distributor, is solely responsible for the App and its content.`,
+    },
+    {
+      type: 'li',
+      text: `Scope of license. Your license to the App is limited to a non-transferable license to use it on devices that you own or control, as permitted by the App Distributor's usage rules, except that it may be accessed and used by other accounts associated with you through family sharing or volume purchasing where the App Distributor permits.`,
+    },
+    {
+      type: 'li',
+      text: `Maintenance and support. Comly is solely responsible for any maintenance and support of the App as specified in these Terms or required by applicable law. The App Distributor has no obligation to provide maintenance or support for the App.`,
+    },
+    {
+      type: 'li',
+      text: `Warranty. Comly is responsible for any product warranties, whether express or implied by law, to the extent not effectively disclaimed. If the App fails to conform to an applicable warranty, you may notify the App Distributor, and the App Distributor may refund the purchase price, if any, for the App. To the maximum extent permitted by law, the App Distributor has no other warranty obligation with respect to the App, and any other claims, losses, liabilities, damages, costs, or expenses attributable to a failure to conform to a warranty are Comly's responsibility to the extent not disclaimed or limited by these Terms.`,
+    },
+    {
+      type: 'li',
+      text: `Product claims. Comly, not the App Distributor, is responsible for addressing any claims by you or a third party relating to the App or your possession or use of it, including product-liability claims, claims that the App fails to conform to a legal or regulatory requirement, and claims arising under consumer-protection, privacy, or similar laws.`,
+    },
+    {
+      type: 'li',
+      text: `Intellectual-property claims. If a third party claims that the App or your possession and use of it infringes that third party's intellectual-property rights, Comly, not the App Distributor, is solely responsible for the investigation, defense, settlement, and discharge of that claim.`,
+    },
+    {
+      type: 'li',
+      text: `Legal compliance. You represent that you are not located in a country subject to a U.S. Government embargo or designated by the U.S. Government as a "terrorist supporting" country, and that you are not listed on any U.S. Government list of prohibited or restricted parties. You must comply with applicable export-control and sanctions laws when using or downloading the App.`,
+    },
+    {
+      type: 'li',
+      text: `Developer contact. Questions, complaints, or claims about the App may be directed to Comly using the information in the Contact section.`,
+    },
+    {
+      type: 'li',
+      text: `Third-party terms. You must comply with applicable third-party terms of agreement when using the App, such as your wireless data service agreement.`,
+    },
+    {
+      type: 'li',
+      text: `Third-party beneficiary. Apple and Apple's subsidiaries are third-party beneficiaries of these Terms as they relate to the App, and upon your acceptance of these Terms, Apple will have the right, and will be deemed to have accepted the right, to enforce these Terms against you as a third-party beneficiary.`,
     },
 
-    { type: 'h2', text: `18. INDEMNIFICATION` },
+    { type: 'h2', text: `19. SERVICE AVAILABILITY, BETA FEATURES, AND CHANGES` },
     {
       type: 'p',
-      text: `You agree to defend, indemnify, and hold us harmless, including our subsidiaries, affiliates, and all of our respective officers, agents, partners, and employees, from and against any loss, damage, liability, claim, or demand, including reasonable attorneys’ fees and expenses, made by any third party due to or arising out of: (1) use of the Services; (2) breach of these Legal Terms; (3) any breach of your representations and warranties set forth in these Legal Terms; (4) your violation of the rights of a third party, including but not limited to intellectual property rights; or (5) any overt harmful act toward any other user of the Services with whom you connected via the Services. Notwithstanding the foregoing, we reserve the right, at your expense, to assume the exclusive defense and control of any matter for which you are required to indemnify us, and you agree to cooperate, at your expense, with our defense of such claims. We will use reasonable efforts to notify you of any such claim, action, or proceeding which is subject to this indemnification upon becoming aware of it.`,
+      text: `The Services are under active development. Features may be added, removed, tested, limited, renamed, or changed. Some features may be labeled beta, preview, experimental, or otherwise unfinished.`,
+    },
+    {
+      type: 'p',
+      text: `Beta or experimental features may contain errors, produce unexpected results, change without notice, or be discontinued. Do not rely on them for emergency, legal, safety-critical, or other high-stakes decisions.`,
+    },
+    {
+      type: 'p',
+      text: `We do not guarantee that the Services will always be available, uninterrupted, secure, or error-free. Maintenance, outages, third-party failures, security events, device compatibility, or other circumstances may interrupt access.`,
+    },
+    {
+      type: 'p',
+      text: `We may modify or discontinue features, subject to applicable law and any commitments that apply to paid subscriptions.`,
     },
 
-    { type: 'h2', text: `19. USER DATA` },
+    { type: 'h2', text: `20. SUSPENSION, TERMINATION, AND ACCOUNT CLOSURE` },
     {
       type: 'p',
-      text: `We will maintain certain data that you transmit to the Services for the purpose of managing the performance of the Services, as well as data relating to your use of the Services. Although we perform regular routine backups of data, you are solely responsible for all data that you transmit or that relates to any activity you have undertaken using the Services. You agree that we shall have no liability to you for any loss or corruption of any such data, and you hereby waive any right of action against us arising from any such loss or corruption of such data.`,
+      text: `You may stop using Comly at any time. You may delete your account from your Profile in the App, or contact us for assistance.`,
+    },
+    {
+      type: 'p',
+      text: `We may restrict, suspend, or terminate an account or specific features when we reasonably believe a user has violated these Terms, created a safety risk, engaged in fraud or abuse, repeatedly failed to honor platform obligations, attempted to evade enforcement, or when suspension is reasonably necessary to comply with law or protect the Services or other users.`,
+    },
+    {
+      type: 'p',
+      text: `Where appropriate, we may preserve information associated with a suspended, terminated, or deleted account for safety, fraud-prevention, dispute-resolution, legal, or compliance purposes as described in our Privacy Policy.`,
+    },
+    {
+      type: 'p',
+      text: `Sections that by their nature should survive termination, including intellectual-property provisions, payment obligations, the assumption of risk and release, disclaimers, liability limitations, indemnification, dispute provisions, and miscellaneous terms, will survive.`,
     },
 
-    { type: 'h2', text: `20. ELECTRONIC COMMUNICATIONS, TRANSACTIONS, AND SIGNATURES` },
+    { type: 'h2', text: `21. PRIVACY, SECURITY, AND USER DATA` },
     {
       type: 'p',
-      text: `Visiting the Services, sending us emails, and completing online forms constitute electronic communications. You consent to receive electronic communications, and you agree that all agreements, notices, disclosures, and other communications we provide to you electronically, via email and on the Services, satisfy any legal requirement that such communication be in writing. YOU HEREBY AGREE TO THE USE OF ELECTRONIC SIGNATURES, CONTRACTS, ORDERS, AND OTHER RECORDS, AND TO ELECTRONIC DELIVERY OF NOTICES, POLICIES, AND RECORDS OF TRANSACTIONS INITIATED OR COMPLETED BY US OR VIA THE SERVICES. You hereby waive any rights or requirements under any statutes, regulations, rules, ordinances, or other laws in any jurisdiction which require an original signature or delivery or retention of non-electronic records, or to payments or the granting of credits by any means other than electronic means.`,
+      text: `Our Privacy Policy, available at https://comly.app/privacy, describes how Comly collects, uses, shares, stores, and protects personal information. The Privacy Policy is incorporated into these Terms by reference.`,
+    },
+    {
+      type: 'p',
+      text: `You acknowledge that no online service can guarantee absolute security. You are responsible for using reasonable security practices, including safeguarding your credentials and limiting unnecessary disclosure of personal information.`,
+    },
+    {
+      type: 'p',
+      text: `Comly may retain records reasonably necessary to operate the Services, enforce these Terms, investigate reports, prevent fraud, comply with law, and maintain safety. We do not guarantee permanent storage of User Content or account data, and users should keep copies of information they need for their own records.`,
     },
 
-    { type: 'h2', text: `21. CALIFORNIA USERS AND RESIDENTS` },
+    { type: 'h2', text: `22. DISCLAIMERS` },
     {
       type: 'p',
-      text: `If any complaint with us is not satisfactorily resolved, you can contact the Complaint Assistance Unit of the Division of Consumer Services of the California Department of Consumer Affairs in writing at 1625 North Market Blvd., Suite N 112, Sacramento, California 95834 or by telephone at (800) 952-5210 or (916) 445-1254.`,
+      text: `TO THE FULLEST EXTENT PERMITTED BY LAW, THE SERVICES ARE PROVIDED "AS IS" AND "AS AVAILABLE." COMLY DISCLAIMS WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE, NON-INFRINGEMENT, AND ANY OTHER WARRANTIES THAT MAY BE DISCLAIMED BY LAW.`,
+    },
+    {
+      type: 'p',
+      text: `COMLY DOES NOT GUARANTEE THE IDENTITY, BACKGROUND, QUALIFICATIONS, RELIABILITY, SAFETY, CONDUCT, WORK QUALITY, PAYMENT PERFORMANCE, OR LEGAL COMPLIANCE OF ANY USER OR TASK.`,
+    },
+    {
+      type: 'p',
+      text: `COMLY DOES NOT GUARANTEE THE ACCURACY OF SAFETY LABELS, PAY GUIDANCE, AI OUTPUTS, MATCH SCORES, RATINGS, REVIEWS, MAPS, LOCATION INFORMATION, OR OTHER INFORMATION PROVIDED THROUGH THE SERVICES.`,
+    },
+    {
+      type: 'p',
+      text: `YOU ARE RESPONSIBLE FOR EVALUATING TASKS AND USERS, FOLLOWING APPLICABLE LAW, AND DECIDING WHETHER AND HOW TO MEET OR TRANSACT WITH ANOTHER USER.`,
+    },
+    {
+      type: 'p',
+      text: `Nothing in these Terms excludes warranties or rights that cannot legally be excluded.`,
     },
 
-    { type: 'h2', text: `22. MISCELLANEOUS` },
+    { type: 'h2', text: `23. LIMITATION OF LIABILITY` },
     {
       type: 'p',
-      text: `These Legal Terms and any policies or operating rules posted by us on the Services or in respect to the Services constitute the entire agreement and understanding between you and us. Our failure to exercise or enforce any right or provision of these Legal Terms shall not operate as a waiver of such right or provision. These Legal Terms operate to the fullest extent permissible by law. We may assign any or all of our rights and obligations to others at any time. We shall not be responsible or liable for any loss, damage, delay, or failure to act caused by any cause beyond our reasonable control. If any provision or part of a provision of these Legal Terms is determined to be unlawful, void, or unenforceable, that provision or part of the provision is deemed severable from these Legal Terms and does not affect the validity and enforceability of any remaining provisions. There is no joint venture, partnership, employment or agency relationship created between you and us as a result of these Legal Terms or use of the Services. You agree that these Legal Terms will not be construed against us by virtue of having drafted them. You hereby waive any and all defenses you may have based on the electronic form of these Legal Terms and the lack of signing by the parties hereto to execute these Legal Terms.`,
+      text: `TO THE FULLEST EXTENT PERMITTED BY LAW, COMLY AND ITS OPERATORS, CONTRACTORS, AGENTS, AND AFFILIATES WILL NOT BE LIABLE FOR INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, PUNITIVE, OR CONSEQUENTIAL DAMAGES, OR FOR LOST PROFITS, LOST REVENUE, LOST DATA, LOSS OF GOODWILL, OR SIMILAR LOSSES ARISING FROM OR RELATED TO THE SERVICES.`,
+    },
+    {
+      type: 'p',
+      text: `TO THE FULLEST EXTENT PERMITTED BY LAW, THE TOTAL AGGREGATE LIABILITY OF COMLY AND THE FOREGOING PERSONS FOR ALL CLAIMS ARISING OUT OF OR RELATING TO THE SERVICES OR THESE TERMS WILL NOT EXCEED THE GREATER OF (A) ONE HUNDRED U.S. DOLLARS ($100) OR (B) THE AMOUNTS YOU PAID TO COMLY FOR THE SERVICES IN THE TWELVE (12) MONTHS BEFORE THE EVENT GIVING RISE TO THE CLAIM.`,
+    },
+    {
+      type: 'p',
+      text: `Nothing in these Terms limits or excludes liability for Comly's gross negligence, willful misconduct, or fraud, or any other liability that applicable law does not allow to be limited or excluded. Some jurisdictions provide consumer rights that cannot be waived, and those rights remain in effect.`,
     },
 
-    { type: 'h2', text: `23. CONTACT US` },
+    { type: 'h2', text: `24. INDEMNIFICATION` },
     {
       type: 'p',
-      text: `In order to resolve a complaint regarding the Services or to receive further information regarding use of the Services, please contact us at:`,
+      text: `If you are an adult, to the fullest extent permitted by law, you agree to defend, indemnify, and hold harmless Comly and its operators, contractors, agents, and affiliates from third-party claims, liabilities, damages, losses, and reasonable costs, including reasonable attorneys' fees, arising from: (a) your User Content; (b) your material breach of these Terms; (c) your violation of applicable law or another person's rights; or (d) your fraudulent, reckless, intentionally harmful, or unlawful conduct in connection with a task or another user.`,
     },
-    { type: 'p', text: `Comly` },
-    { type: 'p', text: `Email: raphaelmuthu21@gmail.com or marceldonk777@gmail.com` },
     {
       type: 'p',
-      text: `Mail: [MAILING ADDRESS TO BE PROVIDED], Philadelphia, Pennsylvania [ZIP CODE], United States`,
+      text: `A parent or guardian who accepts these Terms on behalf of a minor, or approves a minor's use of the Services, agrees to the same obligation for the parent's or guardian's own conduct. Minors are not required to indemnify Comly. This section does not require indemnification to the extent prohibited by applicable law.`,
     },
+
+    { type: 'h2', text: `25. DISPUTE RESOLUTION AND ARBITRATION` },
+    {
+      type: 'p',
+      text: `Please read this section carefully because it affects legal rights.`,
+    },
+    {
+      type: 'p',
+      text: `Informal resolution. Before starting arbitration or a court action, either party must give the other written notice of the dispute and allow at least thirty (30) days for good-faith informal negotiations. Notices to Comly must be sent to the email address in the Contact section. This requirement does not prevent either party from seeking urgent injunctive relief where legally permitted.`,
+    },
+    {
+      type: 'p',
+      text: `Who this section covers. The arbitration agreement and class-action waiver in this section apply to users who are adults. They do not apply to any claim brought by or on behalf of a person who was a minor when the claim arose; such claims may be brought in court as described below.`,
+    },
+    {
+      type: 'p',
+      text: `Binding arbitration. Except for the exceptions below, any dispute, claim, or controversy arising out of or relating to these Terms or the Services that cannot be resolved informally will be resolved by binding individual arbitration administered by the American Arbitration Association ("AAA") under the AAA Consumer Arbitration Rules then in effect, unless applicable law requires a different procedure.`,
+    },
+    {
+      type: 'p',
+      text: `Arbitration fees will be allocated under the applicable AAA consumer rules. If an arbitrator determines that the costs imposed on a consumer would be excessive in light of the circumstances, Comly will pay the additional arbitration fees to the extent required by the arbitrator, the AAA rules, or applicable law.`,
+    },
+    {
+      type: 'p',
+      text: `The arbitration may occur remotely, by documents, by telephone or video conference, or in person as permitted by the applicable rules. Unless applicable law or the AAA rules require otherwise, any in-person arbitration will take place in Pennsylvania.`,
+    },
+    {
+      type: 'p',
+      text: `30-day right to opt out. You may opt out of this arbitration agreement by emailing the address in the Contact section within thirty (30) days after you first accept these Terms, with the subject line "Arbitration Opt-Out" and your name and the email address associated with your account. Opting out does not affect any other part of these Terms. If you opt out, disputes will be resolved in court as described below.`,
+    },
+    {
+      type: 'p',
+      text: `No class proceedings. TO THE FULLEST EXTENT PERMITTED BY LAW, ARBITRATION WILL TAKE PLACE ONLY ON AN INDIVIDUAL BASIS. NEITHER PARTY MAY BRING OR PARTICIPATE IN A CLASS, COLLECTIVE, CONSOLIDATED, OR REPRESENTATIVE ARBITRATION OR ACTION. If this class-action waiver is found unenforceable as to a particular claim, that claim must be severed and brought in court, and will not proceed in arbitration.`,
+    },
+    {
+      type: 'p',
+      text: `Exceptions. Either party may bring an eligible claim in small-claims court. Either party may seek injunctive or equitable relief for actual or threatened misuse of intellectual property, unauthorized access, privacy violations, or other conduct for which immediate court relief is legally available. Claims that applicable law does not permit to be arbitrated are also excluded.`,
+    },
+    {
+      type: 'p',
+      text: `Court proceedings. If a dispute is not subject to arbitration, including because the user opted out or the claim belongs to a minor, or if this arbitration provision is held unenforceable as to a particular dispute, the dispute will be brought in the state or federal courts located in Pennsylvania, and the parties consent to the personal jurisdiction of those courts, subject to applicable law.`,
+    },
+    {
+      type: 'p',
+      text: `Jury-trial waiver. To the extent a dispute is required to be arbitrated, the parties understand that arbitration replaces the right to have that dispute decided by a judge or jury in court.`,
+    },
+    {
+      type: 'p',
+      text: `Time limit for claims. To the extent permitted by law, any claim arising out of or relating to these Terms or the Services must be brought within one (1) year after the claim arises, or it is permanently barred. This time limit does not apply to claims by or on behalf of a minor, and does not shorten any limitation period that applicable law does not allow to be shortened.`,
+    },
+
+    { type: 'h2', text: `26. GOVERNING LAW` },
+    {
+      type: 'p',
+      text: `These Terms and your use of the Services are governed by the laws of the Commonwealth of Pennsylvania, without regard to conflict-of-law rules, except to the extent federal law, including the Federal Arbitration Act, or another law that cannot be waived applies.`,
+    },
+    {
+      type: 'p',
+      text: `Nothing in these Terms deprives a consumer of mandatory protections provided by the law that applies to that consumer.`,
+    },
+
+    { type: 'h2', text: `27. COPYRIGHT AND INTELLECTUAL-PROPERTY COMPLAINTS` },
+    {
+      type: 'p',
+      text: `If you believe content on Comly infringes your copyright, send a written notice to the email address in the Contact section that includes:`,
+    },
+    {
+      type: 'li',
+      text: `a physical or electronic signature of the owner, or of a person authorized to act on the owner's behalf;`,
+    },
+    { type: 'li', text: `identification of the copyrighted work you claim is infringed;` },
+    {
+      type: 'li',
+      text: `identification of the material you claim is infringing and information reasonably sufficient for us to locate it in the Services;`,
+    },
+    { type: 'li', text: `your name, address, telephone number, and email address;` },
+    {
+      type: 'li',
+      text: `a statement that you have a good-faith belief that the use is not authorized by the copyright owner, its agent, or the law; and`,
+    },
+    {
+      type: 'li',
+      text: `a statement that the information in the notice is accurate and, under penalty of perjury, that you are the owner or authorized to act on the owner's behalf.`,
+    },
+    {
+      type: 'p',
+      text: `Counter-notice. If your content was removed and you believe it was removed by mistake or misidentification, you may send a counter-notice to the same address including your physical or electronic signature; identification of the removed material and where it appeared; a statement under penalty of perjury that you have a good-faith belief the material was removed by mistake or misidentification; and your name, address, telephone number, and consent to the jurisdiction of the federal district court for your address (or, if outside the United States, any judicial district in which Comly may be found) and to accept service from the person who provided the original notice.`,
+    },
+    {
+      type: 'p',
+      text: `We may remove or restrict disputed material while reviewing a notice, and may terminate the accounts of users who repeatedly infringe. You may also report other intellectual-property concerns, such as trademark misuse, to the same address. Do not knowingly submit false notices or counter-notices; doing so may create liability.`,
+    },
+
+    { type: 'h2', text: `28. ELECTRONIC COMMUNICATIONS AND CHANGES TO THESE TERMS` },
+    {
+      type: 'p',
+      text: `You agree that notices, disclosures, agreements, and other communications related to the Services may be provided electronically, including in the App, on a website, or by email, to the extent permitted by law.`,
+    },
+    {
+      type: 'p',
+      text: `We may update these Terms to reflect changes in the Services, law, safety practices, business operations, or other legitimate reasons. When changes are material, we will provide reasonable notice through the Services, by email, or by another appropriate method before the changes take effect, and we may ask you to review and accept the updated Terms before you continue using the Services.`,
+    },
+    {
+      type: 'p',
+      text: `The date at the top of these Terms identifies the current version. Continued use of the Services after revised Terms take effect constitutes acceptance to the extent permitted by law. If you do not agree to revised Terms, you must stop using the Services.`,
+    },
+
+    { type: 'h2', text: `29. MISCELLANEOUS` },
+    {
+      type: 'p',
+      text: `Entire agreement. These Terms, the Privacy Policy, and any additional terms presented for a specific feature constitute the agreement between you and Comly concerning the Services.`,
+    },
+    {
+      type: 'p',
+      text: `Order of terms. If specific feature terms conflict with these Terms, the specific feature terms control for that feature to the extent of the conflict.`,
+    },
+    {
+      type: 'p',
+      text: `Assignment. You may not assign or transfer your rights or obligations under these Terms without our consent. Comly may assign these Terms in connection with a merger, acquisition, financing, reorganization, sale of assets, formation of a successor legal entity, or similar transaction, subject to applicable law.`,
+    },
+    {
+      type: 'p',
+      text: `Severability. If any provision is found invalid or unenforceable, it will be enforced to the maximum extent permitted and the remaining provisions will remain in effect.`,
+    },
+    {
+      type: 'p',
+      text: `Waiver. A failure to enforce a provision is not a waiver of the right to enforce it later.`,
+    },
+    {
+      type: 'p',
+      text: `No agency with Comly. Except as expressly stated, these Terms do not create a partnership, joint venture, franchise, agency, fiduciary, or employment relationship between you and Comly.`,
+    },
+    {
+      type: 'p',
+      text: `Force majeure. Comly is not responsible for delay or failure caused by events beyond its reasonable control, subject to any non-waivable rights under applicable law.`,
+    },
+    {
+      type: 'p',
+      text: `Headings. Section headings are for convenience and do not limit the meaning of the Terms. Words such as "including" mean "including without limitation."`,
+    },
+
+    { type: 'h2', text: `30. CONTACT US` },
+    {
+      type: 'p',
+      text: `For questions, complaints, safety concerns, arbitration opt-outs, copyright notices, legal notices, or requests concerning these Terms, contact:`,
+    },
+    { type: 'p', text: `Comly (Raphael Muthu and Marcel Afsar)` },
+    { type: 'p', text: `Philadelphia, Pennsylvania, United States` },
+    { type: 'p', text: `Email: comly.app@gmail.com` },
   ],
 };
 
@@ -608,8 +824,9 @@ export const TERMS_OF_SERVICE: LegalDocument = {
  * data (the `profiles_private` fields, the AI/Resend/Supabase sub-processors,
  * the guardian-consent mechanism) were written by reading the schema and
  * service code, not assumed. The [MAILING ADDRESS TO BE PROVIDED] / [ZIP CODE]
- * placeholders match the ones in TERMS_OF_SERVICE and should be filled with the
- * same values at the same time.
+ * placeholders are still open; the 2026-10-02 Terms dropped theirs in favor of
+ * city plus comly.app@gmail.com, so the two documents now list different
+ * contact details until this one is brought in line.
  *
  * Section 10 describes the real in-app deletion flow (migration 0022 and the
  * delete-account function), including the two record types that deliberately
@@ -622,7 +839,7 @@ export const TERMS_OF_SERVICE: LegalDocument = {
  */
 export const PRIVACY_POLICY: LegalDocument = {
   title: 'Privacy Policy',
-  lastUpdated: 'September 07, 2026',
+  lastUpdated: 'September 20, 2026',
   version: PRIVACY_VERSION,
   blocks: [
     { type: 'h2', text: `AGREEMENT TO THIS PRIVACY POLICY` },
@@ -687,7 +904,7 @@ export const PRIVACY_POLICY: LegalDocument = {
     { type: 'h3', text: `Information collected automatically` },
     {
       type: 'p',
-      text: `We do not currently use any third-party analytics, advertising, or crash-reporting service in the Services. Our infrastructure providers, described below, automatically log standard technical information needed to operate the Services (such as request timestamps and error logs), the way any server does.`,
+      text: `We use Sentry, a crash-reporting service, to learn when the app encounters an error so we can fix it — this automatically collects technical information such as device type, operating system version, app version, and the error itself, but is not used to track your activity across the Services. We do not use any third-party analytics or advertising service. Our infrastructure providers, described below, automatically log standard technical information needed to operate the Services (such as request timestamps and error logs), the way any server does.`,
     },
 
     { type: 'h2', text: `2. HOW DO WE PROCESS YOUR INFORMATION?` },
@@ -748,6 +965,10 @@ export const PRIVACY_POLICY: LegalDocument = {
     {
       type: 'li',
       text: `With Resend, our email delivery provider, solely to send a one-time guardian-approval email — only the parent or guardian's email address and the helper's name are shared with them for this purpose.`,
+    },
+    {
+      type: 'li',
+      text: `With Sentry, our crash-reporting provider, which receives technical information about an error when the app encounters one (device type, operating system version, app version, and the error itself) so we can diagnose and fix it.`,
     },
     {
       type: 'li',

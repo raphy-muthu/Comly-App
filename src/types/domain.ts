@@ -219,6 +219,21 @@ export const SAFETY_TIERS: Record<
   },
 };
 
+/** Least to most restrictive — the same order as the SafetyTier union. */
+export const TIER_RANK: Record<SafetyTier, number> = {
+  teen_safe: 0,
+  caution: 1,
+  adult_supervision: 2,
+  sixteen_plus_only: 3,
+  eighteen_plus_only: 4,
+  blocked: 5,
+};
+
+/** Whichever of two tiers is more restrictive. Mirrors safety_tier_rank() in SQL. */
+export function stricterTier(a: SafetyTier, b: SafetyTier): SafetyTier {
+  return TIER_RANK[a] >= TIER_RANK[b] ? a : b;
+}
+
 /** Whether a helper may apply to a job of the given tier. */
 export function eligibilityFor(
   tier: SafetyTier,
@@ -313,6 +328,11 @@ export const ACTIVE_JOB_STATUSES: JobStatus[] = [
   'pending_confirmation',
   'paused',
 ];
+
+/** Whether an owner can still accept or decline applicants. Matches accept_application(). */
+export function jobAcceptsDecisions(status: JobStatus): boolean {
+  return status === 'open' || status === 'reviewing';
+}
 
 // ── Family contact (Senior Help Mode, private) ───────────────────────────────
 export interface FamilyContact {

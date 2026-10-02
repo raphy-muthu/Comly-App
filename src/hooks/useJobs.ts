@@ -85,9 +85,15 @@ export function useSetJobStatus() {
 }
 
 export function useDeleteJob() {
+  const qc = useQueryClient();
   const invalidate = useJobInvalidation();
   return useMutation({
     mutationFn: (id: string) => backend.deleteJob(id),
-    onSuccess: invalidate,
+    onSuccess: (_result, id) => {
+      invalidate();
+      // The lists refetch, but the deleted job's own detail cache would keep
+      // serving it (staleTime) to anything that navigates back to it.
+      qc.removeQueries({ queryKey: queryKeys.job(id) });
+    },
   });
 }

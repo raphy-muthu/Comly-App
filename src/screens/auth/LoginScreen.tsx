@@ -15,6 +15,7 @@ import {
   signInWithProvider,
 } from '@/services/auth';
 import { PublicStackParamList } from '@/navigation/types';
+import { OAUTH_SIGN_IN_ENABLED } from '@/config/features';
 
 type Props = NativeStackScreenProps<PublicStackParamList, 'Login'>;
 
@@ -148,31 +149,35 @@ export function LoginScreen({ navigation }: Props) {
         style={styles.cta}
       />
 
-      <View style={styles.dividerRow}>
-        <View style={styles.line} />
-        <Text variant="caption" color="outline" style={styles.orText}>
-          OR
-        </Text>
-        <View style={styles.line} />
-      </View>
+      {OAUTH_SIGN_IN_ENABLED && (
+        <>
+          <View style={styles.dividerRow}>
+            <View style={styles.line} />
+            <Text variant="caption" color="outline" style={styles.orText}>
+              OR
+            </Text>
+            <View style={styles.line} />
+          </View>
 
-      <Button
-        title="Continue with Google"
-        variant="secondary"
-        icon="logo-google"
-        onPress={() => oauth('google')}
-        loading={oauthPending === 'google'}
-        disabled={busy}
-        style={styles.social}
-      />
-      <Button
-        title="Continue with Apple"
-        variant="secondary"
-        icon="logo-apple"
-        onPress={() => oauth('apple')}
-        loading={oauthPending === 'apple'}
-        disabled={busy}
-      />
+          <Button
+            title="Continue with Google"
+            variant="secondary"
+            icon="logo-google"
+            onPress={() => oauth('google')}
+            loading={oauthPending === 'google'}
+            disabled={busy}
+            style={styles.social}
+          />
+          <Button
+            title="Continue with Apple"
+            variant="secondary"
+            icon="logo-apple"
+            onPress={() => oauth('apple')}
+            loading={oauthPending === 'apple'}
+            disabled={busy}
+          />
+        </>
+      )}
 
       <Pressable
         onPress={() => navigation.navigate('SignUp')}

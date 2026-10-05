@@ -12,7 +12,8 @@ import { SafetyBadge } from '@/components/trust/SafetyBadge';
 import { EquipmentBadge } from '@/components/trust/EquipmentBadge';
 import { PremiumBadge } from '@/components/trust/PremiumBadge';
 import { useRoleTheme } from '@/hooks/useRoleTheme';
-import { boostActive, Job } from '@/types/domain';
+import { boostActive, eligibilityForUser, Job } from '@/types/domain';
+import { useAuthStore } from '@/stores/authStore';
 import { formatPayShort, postedAgo } from '@/lib/format';
 
 export interface JobCardProps {
@@ -24,6 +25,12 @@ export interface JobCardProps {
 
 export function JobCard({ job, onPress, showSafety = true }: JobCardProps) {
   const role = useRoleTheme();
+  const user = useAuthStore((s) => s.user);
+  // Teens see jobs they can't take, clearly labelled, rather than having them
+  // hidden. The label has to be on the card itself: the tier badge says what
+  // the job requires, this says what it means for the person looking. The
+  // database refuses the application regardless.
+  const eligibility = eligibilityForUser(job.safetyTier, user);
   return (
     // testID is what the Maestro flows select on. A feed card has no stable
     // text of its own — the title is seeded data that changes — so matching it
@@ -73,6 +80,15 @@ export function JobCard({ job, onPress, showSafety = true }: JobCardProps) {
             </View>
           )}
 
+          {!eligibility.canApply && (
+            <View style={styles.ineligibleRow}>
+              <Ionicons name="lock-closed" size={14} color={colors.error} />
+              <Text variant="caption" color="danger" style={styles.ineligibleText}>
+                You can't apply. {eligibility.reason}
+              </Text>
+            </View>
+          )}
+
           <View style={styles.footer}>
             <Text variant="headlineMd" color="secondary">
               {formatPayShort(job.pay, job.payType)}
@@ -110,6 +126,8 @@ const styles = StyleSheet.create({
   metaRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
   meta: { marginLeft: 4 },
   tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.base, marginTop: spacing.base },
+  ineligibleRow: { flexDirection: 'row', alignItems: 'flex-start', marginTop: spacing.sm },
+  ineligibleText: { flex: 1, marginLeft: 4 },
   footer: {
     flexDirection: 'row',
     justifyContent: 'space-between',

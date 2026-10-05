@@ -186,6 +186,9 @@ export const mockBackend: DataBackend = {
           j.status === 'open' &&
           !j.isPaused &&
           !j.deletedAt &&
+          // Blocked work isn't age-restricted, it's prohibited — nobody sees it
+          // in a feed. Same rule as the jobs SELECT policy (0032).
+          j.safetyTier !== 'blocked' &&
           !db.blocked.has(j.customerId)
       )
       // Boosted → Comly Plus → match score → distance → newest. Free
@@ -202,7 +205,12 @@ export const mockBackend: DataBackend = {
   },
 
   async getJob(id) {
-    return delay(db.jobs.find((j) => j.id === id && !j.deletedAt) ?? null);
+    const job = db.jobs.find((j) => j.id === id && !j.deletedAt) ?? null;
+    // Mirrors 0032: a Blocked job is visible only to its owner and admins.
+    if (job?.safetyTier === 'blocked' && job.customerId !== sessionUser.id && !sessionUser.isAdmin) {
+      return delay(null);
+    }
+    return delay(job);
   },
 
   async createJob(input: CreateJobInput) {

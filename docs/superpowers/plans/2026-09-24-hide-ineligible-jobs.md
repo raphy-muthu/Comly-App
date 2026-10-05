@@ -1,5 +1,11 @@
 # Hide Age-Ineligible Jobs Implementation Plan
 
+> **Status (2026-10-05): superseded.** The founders chose to label ineligible
+> jobs rather than hide them: job cards show "You can't apply" with the reason
+> (`JobCard` / `eligibilityForUser`), Blocked jobs are hidden from everyone but
+> their owner and admins (migration `0032`), and the store copy was reworded to
+> match. Kept for reference in case hiding is revisited.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Make the store listing's promise true: minors never see jobs their age rules out. Today every open job is shown to every user, and age is only checked when someone applies.

@@ -5,17 +5,17 @@ about the app, so anything you change should stay true of the shipped build —
 app review reads these, and "AI reviews every job" is a claim the app has to
 actually keep.
 
-**One claim below is not true of the app yet** — fix the app or the copy
-before submitting:
+Two claims depend on migrations that aren't deployed yet, and are true once
+they are, not before:
 
-- *"Younger helpers simply never see work that isn't appropriate for them"*
-  (and the promotional text / Play short description). Ineligible jobs can
-  still appear in a teen's feed; they just can't be applied to. See
-  `docs/superpowers/plans/2026-09-24-hide-ineligible-jobs.md`.
+- "No one can message a teen out of the blue" — `0029` removes the open
+  conversation-insert policies.
+- "Work that isn't allowed on Comly is never listed" — `0032` hides Blocked
+  jobs from everyone but their owner and admins.
 
-"No one can message a teen out of the blue" depends on migration `0029`,
-which removes the open conversation-insert policies — true once that
-migration is deployed, not before.
+Teens *do* see jobs they can't apply to. That's deliberate: each card says
+"You can't apply" and why, and the database refuses the application. The
+copy describes that honestly rather than promising those jobs are hidden.
 
 ---
 
@@ -50,7 +50,7 @@ Comly connects neighbors who need small jobs done with local helpers nearby — 
 The difference is what happens before anyone sees a job.
 
 SAFETY CHECKED BEFORE IT'S VISIBLE
-Every job posted is reviewed and sorted into a safety tier before a helper ever sees it. Yard work a 14-year-old can safely do is treated differently from work that needs to be 16+, which is treated differently again from adults-only jobs. Younger helpers simply never see work that isn't appropriate for them — it isn't hidden behind a warning, it isn't shown at all.
+Every job posted is reviewed and sorted into a safety tier before a helper ever sees it. Yard work a 14-year-old can safely do is treated differently from work that needs to be 16+, which is treated differently again from adults-only jobs. Every listing shows its tier, and a younger helper's feed marks the jobs they can't take with "You can't apply" and the reason. The app refuses those applications outright; it isn't just a warning. Work that isn't allowed on Comly at all is never listed.
 
 CONTACT STAYS PRIVATE UNTIL YOU ACCEPT
 Phone numbers and exact addresses stay hidden until a customer accepts a specific helper for a specific job. No one can message a teen out of the blue, because there's no channel to do it through.

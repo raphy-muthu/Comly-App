@@ -315,7 +315,10 @@ export const supabaseBackend: DataBackend = {
       .select(JOB_SELECT)
       .eq('status', 'open')
       .is('deleted_at', null)
-      .neq('customer_id', me);
+      .neq('customer_id', me)
+      // RLS (0032) already hides other people's Blocked jobs; this keeps the
+      // query honest about what a feed contains.
+      .neq('safety_tier', 'blocked');
     // Mirrors the mock: a blocked customer's listings leave my feed.
     if (blocked) query = query.not('customer_id', 'in', blocked);
     const { data, error } = await query.order('created_at', { ascending: false });

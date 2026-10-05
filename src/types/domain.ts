@@ -257,6 +257,24 @@ export function applyCategoryTierFloor(category: JobCategory, tier: SafetyTier):
   return floor ? stricterTier(tier, floor) : tier;
 }
 
+/**
+ * eligibilityFor() for a signed-in user, resolving their gating bracket the
+ * same way the job detail screen does. A missing user is treated as an adult
+ * so a loading state never shows a false "can't apply".
+ */
+export function eligibilityForUser(
+  tier: SafetyTier,
+  user:
+    | Pick<UserProfile, 'ageBracket' | 'ageGroup'> & {
+        verification: Pick<VerificationStatus, 'parentApproved'>;
+      }
+    | null
+    | undefined
+): { canApply: boolean; reason?: string } {
+  const bracket = effectiveAgeBracket(user?.ageBracket, user?.ageGroup ?? 'adult');
+  return eligibilityFor(tier, bracket, user?.verification.parentApproved ?? false);
+}
+
 /** Whether a helper may apply to a job of the given tier. */
 export function eligibilityFor(
   tier: SafetyTier,

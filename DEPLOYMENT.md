@@ -211,7 +211,7 @@ Connect → App Information → License Agreement / Privacy Policy URL; Play Con
 - [ ] Real app icon + splash assets
 - [ ] Push credentials configured (APNs / FCM)
 - [ ] Tested a real sign-up → post job → apply flow against Supabase
-- [ ] Migrations through `0031` pushed (the audit fixes, the missing job categories, and the babysitting floor) and `parent-consent` / `ai-safety-review` redeployed
+- [ ] Migrations through `0032` pushed (the audit fixes, the missing job categories, the babysitting floor, and hiding Blocked jobs) and `parent-consent` / `ai-safety-review` redeployed
 - [ ] Supabase project can't auto-pause (free-tier projects pause when idle)
 - [ ] 2026-10-02 Terms reviewed by counsel; mailing address decided; Privacy Policy contact details match the Terms
 - [ ] Store listing claims true of the build (see `store-assets/STORE_LISTING.md`)

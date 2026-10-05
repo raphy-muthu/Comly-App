@@ -1,5 +1,13 @@
 # Babysitting Category Implementation Plan
 
+> **Status (2026-10-05): Tasks 1–4 implemented.** Shipped with renumbered
+> migrations — `0030_job_category_enum_values.sql` and
+> `0031_category_tier_floor.sql` — reusing the existing `TIER_RANK` /
+> `stricterTier` in `domain.ts`, and with childcare keywords (babysit, nanny,
+> child care) added to the 0027 keyword floor so a babysitting job posted
+> under "Other" gets the same floor. Task 0 (counsel) is still open, and the
+> migrations are not yet pushed to production.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Let customers post babysitting/childcare jobs, gated so that no minor can accept one without a parent's approval. Also fix the existing bug that stops 9 of 17 categories from being saved to the production database.

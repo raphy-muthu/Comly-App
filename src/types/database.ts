@@ -12,13 +12,23 @@
 export type UserRoleEnum = 'customer' | 'helper';
 export type JobCategoryEnum =
   | 'snow_removal'
+  | 'yard_work'
   | 'lawn_care'
-  | 'tutoring'
+  | 'leaf_cleanup'
   | 'pool_cleaning'
   | 'pet_care'
+  | 'dog_walking'
+  | 'tutoring'
   | 'tech_help'
+  | 'moving_help'
   | 'errands'
-  | 'house_sitting';
+  | 'cleaning'
+  | 'organization'
+  | 'plant_watering'
+  | 'car_washing'
+  | 'house_sitting'
+  | 'babysitting'
+  | 'other';
 export type SafetyTierEnum = 'teen_safe' | 'adult_supervision' | 'adults_only';
 export type PayTypeEnum = 'fixed' | 'hourly';
 export type JobStatusEnum =

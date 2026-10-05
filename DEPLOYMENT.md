@@ -30,7 +30,7 @@ npx supabase link --project-ref <your-project-ref>
 npx supabase db push          # applies supabase/migrations/*.sql
 ```
 
-Or paste `supabase/migrations/0001_init.sql`, `0002_rls.sql`, then `0003_enhancements.sql` into the SQL Editor, in order.
+Or paste every file in `supabase/migrations/` into the SQL Editor, in numeric order.
 
 ### 1.3 (Optional) Seed local data
 For a local stack only:
@@ -62,6 +62,10 @@ npx supabase functions deploy ai-job-assistant
 npx supabase functions deploy ai-safety-review
 npx supabase functions deploy ai-recommendations
 npx supabase functions deploy push-dispatch
+npx supabase functions deploy delete-account
+# The guardian clicks an emailed link with no Comly login, so the gateway's JWT
+# check must be off; the function verifies signed-in callers itself.
+npx supabase functions deploy parent-consent --no-verify-jwt
 ```
 
 Functions live in `supabase/functions/`. They share helpers in `supabase/functions/_shared/`.
@@ -72,7 +76,11 @@ Functions live in `supabase/functions/`. They share helpers in `supabase/functio
 
 ## 2.5 OAuth (Google / Apple sign-in)
 
-In mock mode the social buttons sign in the demo user. For production:
+**Off for v1.** The buttons are hidden on both the login and sign-up screens
+by `OAUTH_SIGN_IN_ENABLED = false` in `src/config/features.ts`; email sign-up
+is the only path. To turn them on later, complete the steps below and then
+flip that flag. In mock mode the social buttons sign in the demo user. For
+production:
 
 1. **Supabase dashboard** → Authentication → Providers:
    - **Google:** create OAuth credentials in Google Cloud Console (iOS + web client), paste the client ID/secret.
@@ -151,23 +159,34 @@ eas secret:create --name EXPO_PUBLIC_GOOGLE_MAPS_API_KEY --value AIza...
 Both stores reject a listing whose Terms/Privacy URLs 404, and the sign-up
 screen links to the same two paths.
 
-1. Fill in the `__________` placeholders in `src/legal/content.ts` — Termly left
-   blanks for the registered company address and the contact email, and they
-   appear verbatim in the published document today.
-2. Replace the placeholder Privacy Policy (`PRIVACY_POLICY` in the same file).
-   It currently says, deliberately and truthfully, that the policy is not
-   finished yet.
-3. Set `LEGAL_ORIGIN` to the real domain, then regenerate the hosted pages:
+Both documents live in `src/legal/content.ts` — the single source for the
+in-app screens, the hosted pages, and the Word copy in `docs/legal/`. The Terms
+of Service were rewritten on 2026-10-02 (no Termly text or placeholders
+remain); the Privacy Policy is real content, last revised 2026-09-20.
+
+1. Get counsel to review the 2026-10-02 Terms. The 2026-09-20 approval covered
+   a clause the rewrite replaced, so it does not carry over.
+2. Decide on a mailing address. Apple's required EULA terms (Terms §18) expect
+   a developer address, and the Privacy Policy still contains
+   `[MAILING ADDRESS TO BE PROVIDED]` / `[ZIP CODE]`. While editing it, switch
+   its contact emails to `comly.app@gmail.com` to match the Terms.
+3. Register a DMCA designated agent with the U.S. Copyright Office — Terms §27
+   describes the notice procedure, but the safe harbor needs the registration.
+4. Set `LEGAL_ORIGIN` to the real domain, then regenerate the hosted pages:
 
 ```bash
 npm run legal:html            # writes web/legal/{terms,privacy}.html
 ```
 
-4. Deploy `web/legal/` so that `/terms` and `/privacy` serve those files
+5. Deploy `web/legal/` so that `/terms` and `/privacy` serve those files
    (see `web/legal/README.md` for the rewrite rules).
-5. Bump `TERMS_VERSION` / `PRIVACY_VERSION` whenever the documents change
-   materially. Those strings are recorded against each account at sign-up, so
-   they are the only way to tell which text a given user actually agreed to.
+6. Bump `TERMS_VERSION` / `PRIVACY_VERSION` on any change to the text — those
+   strings are recorded against each account, so they are the only way to tell
+   which text a given user actually agreed to. Raise `TERMS_RECONSENT_SINCE` /
+   `PRIVACY_RECONSENT_SINCE` only for changes users should be asked to accept
+   again (the comment above them in `content.ts` keeps the history).
+   If the Terms change, the Word copy in `docs/legal/` is stale until it is
+   regenerated from `content.ts`.
 
 ## 8. Submit to stores
 
@@ -192,7 +211,10 @@ Connect → App Information → License Agreement / Privacy Policy URL; Play Con
 - [ ] Real app icon + splash assets
 - [ ] Push credentials configured (APNs / FCM)
 - [ ] Tested a real sign-up → post job → apply flow against Supabase
-- [ ] Termly `__________` placeholders filled in and real Privacy Policy published
+- [ ] Migrations through `0031` pushed (the audit fixes, the missing job categories, and the babysitting floor) and `parent-consent` / `ai-safety-review` redeployed
+- [ ] Supabase project can't auto-pause (free-tier projects pause when idle)
+- [ ] 2026-10-02 Terms reviewed by counsel; mailing address decided; Privacy Policy contact details match the Terms
+- [ ] Store listing claims true of the build (see `store-assets/STORE_LISTING.md`)
 - [ ] `/terms` and `/privacy` live, and the URLs entered in both store consoles
 - [ ] iOS permission usage strings reviewed against what the app actually requests
 ```

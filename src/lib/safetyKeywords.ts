@@ -58,7 +58,16 @@ export const SAFETY_KEYWORDS: { tier: SafetyTier; patterns: string[] }[] = [
   },
   {
     tier: 'adult_supervision',
-    patterns: ['pools?', 'basements?', 'attics?'],
+    // Childcare words are here so a babysitting job posted under "Other" still
+    // gets the parent-approval floor the Babysitting category has.
+    patterns: [
+      'pools?',
+      'basements?',
+      'attics?',
+      'babysit(s|ting|ter|ters)?',
+      'nann(y|ies)',
+      'child ?care',
+    ],
   },
   {
     tier: 'caution',

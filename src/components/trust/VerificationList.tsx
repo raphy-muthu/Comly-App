@@ -27,6 +27,15 @@ export interface VerificationListProps {
   onAddPress?: (key: VerificationKey) => void;
 }
 
+/** What tapping "Add" does, spoken to screen readers in place of a bare "Add". */
+const ADD_ACTION: Record<VerificationKey, string> = {
+  emailVerified: 'Verify your email',
+  phoneAdded: 'Add a phone number',
+  photoAdded: 'Add a profile photo',
+  schoolEmailVerified: 'Add a school email',
+  parentApproved: 'Request parent approval',
+};
+
 const ORDER: VerificationKey[] = [
   'emailVerified',
   'phoneAdded',
@@ -59,7 +68,13 @@ export function VerificationList({
                 color={done ? colors.tertiary : colors.outline}
               />
             </View>
-            <View style={styles.body}>
+            {/* Done-ness is otherwise only the icon's shape and colour, so it
+                is spelled out for screen readers. */}
+            <View
+              style={styles.body}
+              accessible
+              accessibilityLabel={`${meta.label}, ${done ? 'verified' : 'not verified'}. ${meta.description}`}
+            >
               <Text variant="bodyMd" color={done ? 'textPrimary' : 'textSecondary'}>
                 {meta.label}
               </Text>
@@ -68,7 +83,12 @@ export function VerificationList({
               </Text>
             </View>
             {!done && onAddPress && (
-              <Pressable onPress={() => onAddPress(key)} hitSlop={8}>
+              <Pressable
+                onPress={() => onAddPress(key)}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel={ADD_ACTION[key]}
+              >
                 <Text variant="labelMd" color="textLink">
                   Add
                 </Text>

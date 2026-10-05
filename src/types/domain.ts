@@ -140,6 +140,7 @@ export type JobCategory =
   | 'plant_watering'
   | 'car_washing'
   | 'house_sitting'
+  | 'babysitting'
   | 'other';
 
 export const JOB_CATEGORIES: Record<
@@ -162,6 +163,7 @@ export const JOB_CATEGORIES: Record<
   plant_watering: { label: 'Plant Watering', icon: 'flower-outline' },
   car_washing: { label: 'Car Washing', icon: 'car-outline' },
   house_sitting: { label: 'House Sitting', icon: 'home-outline' },
+  babysitting: { label: 'Babysitting', icon: 'happy-outline' },
   other: { label: 'Other', icon: 'ellipsis-horizontal-outline' },
 };
 
@@ -232,6 +234,27 @@ export const TIER_RANK: Record<SafetyTier, number> = {
 /** Whichever of two tiers is more restrictive. Mirrors safety_tier_rank() in SQL. */
 export function stricterTier(a: SafetyTier, b: SafetyTier): SafetyTier {
   return TIER_RANK[a] >= TIER_RANK[b] ? a : b;
+}
+
+/**
+ * Minimum tier for categories whose risk isn't visible in the job's wording.
+ * The keyword floor can only react to what a poster writes, and "watch my two
+ * kids Friday night" reads as harmless. Caring for children should never be
+ * something a minor takes on without a parent knowing, so babysitting is held
+ * to adult_supervision: any minor needs parent approval to apply; adults are
+ * unaffected.
+ *
+ * Mirrored by the enforce_category_tier_floor trigger (migration 0031), which
+ * is what holds in production. Change both together.
+ */
+export const CATEGORY_TIER_FLOOR: Partial<Record<JobCategory, SafetyTier>> = {
+  babysitting: 'adult_supervision',
+};
+
+/** Raises `tier` to the category's floor if it's below it; never lowers it. */
+export function applyCategoryTierFloor(category: JobCategory, tier: SafetyTier): SafetyTier {
+  const floor = CATEGORY_TIER_FLOOR[category];
+  return floor ? stricterTier(tier, floor) : tier;
 }
 
 /** Whether a helper may apply to a job of the given tier. */

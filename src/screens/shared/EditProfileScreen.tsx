@@ -167,6 +167,16 @@ export function EditProfileScreen() {
           style={styles.photoWrap}
           onPress={pickPhoto}
           disabled={uploadingPhoto}
+          accessibilityRole="button"
+          accessibilityLabel={
+            uploadingPhoto
+              ? 'Uploading profile photo'
+              : avatarUrl
+                ? 'Change profile photo'
+                : 'Add a profile photo'
+          }
+          accessibilityHint="A real photo helps neighbors know who they're meeting."
+          accessibilityState={{ busy: uploadingPhoto, disabled: uploadingPhoto }}
         >
           <Avatar uri={avatarUrl} name={name} size={96} />
           <View style={[styles.photoBadge, { backgroundColor: role.accent }]}>

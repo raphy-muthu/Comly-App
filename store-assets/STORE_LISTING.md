@@ -5,6 +5,18 @@ about the app, so anything you change should stay true of the shipped build —
 app review reads these, and "AI reviews every job" is a claim the app has to
 actually keep.
 
+**One claim below is not true of the app yet** — fix the app or the copy
+before submitting:
+
+- *"Younger helpers simply never see work that isn't appropriate for them"*
+  (and the promotional text / Play short description). Ineligible jobs can
+  still appear in a teen's feed; they just can't be applied to. See
+  `docs/superpowers/plans/2026-09-24-hide-ineligible-jobs.md`.
+
+"No one can message a teen out of the blue" depends on migration `0029`,
+which removes the open conversation-insert policies — true once that
+migration is deployed, not before.
+
 ---
 
 ## App Store
@@ -50,7 +62,7 @@ FAIR PAY, AGREED BETWEEN NEIGHBORS
 Comly suggests a fair range based on the task and shows local minimum-wage guidance, then gets out of the way. Payment is arranged directly between neighbors — Comly never handles the money and takes no cut.
 
 WHAT PEOPLE USE IT FOR
-Snow shoveling · Lawn mowing · Leaf cleanup · Dog walking · Pet sitting · Tutoring · Tech help for grandparents · Moving help · Errands · Car washing · Plant watering · House sitting
+Snow shoveling · Lawn mowing · Leaf cleanup · Dog walking · Pet sitting · Tutoring · Babysitting · Tech help for grandparents · Moving help · Errands · Car washing · Plant watering · House sitting
 
 SIMPLE MODE FOR SENIORS
 A larger-type posting flow with preset tasks, for neighbors who want fewer steps.
@@ -97,10 +109,18 @@ answer rather than a default:
   questionnaires ask about directly.
 - It does **not** contain purchases of digital goods today, and Comly handles
   no payments at all.
+- It includes **childcare jobs** (Babysitting). Some questionnaires ask about
+  unsupervised contact with minors; answer that honestly. Babysitting jobs
+  require parent approval before any minor can apply, and Comly does not
+  background-check helpers.
 
-The casual-labor exemption question has been answered: counsel approved the
-§2 clause in the Terms (2026-09-20), so answers here can be made consistent
-with that posture.
+Keep the answers consistent with the Terms of Service (version 2026-10-02):
+users must be 13+, a minor's parent or guardian must agree to the Terms, Comly
+sells nothing today, and paid work is arranged and paid directly between
+users. The casual-labor position lives in §3 and §6 of those Terms. Counsel
+approved the earlier §2 clause on 2026-09-20, but the 2026-10-02 rewrite
+replaced it and has **not** been re-reviewed — so treat these answers as
+provisional until it has.
 
 ---
 

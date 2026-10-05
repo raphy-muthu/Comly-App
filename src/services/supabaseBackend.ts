@@ -14,6 +14,7 @@
 import {
   Application,
   AppNotification,
+  applyCategoryTierFloor,
   compareApplications,
   compareFeedJobs,
   ImpactStats,
@@ -360,9 +361,13 @@ export const supabaseBackend: DataBackend = {
         pay: input.pay,
         pay_type: input.payType,
         status: 'open',
-        safety_tier: input.safetyTier,
+        // The 0031 trigger enforces the category floor regardless; applying
+        // it here keeps requires_adult_supervision consistent with the tier.
+        safety_tier: applyCategoryTierFloor(input.category, input.safetyTier),
         safety_notes: input.safetyNotes,
-        requires_adult_supervision: input.requiresAdultSupervision,
+        requires_adult_supervision:
+          input.requiresAdultSupervision ||
+          applyCategoryTierFloor(input.category, input.safetyTier) === 'adult_supervision',
         equipment_status: input.equipmentStatus,
         equipment_details: input.equipmentDetails,
         community_tags: input.communityTags,

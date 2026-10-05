@@ -72,6 +72,7 @@ const DURATION_BANDS: Record<JobCategory, [number, number]> = {
   plant_watering: [15, 60],
   car_washing: [30, 120],
   house_sitting: [60, 480],
+  babysitting: [60, 360],
   other: [15, 480],
 };
 
@@ -191,6 +192,7 @@ const FIXED_PAY_BANDS: Record<JobCategory, [number, number]> = {
   plant_watering: [12, 20],
   car_washing: [20, 35],
   house_sitting: [40, 60],
+  babysitting: [30, 60],
   other: [20, 40],
 };
 
@@ -217,6 +219,7 @@ const HOURLY_PAY_BANDS: Record<JobCategory, [number, number]> = {
   plant_watering: [12, 15],
   car_washing: [15, 20],
   house_sitting: [12, 18],
+  babysitting: [15, 22],
   other: [12, 20],
 };
 

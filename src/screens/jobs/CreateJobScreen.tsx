@@ -31,6 +31,7 @@ import { SafetyBadge } from '@/components/trust';
 import { useCreateJob } from '@/hooks';
 import { ai, PaySuggestion, RealismResult, SafetyResult } from '@/services/ai';
 import {
+  applyCategoryTierFloor,
   CommunityTag,
   COMMUNITY_TAGS,
   EquipmentStatus,
@@ -261,6 +262,11 @@ function StandardFlow() {
     ? hoursGuidanceFor('fourteen_fifteen', scheduledMoment, durationMinutes)
     : null;
 
+  // One tier for the review badge and for what gets saved, so the preview
+  // can't promise something the stored job won't match. The category floor
+  // (babysitting) applies here; the server applies it again regardless.
+  const effectiveTier = applyCategoryTierFloor(category, (safety?.tier ?? 'caution') as SafetyTier);
+
   const post = () => {
     createJob.mutate(
       {
@@ -279,9 +285,9 @@ function StandardFlow() {
         // 'teen_safe'. Both let a teen apply, but 'teen_safe' is a positive
         // claim that this task is appropriate for a minor — never assert that
         // on the strength of a request that failed.
-        safetyTier: (safety?.tier ?? 'caution') as SafetyTier,
+        safetyTier: effectiveTier,
         safetyNotes: safety?.note ?? 'Awaiting safety review.',
-        requiresAdultSupervision: safety?.tier === 'adult_supervision',
+        requiresAdultSupervision: effectiveTier === 'adult_supervision',
         equipmentStatus: equipment,
         equipmentDetails: equipmentDetails.trim() || undefined,
         communityTags: Array.from(tags),
@@ -599,7 +605,7 @@ function StandardFlow() {
                   <Text variant="bodyMd">{safety ? safety.note : 'Running a safety check…'}</Text>
                   {safety && (
                     <View style={styles.safetyBadgeRow}>
-                      <SafetyBadge tier={safety.tier} />
+                      <SafetyBadge tier={applyCategoryTierFloor(category, safety.tier)} />
                     </View>
                   )}
                   <Pressable
@@ -698,7 +704,7 @@ function StandardFlow() {
                   }
                   tone="primary"
                 />
-                <SafetyBadge tier={(safety?.tier ?? 'teen_safe') as SafetyTier} />
+                <SafetyBadge tier={effectiveTier} />
               </View>
               <Text variant="headlineMd" style={styles.reviewTitle}>
                 {title || 'Untitled job'}

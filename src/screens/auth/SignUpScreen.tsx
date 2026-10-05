@@ -9,9 +9,14 @@
  * The age check below is a courtesy, not the gate. The same rule runs again in
  * the database, which refuses the account outright rather than trusting
  * anything this screen sends.
+ *
+ * The screen is deliberately neutral, per the FTC's COPPA guidance: it asks
+ * for a birth date without stating the minimum age, and a refused date closes
+ * sign-up on the device (lib/ageGateLock) instead of inviting another try.
+ * The refusal message doesn't mention age either.
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -33,7 +38,8 @@ import {
   signInWithProvider,
 } from '@/services/auth';
 import { PRIVACY_VERSION, TERMS_VERSION } from '@/legal/content';
-import { bracketFromDateOfBirth, MIN_SIGNUP_AGE, Role } from '@/types/domain';
+import { bracketFromDateOfBirth, Role } from '@/types/domain';
+import { isSignupLocked, lockSignup } from '@/lib/ageGateLock';
 import { money, minimumWageFor } from '@/lib/wage';
 import { PublicStackParamList } from '@/navigation/types';
 import { OAUTH_SIGN_IN_ENABLED } from '@/config/features';
@@ -78,6 +84,19 @@ export function SignUpScreen({ navigation }: Props) {
   const [acceptedLegal, setAcceptedLegal] = useState(false);
   const [openedTerms, setOpenedTerms] = useState(false);
   const [openedPrivacy, setOpenedPrivacy] = useState(false);
+  // null until the device lock has been read, so the form never flashes up
+  // on a device that is locked.
+  const [locked, setLocked] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    isSignupLocked()
+      .then((value) => !cancelled && setLocked(value))
+      .catch(() => !cancelled && setLocked(false));
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const signUp = useAuthStore((s) => s.signUp);
   const adoptSession = useAuthStore((s) => s.adoptSession);
@@ -96,12 +115,10 @@ export function SignUpScreen({ navigation }: Props) {
 
   // Null covers both "too young" and "unparseable", which is why the check is
   // on the derived bracket rather than on the raw date.
+  // Nothing is shown while the date is being picked — an inline "too young"
+  // message would announce the cutoff and invite a second try.
   const ageBracket =
     dateOfBirth === null ? null : bracketFromDateOfBirth(toIsoDate(dateOfBirth), new Date());
-  const ageError =
-    touched && dateOfBirth !== null && ageBracket === null
-      ? `You must be at least ${MIN_SIGNUP_AGE} years old to use Comly.`
-      : undefined;
 
   // Same requirement as ReConsentGate: agreeing must follow opening both
   // documents. A tap proves they were opened, not read — the accepted ceiling
@@ -139,13 +156,19 @@ export function SignUpScreen({ navigation }: Props) {
 
   const authenticate = async () => {
     setTouched(true);
-    if (!complete || busy) {
+    if (busy) return;
+    // Checked first: submitting an ineligible date closes sign-up on this
+    // device, whether or not the rest of the form was finished.
+    if (dateOfBirth !== null && ageBracket === null) {
+      await lockSignup();
+      setLocked(true);
+      return;
+    }
+    if (!complete) {
       if (!acceptedLegal) {
         toast.info('Please accept the Terms of Service and Privacy Policy to continue.');
       } else if (dateOfBirth === null) {
         toast.info('Please enter your date of birth to continue.');
-      } else if (ageBracket === null) {
-        toast.error(`You must be at least ${MIN_SIGNUP_AGE} years old to use Comly.`);
       }
       return;
     }
@@ -213,6 +236,42 @@ export function SignUpScreen({ navigation }: Props) {
     }
   };
 
+  if (locked === null) {
+    return <Screen>{null}</Screen>;
+  }
+
+  if (locked) {
+    return (
+      <Screen>
+        <Text variant="headlineLgMobile" style={styles.title} accessibilityRole="header">
+          Sign-up unavailable
+        </Text>
+        <Text variant="bodyMd" color="textSecondary" style={styles.subtitle}>
+          Sorry, we can't create a Comly account for you.
+        </Text>
+        <Button
+          title="Back"
+          variant="secondary"
+          onPress={() => navigation.goBack()}
+          style={styles.cta}
+        />
+        <Pressable
+          onPress={() => navigation.navigate('Login')}
+          style={styles.loginRow}
+          hitSlop={8}
+          accessibilityRole="link"
+        >
+          <Text variant="bodyMd" color="textSecondary">
+            Already have an account?{' '}
+            <Text variant="bodyMd" color="primary">
+              Log In
+            </Text>
+          </Text>
+        </Pressable>
+      </Screen>
+    );
+  }
+
   return (
     <Screen scroll>
       <Text variant="headlineLgMobile" style={styles.title}>
@@ -275,15 +334,10 @@ export function SignUpScreen({ navigation }: Props) {
           maximumDate={new Date()}
         />
       </View>
-      {!!ageError && (
-        <Text variant="caption" color="danger" style={styles.ageError}>
-          {ageError}
-        </Text>
-      )}
       <Text variant="caption" color="textSecondary" style={styles.ageNote}>
         This can't be changed later — it determines which jobs are safe to show
-        you. You must be at least {MIN_SIGNUP_AGE}. Helpers under 18 need a
-        parent or guardian's approval for some tasks.
+        you. Helpers under 18 need a parent or guardian's approval for some
+        tasks.
       </Text>
 
       <Input
@@ -490,7 +544,6 @@ const styles = StyleSheet.create({
   roleWrap: { flex: 1 },
   roleCard: { alignItems: 'center', gap: spacing.sm },
   dobRow: { flexDirection: 'row', marginBottom: spacing.sm },
-  ageError: { color: colors.error, marginBottom: spacing.base },
   roleCardSelected: {
     borderColor: colors.primary,
     borderWidth: 2,

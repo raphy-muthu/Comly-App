@@ -2,6 +2,10 @@
  * Avatar — circular profile image with an initials fallback.
  * Placeholder-friendly: when no URL is provided we render initials on a tinted
  * circle so the UI looks complete without real assets.
+ *
+ * Hidden from screen readers: every avatar in the app sits beside the
+ * person's name, so announcing it would only add "image" or a stray pair of
+ * initials ("A R") before the name VoiceOver is about to read anyway.
  */
 
 import { StyleSheet, View } from 'react-native';
@@ -22,6 +26,12 @@ function initials(name?: string): string {
   return (parts[0]?.[0] ?? '') + (parts[1]?.[0] ?? '');
 }
 
+const DECORATIVE = {
+  accessible: false,
+  accessibilityElementsHidden: true,
+  importantForAccessibility: 'no-hide-descendants',
+} as const;
+
 export function Avatar({ uri, name, size = 48 }: AvatarProps) {
   const role = useRoleTheme();
   const dimension = { width: size, height: size, borderRadius: radius.full };
@@ -29,6 +39,7 @@ export function Avatar({ uri, name, size = 48 }: AvatarProps) {
   if (uri) {
     return (
       <Image
+        {...DECORATIVE}
         source={{ uri }}
         style={dimension}
         contentFit="cover"
@@ -38,7 +49,7 @@ export function Avatar({ uri, name, size = 48 }: AvatarProps) {
   }
 
   return (
-    <View style={[styles.fallback, dimension, { backgroundColor: role.accentSoft }]}>
+    <View {...DECORATIVE} style={[styles.fallback, dimension, { backgroundColor: role.accentSoft }]}>
       <Text
         variant="labelMd"
         style={{

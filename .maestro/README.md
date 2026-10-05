@@ -86,7 +86,7 @@ non-obvious cases:
 
 | Flow | What it proves |
 | --- | --- |
-| `01-signup` | The age floor refuses an under-13 date at submission rather than silently accepting it |
+| `01-signup` | The age floor refuses an under-13 date at submission, without naming the cutoff, and closes sign-up on the device instead of allowing a retry |
 | `02-post-job` | A posted job actually receives an AI safety classification — every downstream age gate reads that tier |
 | `03-apply-eligibility` | The eligibility gate fires in the UI: either Apply is offered, or the refusal is explained |
 | `04-accept-contact-unlock` | Contact details are hidden before acceptance and revealed only after — asserted on **both** sides, since checking only the "after" would pass even if contact leaked the whole time |

@@ -11,9 +11,8 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.comly.app",
       "infoPlist": {
-        "NSPhotoLibraryUsageDescription": "Comly uses your photo library so you can choose a profile photo or upload photos related to a job listing.",
-        "NSPhotoLibraryAddUsageDescription": "Comly may save images you create or upload, such as profile or job photos, to your photo library only when you request it.",
-        "NSCameraUsageDescription": "Comly uses your camera so you can take a profile photo or add photos related to a job listing.",
+        "NSPhotoLibraryUsageDescription": "Comly uses your photo library so you can choose a profile photo.",
+        "NSCameraUsageDescription": "Comly uses your camera only to take a profile photo, and only when you choose to.",
         "ITSAppUsesNonExemptEncryption": false
       }
     },
@@ -34,7 +33,18 @@
     "plugins": [
       "expo-font",
       "expo-image",
-      "expo-secure-store",
+      [
+        "expo-secure-store",
+        {
+          "faceIDPermission": "Comly doesn't use Face ID. Your sign-in is kept in your device's secure keychain."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "microphonePermission": false
+        }
+      ],
       [
         "expo-splash-screen",
         {

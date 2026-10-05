@@ -1,8 +1,10 @@
-# Sign up — proves the age floor actually refuses an under-13 date.
+# Sign up — proves the age floor refuses an under-13 date, neutrally.
 #
 # The age check is the reason this flow exists. Everything else here is setup;
 # the assertion that matters is that a birth date under the minimum is refused
-# at the point of submission, not silently accepted.
+# at the point of submission, not silently accepted — and that the refusal
+# neither names the cutoff nor leaves the form open for a second try (the
+# FTC's "neutral age screen" guidance; see src/lib/ageGateLock.ts).
 #
 # How the refusal is reached (all verified against SignUpScreen.tsx):
 #   - DateTimeField opens a native iOS spinner at TODAY, bounded by
@@ -14,77 +16,94 @@
 #     legal checkbox MUST be ticked or the tap silently does nothing and the
 #     refusal never fires. The box itself only ticks once both documents have
 #     been opened, which is why the flow opens each one first.
-#   - `authenticate()` then finds `complete === false` (it requires
-#     ageBracket !== null) and falls through its guard chain to
-#     `toast.error("You must be at least 13 years old to use Comly.")`.
-#     The same string also renders inline under the date field, so the
-#     assertion matches whichever of the two is on screen.
+#   - `authenticate()` sees a date with no valid age bracket, stores the device
+#     lock, and swaps the form for "Sign-up unavailable".
+#
+# Rerunnable: the lock lives in the iOS Keychain, which `clearState` does not
+# wipe, so a second run inside 24 hours lands straight on the refusal screen.
+# The form steps are therefore wrapped in a `when` on the form being present;
+# either way the same assertions must hold at the end.
 appId: com.comly.app
 ---
 - launchApp:
     clearState: true
 
 - tapOn: "Get Started"
-- assertVisible: "Create your account"
 
-# Role card is a Pressable wrapping an Ionicons icon + Text, which React Native
-# merges into one accessibility element whose label is the icon glyph plus the
-# visible text — so the selector must be substring-tolerant.
-- tapOn:
-    text: ".*I want to help.*"
+# The screen renders blank for a moment while it reads the device lock; wait
+# until it has settled on one of its two states before branching on it.
+- extendedWaitUntil:
+    visible:
+      text: "(Create your account|Sign-up unavailable)"
+    timeout: 10000
 
-# Open the date-of-birth spinner and move it, committing an under-13 date.
-- tapOn:
-    text: ".*Select your date of birth.*"
-- swipe:
-    start: 200,620
-    end: 200,480
-    duration: 300
+- runFlow:
+    when:
+      visible:
+        text: ".*Select your date of birth.*"
+    commands:
 
-# Tap away from the spinner to dismiss it.
-- tapOn:
-    point: "50%,25%"
+      # Role card is a Pressable wrapping an Ionicons icon + Text, which React Native
+      # merges into one accessibility element whose label is the icon glyph plus the
+      # visible text — so the selector must be substring-tolerant.
+      - tapOn:
+          text: ".*I want to help.*"
 
-# Reach the legal checkbox. Explicit swipes rather than `scroll` /
-# `scrollUntilVisible`: neither moved this form at all (the accessibility tree
-# came back byte-identical before and after).
-- swipe:
-    start: 220,700
-    end: 220,260
-    duration: 400
-- swipe:
-    start: 220,700
-    end: 220,260
-    duration: 400
-- swipe:
-    start: 220,700
-    end: 220,260
-    duration: 400
+      # Open the date-of-birth spinner and move it, committing an under-13 date.
+      - tapOn:
+          text: ".*Select your date of birth.*"
+      - swipe:
+          start: 200,620
+          end: 200,480
+          duration: 300
 
-# The agreement box only ticks after both documents have been opened (same
-# rule as the re-consent gate), so open each one and come back first.
-- tapOn:
-    text: ".*Read the Terms of Service.*"
-- tapOn: "arrow back"
-- tapOn:
-    text: ".*Read the Privacy Policy.*"
-- tapOn: "arrow back"
+      # Tap away from the spinner to dismiss it.
+      - tapOn:
+          point: "50%,25%"
 
-# Ticking this is what enables the submit button (see header note).
-- tapOn:
-    text: ".*I agree to Comly.*"
+      # Reach the legal checkbox. Explicit swipes rather than `scroll` /
+      # `scrollUntilVisible`: neither moved this form at all (the accessibility tree
+      # came back byte-identical before and after).
+      - swipe:
+          start: 220,700
+          end: 220,260
+          duration: 400
+      - swipe:
+          start: 220,700
+          end: 220,260
+          duration: 400
+      - swipe:
+          start: 220,700
+          end: 220,260
+          duration: 400
 
-- tapOn:
-    text: ".*Create Account.*"
+      # The agreement box only ticks after both documents have been opened (same
+      # rule as the re-consent gate), so open each one and come back first.
+      - tapOn:
+          text: ".*Read the Terms of Service.*"
+      - tapOn: "arrow back"
+      - tapOn:
+          text: ".*Read the Privacy Policy.*"
+      - tapOn: "arrow back"
+
+      # Ticking this is what enables the submit button (see header note).
+      - tapOn:
+          text: ".*I agree to Comly.*"
+
+      - tapOn:
+          text: ".*Create Account.*"
 
 # THE ASSERTION THAT MATTERS. Not optional: if the age gate ever stops
 # refusing an under-13 date, this flow must fail.
+- assertVisible: "Sign-up unavailable"
 - assertVisible:
-    text: ".*at least 13 years old.*"
+    text: ".*can't create a Comly account.*"
 
-# And no account was created — still on the signup form. Asserted via the
-# submit button rather than the "Create your account" heading, because by this
-# point the form is scrolled down and the heading is off-screen. Had signup
-# succeeded, the app would have navigated away and this button would be gone.
-- assertVisible:
+# Neutral: the refusal never states the cutoff.
+- assertNotVisible:
+    text: ".*13.*"
+
+# And the form is gone rather than waiting for another date. Had signup
+# succeeded or stayed open, this button would still be on screen.
+- assertNotVisible:
     text: ".*Create Account.*"

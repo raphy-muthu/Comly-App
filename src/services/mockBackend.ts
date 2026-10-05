@@ -9,10 +9,12 @@
 import {
   ACTIVE_JOB_STATUSES,
   Application,
+  applyCategoryTierFloor,
   compareApplications,
   compareFeedJobs,
   ImpactStats,
   Job,
+  JobCategory,
   JobInvite,
   jobAcceptsDecisions,
   JobStatus,
@@ -29,9 +31,20 @@ import {
 } from '@/types/domain';
 import { keywordTier } from '@/lib/safetyKeywords';
 
-/** Same floor as the enforce_safety_keyword_floor trigger (migration 0027). */
-function flooredTier(tier: SafetyTier, title: string, description: string): SafetyTier {
-  return stricterTier(tier, keywordTier(`${title} ${description}`).tier);
+/**
+ * Same floors as the enforce_safety_keyword_floor (0027) and
+ * enforce_category_tier_floor (0031) triggers.
+ */
+function flooredTier(
+  tier: SafetyTier,
+  category: JobCategory,
+  title: string,
+  description: string
+): SafetyTier {
+  return applyCategoryTierFloor(
+    category,
+    stricterTier(tier, keywordTier(`${title} ${description}`).tier)
+  );
 }
 import {
   applications as seedApplications,
@@ -227,11 +240,12 @@ export const mockBackend: DataBackend = {
       pay: input.pay,
       payType: input.payType,
       status: 'open',
-      safetyTier: flooredTier(input.safetyTier, input.title, input.description),
+      safetyTier: flooredTier(input.safetyTier, input.category, input.title, input.description),
       safetyNotes: input.safetyNotes,
       requiresAdultSupervision:
         input.requiresAdultSupervision ||
-        flooredTier(input.safetyTier, input.title, input.description) === 'adult_supervision',
+        flooredTier(input.safetyTier, input.category, input.title, input.description) ===
+          'adult_supervision',
       equipmentStatus: input.equipmentStatus,
       equipmentDetails: input.equipmentDetails,
       communityTags: input.communityTags,
@@ -265,7 +279,7 @@ export const mockBackend: DataBackend = {
     if (job.customerId !== sessionUser.id)
       throw new Error('You can only edit your own jobs.');
     Object.assign(job, patch);
-    job.safetyTier = flooredTier(job.safetyTier, job.title, job.description);
+    job.safetyTier = flooredTier(job.safetyTier, job.category, job.title, job.description);
     if (job.safetyTier === 'adult_supervision') job.requiresAdultSupervision = true;
     return delay(job);
   },

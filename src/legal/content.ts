@@ -54,7 +54,7 @@ export interface LegalDocument {
  * `privacy_version` on the profile.
  */
 export const TERMS_VERSION = '2026-10-02';
-export const PRIVACY_VERSION = '2026-09-20';
+export const PRIVACY_VERSION = '2026-10-05';
 
 /**
  * The oldest version still considered acceptable without re-agreeing.
@@ -88,7 +88,9 @@ export const PRIVACY_VERSION = '2026-09-20';
  *
  * The 2026-09-07 privacy revision (documenting in-app account deletion) is
  * deliberately NOT a re-consent event: it grants a right rather than changing
- * what the user agreed to.
+ * what the user agreed to. Nor is 2026-10-05 (stating that no cookies or
+ * tracking are used, and disclosing the on-device sign-up lock): it describes
+ * existing practice and adds no new recipient or use of data.
  */
 export const TERMS_RECONSENT_SINCE = '2026-10-02';
 export const PRIVACY_RECONSENT_SINCE = '2026-09-20';
@@ -839,7 +841,7 @@ export const TERMS_OF_SERVICE: LegalDocument = {
  */
 export const PRIVACY_POLICY: LegalDocument = {
   title: 'Privacy Policy',
-  lastUpdated: 'September 20, 2026',
+  lastUpdated: 'October 05, 2026',
   version: PRIVACY_VERSION,
   blocks: [
     { type: 'h2', text: `AGREEMENT TO THIS PRIVACY POLICY` },
@@ -905,6 +907,10 @@ export const PRIVACY_POLICY: LegalDocument = {
     {
       type: 'p',
       text: `We use Sentry, a crash-reporting service, to learn when the app encounters an error so we can fix it — this automatically collects technical information such as device type, operating system version, app version, and the error itself, but is not used to track your activity across the Services. We do not use any third-party analytics or advertising service. Our infrastructure providers, described below, automatically log standard technical information needed to operate the Services (such as request timestamps and error logs), the way any server does.`,
+    },
+    {
+      type: 'p',
+      text: `We do not use cookies, advertising identifiers, or similar tracking technologies, in the app or on our web pages. The app stores only what it needs on your device: your sign-in session, kept in your device's encrypted secure storage, and — if a sign-up attempt is refused — the time of that attempt, so sign-up stays closed on that device for 24 hours. Neither is used to track you or shared with anyone.`,
     },
 
     { type: 'h2', text: `2. HOW DO WE PROCESS YOUR INFORMATION?` },

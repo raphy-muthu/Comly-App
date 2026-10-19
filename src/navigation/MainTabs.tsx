@@ -11,6 +11,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors, typography } from '@/theme';
 import { useRoleTheme } from '@/hooks/useRoleTheme';
@@ -42,6 +43,10 @@ export function MainTabs() {
   const navigation =
     useNavigation<NativeStackNavigationProp<AppStackParamList>>();
   const roleTheme = useRoleTheme();
+  // The bar grows with the bottom system inset: 34 on an iPhone with a home
+  // indicator (88 total, as before), up to ~48 on Android's three-button
+  // navigation bar, which a fixed 88 squeezed until labels clipped.
+  const insets = useSafeAreaInsets();
 
   return (
     <Tab.Navigator
@@ -52,7 +57,7 @@ export function MainTabs() {
         tabBarStyle: {
           backgroundColor: colors.card,
           borderTopColor: colors.divider,
-          height: 88,
+          height: 54 + insets.bottom,
           paddingTop: 8,
         },
         tabBarLabelStyle: {

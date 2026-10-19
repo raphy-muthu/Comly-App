@@ -53,8 +53,8 @@ export interface LegalDocument {
  * and re-consent is driven by comparing these against `terms_version` /
  * `privacy_version` on the profile.
  */
-export const TERMS_VERSION = '2026-10-02';
-export const PRIVACY_VERSION = '2026-10-05';
+export const TERMS_VERSION = '2026-10-07';
+export const PRIVACY_VERSION = '2026-10-07';
 
 /**
  * The oldest version still considered acceptable without re-agreeing.
@@ -128,7 +128,7 @@ export const LEGAL_URLS = {
 
 export const TERMS_OF_SERVICE: LegalDocument = {
   title: 'Terms of Service',
-  lastUpdated: 'October 02, 2026',
+  lastUpdated: 'October 07, 2026',
   version: TERMS_VERSION,
   blocks: [
     { type: 'h2', text: `1. ABOUT THESE TERMS AND COMLY` },
@@ -138,7 +138,7 @@ export const TERMS_OF_SERVICE: LegalDocument = {
     },
     {
       type: 'p',
-      text: `The Services are provided by Raphael Muthu and Marcel Afsar, individually, doing business as "Comly" ("Comly," "we," "us," or "our"), based in Philadelphia, Pennsylvania, United States. Comly is not currently a separately incorporated or registered business entity. If Comly's operations are later transferred to a business entity, that entity may assume these Terms as described in the Miscellaneous section.`,
+      text: `The Services are provided by Raphael Muthu and Marcel Afsar, individually, doing business as "Comly" ("Comly," "we," "us," or "our"), based in Bryn Mawr, Pennsylvania, United States. Comly is not currently a separately incorporated or registered business entity. If Comly's operations are later transferred to a business entity, that entity may assume these Terms as described in the Miscellaneous section.`,
     },
     {
       type: 'p',
@@ -815,8 +815,9 @@ export const TERMS_OF_SERVICE: LegalDocument = {
       text: `For questions, complaints, safety concerns, arbitration opt-outs, copyright notices, legal notices, or requests concerning these Terms, contact:`,
     },
     { type: 'p', text: `Comly (Raphael Muthu and Marcel Afsar)` },
-    { type: 'p', text: `Philadelphia, Pennsylvania, United States` },
-    { type: 'p', text: `Email: comly.app@gmail.com` },
+    { type: 'p', text: `910 Morris Ave` },
+    { type: 'p', text: `Bryn Mawr, Pennsylvania 19010, United States` },
+    { type: 'p', text: `Email: comlyapp@protonmail.com` },
   ],
 };
 
@@ -825,10 +826,8 @@ export const TERMS_OF_SERVICE: LegalDocument = {
  * PRIVACY_VERSION below — not a generic template. Sections describing specific
  * data (the `profiles_private` fields, the AI/Resend/Supabase sub-processors,
  * the guardian-consent mechanism) were written by reading the schema and
- * service code, not assumed. The [MAILING ADDRESS TO BE PROVIDED] / [ZIP CODE]
- * placeholders are still open; the 2026-10-02 Terms dropped theirs in favor of
- * city plus comly.app@gmail.com, so the two documents now list different
- * contact details until this one is brought in line.
+ * service code, not assumed. Contact details (comlyapp@protonmail.com and
+ * 910 Morris Ave, Bryn Mawr, PA 19010) match those in TERMS_OF_SERVICE.
  *
  * Section 10 describes the real in-app deletion flow (migration 0022 and the
  * delete-account function), including the two record types that deliberately
@@ -841,7 +840,7 @@ export const TERMS_OF_SERVICE: LegalDocument = {
  */
 export const PRIVACY_POLICY: LegalDocument = {
   title: 'Privacy Policy',
-  lastUpdated: 'October 05, 2026',
+  lastUpdated: 'October 07, 2026',
   version: PRIVACY_VERSION,
   blocks: [
     { type: 'h2', text: `AGREEMENT TO THIS PRIVACY POLICY` },
@@ -851,7 +850,7 @@ export const PRIVACY_POLICY: LegalDocument = {
     },
     {
       type: 'p',
-      text: `We are Comly ("Company," "we," "us," or "our"), operated by co-founders Raphael Muthu and Marcel Afsar, and based in Philadelphia, Pennsylvania, United States. You can contact us by email at raphaelmuthu21@gmail.com or marceldonk777@gmail.com, or by mail at [MAILING ADDRESS TO BE PROVIDED], Philadelphia, Pennsylvania [ZIP CODE], United States.`,
+      text: `We are Comly ("Company," "we," "us," or "our"), operated by co-founders Raphael Muthu and Marcel Afsar, and based in Bryn Mawr, Pennsylvania, United States. You can contact us by email at comlyapp@protonmail.com, or by mail at 910 Morris Ave, Bryn Mawr, Pennsylvania 19010, United States.`,
     },
     {
       type: 'p',
@@ -1070,7 +1069,7 @@ export const PRIVACY_POLICY: LegalDocument = {
     { type: 'h2', text: `14. HOW CAN YOU CONTACT US ABOUT THIS POLICY?` },
     {
       type: 'p',
-      text: `If you have questions or comments about this notice, you may contact us by email at raphaelmuthu21@gmail.com or marceldonk777@gmail.com, or by mail at Comly, [MAILING ADDRESS TO BE PROVIDED], Philadelphia, Pennsylvania [ZIP CODE], United States.`,
+      text: `If you have questions or comments about this notice, you may contact us by email at comlyapp@protonmail.com, or by mail at Comly, 910 Morris Ave, Bryn Mawr, Pennsylvania 19010, United States.`,
     },
   ],
 };

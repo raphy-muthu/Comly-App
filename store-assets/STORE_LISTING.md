@@ -5,8 +5,7 @@ about the app, so anything you change should stay true of the shipped build —
 app review reads these, and "AI reviews every job" is a claim the app has to
 actually keep.
 
-Two claims depend on migrations that aren't deployed yet, and are true once
-they are, not before:
+Two claims rest on database rules, both deployed to production on 2026-10-05:
 
 - "No one can message a teen out of the blue" — `0029` removes the open
   conversation-insert policies.

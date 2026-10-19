@@ -34,10 +34,38 @@ begin
     select 1 from information_schema.columns
     where table_schema = 'public' and table_name = 'profiles' and column_name = 'date_of_birth'
   ) then
+    -- A copy kept outside the API before anything is dropped. comly_backup is
+    -- not an exposed schema and grants nothing to anon/authenticated, so this
+    -- is reachable only from the SQL editor. It holds minors' birth dates:
+    -- drop it once the move is confirmed (drop schema comly_backup cascade).
+    create schema if not exists comly_backup;
+    revoke all on schema comly_backup from public, anon, authenticated;
+    create table if not exists comly_backup.profiles_date_of_birth_0026 as
+      select id as user_id, date_of_birth, now() as copied_at
+      from profiles where date_of_birth is not null;
+    revoke all on comly_backup.profiles_date_of_birth_0026 from public, anon, authenticated;
+
     update profiles_private pp
     set date_of_birth = p.date_of_birth
     from profiles p
     where p.id = pp.user_id and p.date_of_birth is not null;
+
+    -- The column is dropped in step 6 and that can't be undone, so verify
+    -- every date arrived intact first. Any mismatch aborts the whole
+    -- migration, which rolls back and leaves profiles untouched.
+    if exists (
+      select 1
+      from profiles p
+      left join profiles_private pp on pp.user_id = p.id
+      where p.date_of_birth is not null
+        and pp.date_of_birth is distinct from p.date_of_birth
+    ) then
+      raise exception '0026: date_of_birth did not copy to profiles_private intact; aborting before the column is dropped';
+    end if;
+    if (select count(*) from comly_backup.profiles_date_of_birth_0026)
+       <> (select count(*) from profiles where date_of_birth is not null) then
+      raise exception '0026: backup row count does not match profiles; aborting';
+    end if;
   end if;
 end $$;
 

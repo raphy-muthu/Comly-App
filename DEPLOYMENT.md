@@ -169,7 +169,7 @@ remain); the Privacy Policy is real content, last revised 2026-09-20.
 2. Decide on a mailing address. Apple's required EULA terms (Terms §18) expect
    a developer address, and the Privacy Policy still contains
    `[MAILING ADDRESS TO BE PROVIDED]` / `[ZIP CODE]`. While editing it, switch
-   its contact emails to `comly.app@gmail.com` to match the Terms.
+   its contact emails to `comlyapp@protonmail.com` (done 2026-10-06).
 3. Register a DMCA designated agent with the U.S. Copyright Office — Terms §27
    describes the notice procedure, but the safe harbor needs the registration.
 4. Set `LEGAL_ORIGIN` to the real domain, then regenerate the hosted pages:
@@ -187,6 +187,24 @@ npm run legal:html            # writes web/legal/{terms,privacy}.html
    again (the comment above them in `content.ts` keeps the history).
    If the Terms change, the Word copy in `docs/legal/` is stale until it is
    regenerated from `content.ts`.
+
+## 7.6 Android specifics
+
+- **EAS environment variables.** `.env` is gitignored, so EAS cloud builds never
+  see it. Every `EXPO_PUBLIC_*` value must also exist as an EAS environment
+  variable for the `preview` and `production` environments, or the build ships
+  with no backend. Check with `npx eas-cli env:list --environment production`.
+- **Google Maps.** `app.config.js` copies `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY` into
+  the Android manifest; without it a MapView crashes the app natively. The key
+  needs "Maps SDK for Android" enabled and should be restricted to
+  `com.comly.app` plus the Play app-signing SHA-1 (Play Console → App integrity).
+- **Permissions.** The release manifest requests INTERNET, VIBRATE, and storage
+  read/write only up to Android 12. Photos use the system photo picker, so no
+  READ_MEDIA_IMAGES (Play's photo/video policy declaration isn't needed).
+  `SYSTEM_ALERT_WINDOW` is blocked in `app.json`.
+- **Play account deletion URL.** https://comly.app/delete-account, from
+  `delete-account/index.html` in the `comly-legal` repo. Requests that arrive by
+  email must be handled within 30 days (the page promises it).
 
 ## 8. Submit to stores
 
@@ -211,7 +229,10 @@ Connect → App Information → License Agreement / Privacy Policy URL; Play Con
 - [ ] Real app icon + splash assets
 - [ ] Push credentials configured (APNs / FCM)
 - [ ] Tested a real sign-up → post job → apply flow against Supabase
-- [ ] Migrations through `0032` pushed (the audit fixes, the missing job categories, the babysitting floor, and hiding Blocked jobs) and `parent-consent` / `ai-safety-review` redeployed
+- [x] Migrations through `0032` pushed (the audit fixes, the missing job categories, the babysitting floor, and hiding Blocked jobs) and `parent-consent` / `ai-safety-review` redeployed
+- [ ] `0033` pushed (neutral age refusal + daily `refresh-age-brackets` pg_cron job)
+- [ ] EAS env vars set for `preview` and `production` (done 2026-10-18; re-check after any key rotation)
+- [ ] Play Console: Data safety + App content answered (`store-assets/PLAY_DATA_SAFETY.md`), deletion URL https://comly.app/delete-account live
 - [ ] Supabase project can't auto-pause (free-tier projects pause when idle)
 - [ ] 2026-10-02 Terms reviewed by counsel; mailing address decided; Privacy Policy contact details match the Terms
 - [ ] Store listing claims true of the build (see `store-assets/STORE_LISTING.md`)

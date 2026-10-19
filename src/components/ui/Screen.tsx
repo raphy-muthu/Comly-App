@@ -1,7 +1,7 @@
 /**
  * Screen — safe-area-aware page wrapper with the app background.
  * Use `scroll` for content that overflows; pass `edges` to control which safe
- * area insets are applied (e.g. omit 'bottom' when a tab bar is present).
+ * area insets are applied. All four edges by default.
  */
 
 import { ReactNode } from 'react';
@@ -30,7 +30,11 @@ export function Screen({
   children,
   scroll = false,
   padded = true,
-  edges = ['top', 'left', 'right'],
+  // 'bottom' included: on Android the app draws behind the navigation bar
+  // (edge-to-edge), so a stack screen's last content could sit under it. The
+  // native SafeAreaView only pads where the view actually overlaps a system
+  // inset, so screens above the tab bar get nothing extra.
+  edges = ['top', 'left', 'right', 'bottom'],
   style,
   contentContainerStyle,
   scrollProps,

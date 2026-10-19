@@ -9,19 +9,25 @@
       "distribution": "internal",
       "env": {
         "EXPO_PUBLIC_USE_MOCKS": "true"
-      }
+      },
+      "environment": "development"
     },
     "preview": {
       "distribution": "internal",
       "env": {
         "EXPO_PUBLIC_USE_MOCKS": "false"
-      }
+      },
+      "android": {
+        "buildType": "apk"
+      },
+      "environment": "preview"
     },
     "production": {
       "autoIncrement": true,
       "env": {
         "EXPO_PUBLIC_USE_MOCKS": "false"
-      }
+      },
+      "environment": "production"
     }
   },
   "submit": {

@@ -120,6 +120,7 @@ function mapJob(row: any): Job {
     contactUnlockedAt: row.contact_unlocked_at ?? null,
     completionRequestedAt: row.completion_requested_at ?? null,
     completedAt: row.completed_at ?? null,
+    helperDoneAt: row.helper_done_at ?? null,
     createdAt: row.created_at,
   };
 }
@@ -247,6 +248,8 @@ function mapNotification(row: any): AppNotification {
     type: row.type,
     title: row.title,
     body: row.body ?? '',
+    // 0034 puts the job an alert is about in the payload; older rows have none.
+    jobId: row.payload?.job_id ?? undefined,
     read: !!row.read,
     createdAt: row.created_at,
   };
@@ -537,6 +540,21 @@ export const supabaseBackend: DataBackend = {
 
   async disputeJobCompletion(jobId, reason) {
     const { error } = await sb().rpc('dispute_job_completion', {
+      p_job_id: jobId,
+      p_reason: reason,
+    });
+    if (error) throw error;
+    return reloadJob(this, jobId);
+  },
+
+  async markJobDoneByHelper(jobId) {
+    const { error } = await sb().rpc('mark_job_done_by_helper', { p_job_id: jobId });
+    if (error) throw error;
+    return reloadJob(this, jobId);
+  },
+
+  async declineHelperDone(jobId, reason) {
+    const { error } = await sb().rpc('decline_helper_done', {
       p_job_id: jobId,
       p_reason: reason,
     });

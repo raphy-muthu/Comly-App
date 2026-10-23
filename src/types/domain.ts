@@ -493,6 +493,8 @@ export interface Job {
   completionRequestedAt?: string | null;
   /** Set once BOTH sides have confirmed the job is finished. */
   completedAt?: string | null;
+  /** Set when the accepted helper says the work is done, until the owner answers. */
+  helperDoneAt?: string | null;
   createdAt: string;
 }
 
@@ -654,6 +656,7 @@ export type NotificationType =
   | 'job_invite'
   | 'completion_requested'
   | 'completion_confirmed'
+  | 'helper_marked_done'
   | 'safety';
 
 export interface AppNotification {
@@ -662,6 +665,8 @@ export interface AppNotification {
   type: NotificationType;
   title: string;
   body: string;
+  /** The job the alert is about, when there is one; tapping opens it. */
+  jobId?: string;
   read: boolean;
   createdAt: string;
 }

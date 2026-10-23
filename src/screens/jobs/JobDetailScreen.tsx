@@ -33,8 +33,11 @@ import { MapPreview } from '@/components/job/MapPreview';
 import { BlockUserButton } from '@/components/people/BlockUserButton';
 import {
   useConfirmJobCompletion,
+  useDeclineHelperDone,
   useDisputeJobCompletion,
   useJob,
+  useMarkJobDone,
+  useRequestJobCompletion,
   useJobContact,
   useJobReviews,
 } from '@/hooks';
@@ -50,6 +53,7 @@ import {
 } from '@/types/domain';
 import { hoursGuidanceFor } from '@/lib/hours';
 import { formatPay } from '@/lib/format';
+import { errorMessage } from '@/lib/errors';
 import { AppStackParamList } from '@/navigation/types';
 
 type Nav = NativeStackNavigationProp<AppStackParamList>;
@@ -65,6 +69,11 @@ export function JobDetailScreen() {
   const { data: jobReviews } = useJobReviews(params.jobId);
   const confirmCompletion = useConfirmJobCompletion();
   const disputeCompletion = useDisputeJobCompletion();
+  const markDone = useMarkJobDone();
+  const requestCompletion = useRequestJobCompletion();
+  const declineDone = useDeclineHelperDone();
+  const [declining, setDeclining] = useState(false);
+  const [declineReason, setDeclineReason] = useState('');
   const toast = useToast();
   const [menuOpen, setMenuOpen] = useState(false);
   const [disputing, setDisputing] = useState(false);
@@ -128,6 +137,15 @@ export function JobDetailScreen() {
           <ContactCard
             person={contactPerson}
             roleLabel={isOwner ? 'Your helper' : 'Job poster'}
+          />
+        )}
+        {/* The poster's way to block the helper they hired. (A helper blocks
+            the poster from the Report/Block buttons further down.) */}
+        {isOwner && job.assignedHelperId && (
+          <BlockUserButton
+            userId={job.assignedHelperId}
+            name={contactPerson?.name}
+            jobId={job.id}
           />
         )}
 
@@ -212,6 +230,130 @@ export function JobDetailScreen() {
                         toast.success('Confirmed — leave a review to finish up.'),
                       onError: (e) =>
                         toast.error(e instanceof Error ? e.message : 'Failed.'),
+                    })
+                  }
+                />
+              </View>
+            )}
+          </Card>
+        )}
+
+        {/* The helper can go first: "I'm done" asks the poster to confirm, so a
+            finished job never waits on the poster remembering to start it. */}
+        {isAcceptedHelper && ['accepted', 'in_progress'].includes(job.status) && (
+          <Card padded style={styles.completionCard}>
+            <View style={styles.aiRow}>
+              <Ionicons
+                name={job.helperDoneAt ? 'hourglass-outline' : 'checkmark-done-outline'}
+                size={18}
+                color={job.helperDoneAt ? colors.warning : colors.tertiary}
+              />
+              <Text
+                variant="labelMd"
+                color={job.helperDoneAt ? 'warning' : 'tertiary'}
+                style={{ marginLeft: 6 }}
+              >
+                {job.helperDoneAt ? 'Waiting on the poster' : 'Finished the job?'}
+              </Text>
+            </View>
+            <Text variant="bodyMd" color="textSecondary">
+              {job.helperDoneAt
+                ? `We let ${job.customer.name} know you're done. Reviews open once they confirm.`
+                : `Let ${job.customer.name} know, and they'll be asked to confirm it's complete.`}
+            </Text>
+            {!job.helperDoneAt && (
+              <Button
+                title="I'm done"
+                icon="checkmark-circle-outline"
+                size="md"
+                style={styles.completionField}
+                loading={markDone.isPending}
+                onPress={() =>
+                  markDone.mutate(job.id, {
+                    onSuccess: () =>
+                      toast.success(`Sent. ${job.customer.name} will be asked to confirm.`),
+                    onError: (e) => toast.error(errorMessage(e, 'Could not send that.')),
+                  })
+                }
+              />
+            )}
+          </Card>
+        )}
+
+        {isOwner && job.helperDoneAt && ['accepted', 'in_progress'].includes(job.status) && (
+          <Card padded style={styles.completionCard}>
+            <View style={styles.aiRow}>
+              <Ionicons name="checkmark-done-circle" size={18} color={colors.tertiary} />
+              <Text variant="labelMd" color="tertiary" style={{ marginLeft: 6 }}>
+                Your helper says it's done
+              </Text>
+            </View>
+            <Text variant="bodyMd" color="textSecondary">
+              {contactPerson?.name ?? 'Your helper'} marked this job finished. Confirm and
+              you can both leave reviews — or say it isn't done yet.
+            </Text>
+            {declining ? (
+              <>
+                <Input
+                  placeholder="What's still left to do?"
+                  value={declineReason}
+                  onChangeText={setDeclineReason}
+                  multiline
+                  numberOfLines={3}
+                  style={styles.disputeInput}
+                  containerStyle={styles.completionField}
+                />
+                <View style={styles.completionActions}>
+                  <Button
+                    title="Cancel"
+                    variant="secondary"
+                    size="md"
+                    style={styles.completionBtn}
+                    onPress={() => {
+                      setDeclining(false);
+                      setDeclineReason('');
+                    }}
+                  />
+                  <Button
+                    title="Send"
+                    size="md"
+                    style={styles.completionBtn}
+                    loading={declineDone.isPending}
+                    disabled={declineReason.trim().length < 5}
+                    onPress={() =>
+                      declineDone.mutate(
+                        { jobId: job.id, reason: declineReason.trim() },
+                        {
+                          onSuccess: () => {
+                            setDeclining(false);
+                            setDeclineReason('');
+                            toast.info('Sent. Your helper knows it isn\'t finished yet.');
+                          },
+                          onError: (e) => toast.error(errorMessage(e, 'Could not send that.')),
+                        }
+                      )
+                    }
+                  />
+                </View>
+              </>
+            ) : (
+              <View style={styles.completionActions}>
+                <Button
+                  title="Not done yet"
+                  variant="secondary"
+                  size="md"
+                  style={styles.completionBtn}
+                  onPress={() => setDeclining(true)}
+                />
+                <Button
+                  title="Confirm complete"
+                  size="md"
+                  style={styles.completionBtn}
+                  loading={requestCompletion.isPending}
+                  onPress={() =>
+                    requestCompletion.mutate(job.id, {
+                      onSuccess: () => toast.success('Confirmed. Leave a review to finish up.'),
+                      onError: (e) => toast.error(errorMessage(e, 'Failed.')),
                     })
                   }
                 />

@@ -102,8 +102,12 @@ export function JobOwnerMenu({
         run: () => {
           onClose();
           requestCompletion.mutate(job.id, {
-            onSuccess: () =>
-              toast.success('Sent to your helper to confirm — then you can both review.'),
+            onSuccess: (updated) =>
+              toast.success(
+                updated.status === 'completed'
+                  ? 'Job complete. Leave a review to finish up.'
+                  : 'Sent to your helper to confirm — then you can both review.'
+              ),
             onError: (e) =>
               toast.error(e instanceof Error ? e.message : 'Failed.'),
           });

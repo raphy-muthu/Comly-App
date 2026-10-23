@@ -2,7 +2,8 @@
  * Mutual job-completion hooks.
  *
  * Completion is two-sided: the customer requests it (job → pending_confirmation)
- * and the accepted helper confirms or disputes it. Every mutation invalidates
+ * and the accepted helper confirms or disputes it. The helper can also go first
+ * ("I'm done"); then the customer confirms or declines. Every mutation invalidates
  * the same set so both sides' dashboards, the job detail screen, and the alerts
  * badge stay in step.
  */
@@ -43,6 +44,23 @@ export function useDisputeJobCompletion() {
   return useMutation({
     mutationFn: ({ jobId, reason }: { jobId: string; reason: string }) =>
       backend.disputeJobCompletion(jobId, reason),
+    onSuccess: (job) => invalidate(job.id),
+  });
+}
+
+export function useMarkJobDone() {
+  const invalidate = useCompletionInvalidation();
+  return useMutation({
+    mutationFn: (jobId: string) => backend.markJobDoneByHelper(jobId),
+    onSuccess: (job) => invalidate(job.id),
+  });
+}
+
+export function useDeclineHelperDone() {
+  const invalidate = useCompletionInvalidation();
+  return useMutation({
+    mutationFn: ({ jobId, reason }: { jobId: string; reason: string }) =>
+      backend.declineHelperDone(jobId, reason),
     onSuccess: (job) => invalidate(job.id),
   });
 }

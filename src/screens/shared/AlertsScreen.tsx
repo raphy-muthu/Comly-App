@@ -1,9 +1,12 @@
 /**
  * Alerts — the notification feed. Unread items get a tinted background and a
- * dot; tapping marks them read.
+ * dot; tapping marks them read and opens what the alert is about (the job
+ * when the alert carries one, otherwise the closest screen for its type).
  */
 
 import { StyleSheet, View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
 import { colors, radius, spacing, RoleTheme } from '@/theme';
@@ -12,6 +15,9 @@ import { Card, EmptyState, Screen, SectionHeader, Text } from '@/components/ui';
 import { useNotifications, useMarkNotificationRead } from '@/hooks';
 import { AppNotification, NotificationType } from '@/types/domain';
 import { timeAgo } from '@/lib/format';
+import { AppStackParamList } from '@/navigation/types';
+
+type Nav = NativeStackNavigationProp<AppStackParamList>;
 
 // application_received uses the active role's accent (violet for customers,
 // green for helpers); everything else keeps a fixed semantic color.
@@ -29,11 +35,42 @@ function iconsFor(
     job_invite: { icon: 'mail-open', tint: role.accent, bg: role.accentSoft },
     completion_requested: { icon: 'checkmark-done-circle', tint: colors.warning, bg: colors.warningContainer },
     completion_confirmed: { icon: 'trophy', tint: colors.tertiary, bg: colors.successSoft },
+    helper_marked_done: { icon: 'checkmark-done-circle', tint: colors.tertiary, bg: colors.successSoft },
     safety: { icon: 'alert-circle', tint: colors.warning, bg: colors.warningContainer },
   };
 }
 
+/** Where tapping an alert goes. Alerts from before 0034 carry no job id. */
+function openAlert(navigation: Nav, n: AppNotification) {
+  switch (n.type) {
+    case 'application_received':
+      return n.jobId
+        ? navigation.navigate('JobApplications', { jobId: n.jobId })
+        : navigation.navigate('MyListings');
+    case 'application_accepted':
+    case 'application_declined':
+    case 'job_invite':
+    case 'job_match':
+      return n.jobId
+        ? navigation.navigate('JobDetail', { jobId: n.jobId })
+        : navigation.navigate('MyApplications');
+    case 'completion_requested':
+    case 'completion_confirmed':
+    case 'helper_marked_done':
+      return n.jobId
+        ? navigation.navigate('JobDetail', { jobId: n.jobId })
+        : navigation.navigate('MainTabs', { screen: 'Jobs' });
+    case 'review_received':
+    case 'verification':
+      return navigation.navigate('MainTabs', { screen: 'Profile' });
+    case 'report_update':
+    case 'safety':
+      return navigation.navigate('SafetyCenter');
+  }
+}
+
 export function AlertsScreen() {
+  const navigation = useNavigation<Nav>();
   const { data: notifications, isLoading } = useNotifications();
   const markRead = useMarkNotificationRead();
 
@@ -53,7 +90,10 @@ export function AlertsScreen() {
         <NotificationRow
           key={n.id}
           notification={n}
-          onPress={() => !n.read && markRead.mutate(n.id)}
+          onPress={() => {
+            if (!n.read) markRead.mutate(n.id);
+            openAlert(navigation, n);
+          }}
         />
       ))}
     </Screen>
@@ -98,6 +138,7 @@ function NotificationRow({
             {timeAgo(notification.createdAt)}
           </Text>
         </View>
+        <Ionicons name="chevron-forward" size={18} color={colors.outline} style={styles.chevron} />
       </View>
     </Card>
   );
@@ -123,4 +164,5 @@ const styles = StyleSheet.create({
     borderRadius: radius.full,
   },
   time: { marginTop: 4 },
+  chevron: { alignSelf: 'center' },
 });

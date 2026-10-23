@@ -19,6 +19,8 @@ export {
   useRequestJobCompletion,
   useConfirmJobCompletion,
   useDisputeJobCompletion,
+  useMarkJobDone,
+  useDeclineHelperDone,
 } from './useCompletion';
 export { useJobReviews, useCreateReview } from './useReviews';
 export {

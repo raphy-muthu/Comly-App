@@ -137,12 +137,19 @@ export interface DataBackend {
   getJobContact(jobId: string): Promise<JobContact | null>;
 
   // ── Completion (mutual confirmation) ──
-  /** Owner marks the work done → job moves to `pending_confirmation`. */
+  /**
+   * Owner marks the work done → job moves to `pending_confirmation`, or
+   * straight to `completed` if the helper already marked it done.
+   */
   requestJobCompletion(jobId: string): Promise<Job>;
   /** Accepted helper agrees → job becomes `completed`. */
   confirmJobCompletion(jobId: string): Promise<Job>;
   /** Accepted helper disagrees → job returns to `in_progress`, owner notified. */
   disputeJobCompletion(jobId: string, reason: string): Promise<Job>;
+  /** Accepted helper says the work is finished → owner is asked to confirm. */
+  markJobDoneByHelper(jobId: string): Promise<Job>;
+  /** Owner says it isn't finished after the helper marked it done. */
+  declineHelperDone(jobId: string, reason: string): Promise<Job>;
 
   // ── Invites (safe pre-acceptance nudge; no contact info crosses over) ──
   inviteHelper(input: InviteHelperInput): Promise<JobInvite>;

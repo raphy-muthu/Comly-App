@@ -22,6 +22,7 @@ import {
   useToast,
 } from '@/components/ui';
 import { PremiumBadge, TrustBadge } from '@/components/trust';
+import { BlockUserButton } from '@/components/people/BlockUserButton';
 import {
   useAcceptApplication,
   useDeclineApplication,
@@ -204,6 +205,21 @@ function ApplicationCard({
         )}
       </View>
 
+      <View style={styles.cardLinks}>
+        <Button
+          title="View profile"
+          variant="ghost"
+          size="sm"
+          icon="person-circle-outline"
+          onPress={onViewProfile}
+        />
+        <BlockUserButton
+          userId={application.helperId}
+          name={helper.name}
+          jobId={application.jobId}
+        />
+      </View>
+
       {showActions && (
         <View style={styles.actions}>
           <Button
@@ -238,6 +254,7 @@ const styles = StyleSheet.create({
     paddingTop: spacing.base,
   },
   headerSpacer: { width: 40 },
+  cardLinks: { flexDirection: 'row', justifyContent: 'space-between', marginTop: spacing.sm },
   subtitle: { paddingHorizontal: spacing.marginMobile, marginTop: spacing.base },
   sortNote: { paddingHorizontal: spacing.marginMobile, marginTop: 4 },
   priorityRow: { marginTop: 4 },

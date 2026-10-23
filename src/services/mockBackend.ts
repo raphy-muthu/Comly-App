@@ -155,7 +155,9 @@ function pushNotification(
   userId: string,
   type: NotificationType,
   title: string,
-  body: string
+  body: string,
+  /** The job the alert is about, so tapping it can open that job. */
+  jobId?: string
 ) {
   db.notifications.unshift({
     id: uid('n'),
@@ -163,6 +165,7 @@ function pushNotification(
     type,
     title,
     body,
+    jobId,
     read: false,
     createdAt: new Date().toISOString(),
   });
@@ -360,7 +363,8 @@ export const mockBackend: DataBackend = {
         job.customerId,
         'application_received',
         'New application',
-        `${sessionUser.name} applied to your "${job.title}" job.`
+        `${sessionUser.name} applied to your "${job.title}" job.`,
+      job.id
       );
     }
     return delay(app);
@@ -397,7 +401,8 @@ export const mockBackend: DataBackend = {
           a.helperId,
           'application_declined',
           'Application update',
-          `Another helper was selected for "${job.title}". Thanks for applying!`
+          `Another helper was selected for "${job.title}". Thanks for applying!`,
+      job.id
         );
       });
 
@@ -405,7 +410,8 @@ export const mockBackend: DataBackend = {
       accepted.helperId,
       'application_accepted',
       'You’re hired!',
-      `You were accepted for "${job.title}". Contact details are now unlocked.`
+      `You were accepted for "${job.title}". Contact details are now unlocked.`,
+      job.id
     );
     return delay(undefined);
   },
@@ -446,7 +452,8 @@ export const mockBackend: DataBackend = {
       app.helperId,
       'application_declined',
       'Application update',
-      `Your application for "${job.title}" was declined.`
+      `Your application for "${job.title}" was declined.`,
+      job.id
     );
     return delay(undefined);
   },
@@ -461,13 +468,36 @@ export const mockBackend: DataBackend = {
     if (!job.assignedHelperId)
       throw new WorkflowError('This job has no accepted helper yet.');
 
+    // The helper already said it's done, so both sides agree: finish now.
+    if (job.helperDoneAt) {
+      job.status = 'completed';
+      job.completedAt = new Date().toISOString();
+      job.helperDoneAt = null;
+      pushNotification(
+        job.customerId,
+        'completion_confirmed',
+        'Job confirmed complete',
+        `"${job.title}" is done. Leave a review to build your helper's reputation.`,
+        job.id
+      );
+      pushNotification(
+        job.assignedHelperId,
+        'completion_confirmed',
+        'Job complete',
+        `"${job.title}" is complete. Leave a review for the customer.`,
+        job.id
+      );
+      return delay(job);
+    }
+
     job.status = 'pending_confirmation';
     job.completionRequestedAt = new Date().toISOString();
     pushNotification(
       job.assignedHelperId,
       'completion_requested',
       'Confirm the job is done',
-      `${sessionUser.name} marked "${job.title}" complete. Confirm so you can both leave reviews.`
+      `${sessionUser.name} marked "${job.title}" complete. Confirm so you can both leave reviews.`,
+      job.id
     );
     return delay(job);
   },
@@ -485,13 +515,15 @@ export const mockBackend: DataBackend = {
       job.customerId,
       'completion_confirmed',
       'Job confirmed complete',
-      `${sessionUser.name} confirmed "${job.title}" is done. Leave a review to build their reputation.`
+      `${sessionUser.name} confirmed "${job.title}" is done. Leave a review to build their reputation.`,
+      job.id
     );
     pushNotification(
       sessionUser.id,
       'completion_confirmed',
       'Job complete',
-      `"${job.title}" is complete. Leave a review for the customer.`
+      `"${job.title}" is complete. Leave a review for the customer.`,
+      job.id
     );
     return delay(job);
   },
@@ -512,7 +544,46 @@ export const mockBackend: DataBackend = {
       job.customerId,
       'completion_requested',
       'Completion not confirmed',
-      `${sessionUser.name} says "${job.title}" isn't finished yet: ${reason}`
+      `${sessionUser.name} says "${job.title}" isn't finished yet: ${reason}`,
+      job.id
+    );
+    return delay(job);
+  },
+
+  async markJobDoneByHelper(jobId) {
+    const job = requireJob(jobId);
+    if (job.assignedHelperId !== sessionUser.id)
+      throw new WorkflowError('Only the accepted helper can mark this job done.');
+    if (!['accepted', 'in_progress'].includes(job.status))
+      throw new WorkflowError('Only an accepted job can be marked done.');
+    if (job.helperDoneAt)
+      throw new WorkflowError('You already let them know. They just need to confirm.');
+
+    job.helperDoneAt = new Date().toISOString();
+    pushNotification(
+      job.customerId,
+      'helper_marked_done',
+      'Your helper says the job is done',
+      `${sessionUser.name} finished "${job.title}". Confirm it so you can both leave reviews.`,
+      job.id
+    );
+    return delay(job);
+  },
+
+  async declineHelperDone(jobId, reason) {
+    const job = requireJob(jobId);
+    if (job.customerId !== sessionUser.id)
+      throw new WorkflowError('Only the job owner can answer this.');
+    if (!job.helperDoneAt || !['accepted', 'in_progress'].includes(job.status))
+      throw new WorkflowError("Your helper hasn't marked this job done.");
+
+    job.helperDoneAt = null;
+    pushNotification(
+      job.assignedHelperId!,
+      'completion_requested',
+      'Not finished yet',
+      `${sessionUser.name} says "${job.title}" isn't finished yet: ${reason}`,
+      job.id
     );
     return delay(job);
   },
@@ -546,7 +617,8 @@ export const mockBackend: DataBackend = {
       input.helperId,
       'job_invite',
       'You were invited to apply',
-      `${sessionUser.name} thinks you'd be a good fit for "${job.title}". Open it to apply.`
+      `${sessionUser.name} thinks you'd be a good fit for "${job.title}". Open it to apply.`,
+      job.id
     );
     return delay(invite);
   },
@@ -642,7 +714,8 @@ export const mockBackend: DataBackend = {
       input.revieweeId,
       'review_received',
       'New review',
-      `${sessionUser.name} left you a review for "${job.title}".`
+      `${sessionUser.name} left you a review for "${job.title}".`,
+      job.id
     );
     return delay(review);
   },

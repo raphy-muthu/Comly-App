@@ -51,3 +51,4 @@ export {
 } from './useSupport';
 export { useBlockedUsers, useBlockUser, useUnblockUser } from './useModeration';
 export { useImpactStats } from './useImpact';
+export { useAiConsent, useSetAiConsent } from './useAiConsent';

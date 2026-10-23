@@ -196,6 +196,11 @@ export interface DataBackend {
     patch: { status: NoShowEvent['status']; adminNotes?: string }
   ): Promise<NoShowEvent>;
 
+  // ── AI permission (guideline 5.1.2(i)) ──
+  /** The account's answer to the AI notice: true / false, or null if never asked. */
+  getAiConsent(): Promise<boolean | null>;
+  setAiConsent(granted: boolean): Promise<void>;
+
   // ── Blocking ──
   listBlockedUserIds(): Promise<string[]>;
   /**

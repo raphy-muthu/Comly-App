@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors, typography } from '@/theme';
 import { useRoleTheme } from '@/hooks/useRoleTheme';
+import { useAiConsent } from '@/hooks/useAiConsent';
 import { MainTabsParamList, AppStackParamList } from './types';
 import { HomeScreen } from '@/screens/HomeScreen';
 import { JobsScreen } from '@/screens/JobsScreen';
@@ -43,6 +44,9 @@ export function MainTabs() {
   const navigation =
     useNavigation<NativeStackNavigationProp<AppStackParamList>>();
   const roleTheme = useRoleTheme();
+  // Loads the account's AI answer as soon as the signed-in app mounts, so the
+  // AI service's permission flag is right before any screen can use AI.
+  useAiConsent();
   // The bar grows with the bottom system inset: 34 on an iPhone with a home
   // indicator (88 total, as before), up to ~48 on Android's three-button
   // navigation bar, which a fixed 88 squeezed until labels clipped.

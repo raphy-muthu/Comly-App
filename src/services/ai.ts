@@ -20,6 +20,7 @@ import {
   wageGuidance,
 } from '@/lib/wage';
 import { getSupabase } from './supabaseClient';
+import { aiPermitted } from './aiPermission';
 
 export interface PaySuggestion {
   min: number;
@@ -519,10 +520,13 @@ const realAI: AIService = {
         'ai-job-assistant',
         {
           body: {
+            // No name: the message is first person, and the person's name isn't
+            // something the AI needs (the AI notice promises it isn't sent).
             prompt:
-              `Write a short, friendly 2-3 sentence message from a neighborhood helper ` +
-              `named ${input.helperName} applying to help with "${input.jobTitle}" ` +
-              `(${JOB_CATEGORIES[input.category].label}) in ${input.neighborhood}.`,
+              `Write a short, friendly 2-3 sentence first-person message from a ` +
+              `neighborhood helper applying to help with "${input.jobTitle}" ` +
+              `(${JOB_CATEGORIES[input.category].label}) in ${input.neighborhood}. ` +
+              `Don't include a name or a greeting with a name.`,
             category: input.category,
             neighborhood: input.neighborhood,
             applicationMessage: true,
@@ -551,6 +555,23 @@ const realAI: AIService = {
   generateResumeSummary: mockAI.generateResumeSummary,
 };
 
+/**
+ * realAI behind the person's permission (guideline 5.1.2(i)). Decided on every
+ * call, so a changed answer applies at once. Without permission each method
+ * runs the same on-device logic as mock mode — what realAI already falls back
+ * to when the network fails — so features keep working, they just stop
+ * sending text off the device.
+ */
+const pick = (): AIService => (aiPermitted() ? realAI : mockAI);
+const consentGatedAI: AIService = {
+  suggestPay: (...args) => pick().suggestPay(...args),
+  improveDescription: (...args) => pick().improveDescription(...args),
+  safetyReview: (...args) => pick().safetyReview(...args),
+  checkRealism: (...args) => pick().checkRealism(...args),
+  suggestApplicationMessage: (...args) => pick().suggestApplicationMessage(...args),
+  generateResumeSummary: (...args) => pick().generateResumeSummary(...args),
+};
+
 function resolveAI(): AIService {
   if (USE_MOCKS) return mockAI;
   if (!hasSupabaseConfig) {
@@ -560,7 +581,7 @@ function resolveAI(): AIService {
     );
     return mockAI;
   }
-  return realAI;
+  return consentGatedAI;
 }
 
 export const ai: AIService = resolveAI();

@@ -10,11 +10,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { AiConsentPrompt } from '@/components/ai/AiConsentPrompt';
 
 import { colors, radius, spacing } from '@/theme';
 import { Button, Card, Chip, IconButton, Input, Text, useToast } from '@/components/ui';
 import { SafetyBadge, EquipmentBadge } from '@/components/trust';
-import { useApplyToJob, useJob } from '@/hooks';
+import { useAiConsent, useApplyToJob, useJob } from '@/hooks';
 import { useRoleTheme } from '@/hooks/useRoleTheme';
 import { ai, PaySuggestion } from '@/services/ai';
 import { formatPayShort } from '@/lib/format';
@@ -50,6 +51,9 @@ export function ApplyToJobScreen() {
   const [offer, setOffer] = useState('');
   const [suggestion, setSuggestion] = useState<PaySuggestion | null>(null);
   const [drafting, setDrafting] = useState(false);
+  // Re-run the suggestion when AI is allowed, so answering the prompt applies
+  // straight away instead of keeping the local estimate.
+  const { granted: aiAllowed } = useAiConsent();
 
   useEffect(() => {
     if (!job) return;
@@ -67,11 +71,12 @@ export function ApplyToJobScreen() {
     return () => {
       active = false;
     };
-  }, [job]);
+  }, [job, aiAllowed]);
 
   if (!job) {
     return (
       <SafeAreaView style={styles.safe}>
+      <AiConsentPrompt />
         <Header onClose={() => navigation.goBack()} />
         <View style={styles.center}>
           <Text variant="bodyMd" color="textSecondary">
@@ -131,6 +136,7 @@ export function ApplyToJobScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
+      <AiConsentPrompt />
       <Header onClose={() => navigation.goBack()} />
 
       <ScrollView

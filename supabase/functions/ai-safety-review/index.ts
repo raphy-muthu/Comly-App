@@ -12,7 +12,8 @@
 
 import { corsHeaders, json } from '../_shared/cors.ts';
 import { chat } from '../_shared/gemini.ts';
-import { isAuthenticatedUser } from '../_shared/auth.ts';
+import { bearerToken, isAuthenticatedUser, userIdFromRequest } from '../_shared/auth.ts';
+import { hasAiConsent } from '../_shared/aiConsent.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
@@ -21,6 +22,12 @@ Deno.serve(async (req) => {
   // not sufficient; see _shared/auth.ts.
   if (!isAuthenticatedUser(req)) {
     return json({ error: 'Sign in required' }, 401);
+  }
+
+  // Nothing goes to Gemini without this person's permission (guideline
+  // 5.1.2(i)); the app falls back to its on-device rules on this error.
+  if (!(await hasAiConsent(userIdFromRequest(req), bearerToken(req)))) {
+    return json({ error: 'AI assistance is turned off for this account' }, 403);
   }
 
   try {

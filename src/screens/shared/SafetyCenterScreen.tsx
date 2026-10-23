@@ -9,6 +9,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { colors, radius, spacing } from '@/theme';
+import { AiConsentToggle } from '@/components/ai/AiConsentPrompt';
 import { useRoleTheme } from '@/hooks/useRoleTheme';
 import {
   Button,
@@ -97,6 +98,8 @@ export function SafetyCenterScreen() {
         onPress={() => navigation.navigate('Report', {})}
         style={styles.reportBtn}
       />
+
+      <AiConsentToggle />
 
       {/* Tips */}
       <View style={styles.section}>

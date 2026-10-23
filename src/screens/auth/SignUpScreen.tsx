@@ -38,6 +38,7 @@ import {
   signInWithProvider,
 } from '@/services/auth';
 import { PRIVACY_VERSION, TERMS_VERSION } from '@/legal/content';
+import { containsObjectionableText, OBJECTIONABLE_TEXT_MESSAGE } from '@/lib/contentFilter';
 import { bracketFromDateOfBirth, Role } from '@/types/domain';
 import { isSignupLocked, lockSignup } from '@/lib/ageGateLock';
 import { money, minimumWageFor } from '@/lib/wage';
@@ -170,6 +171,13 @@ export function SignUpScreen({ navigation }: Props) {
       } else if (dateOfBirth === null) {
         toast.info('Please enter your date of birth to continue.');
       }
+      return;
+    }
+
+    // The database refuses offensive names (0035), but from inside sign-up its
+    // error arrives only as a generic one, so check here and say what to fix.
+    if (containsObjectionableText(name) || containsObjectionableText(neighborhood)) {
+      toast.error(OBJECTIONABLE_TEXT_MESSAGE);
       return;
     }
 

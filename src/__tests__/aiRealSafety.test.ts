@@ -16,8 +16,14 @@ jest.mock('@/services/supabaseClient', () => ({
 }));
 
 import { ai } from '@/services/ai';
+import { setAiPermitted } from '@/services/aiPermission';
 
-beforeEach(() => mockInvoke.mockReset());
+// These exercise the real AI path, which only runs with the person's
+// permission (guideline 5.1.2(i)); the last block covers the "no" case.
+beforeEach(() => {
+  mockInvoke.mockReset();
+  setAiPermitted(true);
+});
 
 describe('real safetyReview', () => {
   it('overrides a model that was talked into teen_safe for ladder work', async () => {
@@ -54,5 +60,51 @@ describe('real safetyReview', () => {
   it('falls back to the keyword review when the call fails', async () => {
     mockInvoke.mockResolvedValue({ data: null, error: new Error('down') });
     expect((await ai.safetyReview('Mow my lawn', '')).tier).toBe('sixteen_plus_only');
+  });
+});
+
+describe('application message draft', () => {
+  it("doesn't send the helper's name to the AI", async () => {
+    mockInvoke.mockResolvedValue({ data: { applicationMessage: 'Happy to help!' }, error: null });
+    await ai.suggestApplicationMessage({
+      jobTitle: 'Rake leaves',
+      category: 'yard_work',
+      jobDescription: 'Front yard',
+      neighborhood: 'Bryn Mawr',
+      helperName: 'Jordan Rivera',
+      helperSkills: [],
+      helperJobsCount: 0,
+      equipmentProvided: false,
+    });
+    expect(JSON.stringify(mockInvoke.mock.calls)).not.toMatch(/Jordan|Rivera/);
+  });
+});
+
+describe('without AI permission', () => {
+  beforeEach(() => setAiPermitted(false));
+
+  it('never calls the server, and the keyword rules still label the job', async () => {
+    const review = await ai.safetyReview('Gutters', 'Clean the gutters from a ladder.');
+    await ai.suggestPay('yard_work', 'Rake leaves', 'fixed');
+    await ai.improveDescription('rake my leaves', 'yard_work');
+    await ai.checkRealism({
+      category: 'yard_work',
+      title: 'Rake leaves',
+      description: 'Front yard',
+      pay: 30,
+      payType: 'fixed',
+    });
+    await ai.suggestApplicationMessage({
+      jobTitle: 'Rake leaves',
+      category: 'yard_work',
+      jobDescription: 'Front yard',
+      neighborhood: 'Bryn Mawr',
+      helperName: 'Jordan',
+      helperSkills: [],
+      helperJobsCount: 0,
+      equipmentProvided: false,
+    });
+    expect(mockInvoke).not.toHaveBeenCalled();
+    expect(review.tier).toBe('eighteen_plus_only');
   });
 });

@@ -15,6 +15,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { AiConsentPrompt } from '@/components/ai/AiConsentPrompt';
 
 import { colors, gradients, radius, spacing } from '@/theme';
 import {
@@ -29,7 +30,7 @@ import {
 } from '@/components/ui';
 import { SafetyBadge } from '@/components/trust';
 import { errorMessage } from '@/lib/errors';
-import { useCreateJob } from '@/hooks';
+import { useAiConsent, useCreateJob } from '@/hooks';
 import { ai, PaySuggestion, RealismResult, SafetyResult } from '@/services/ai';
 import {
   applyCategoryTierFloor,
@@ -306,6 +307,7 @@ function StandardFlow() {
 
   return (
     <SafeAreaView style={styles.safe}>
+      <AiConsentPrompt />
       <View style={styles.header}>
         <IconButton
           icon={step === 'details' ? 'close' : 'arrow-back'}
@@ -793,7 +795,9 @@ function SeniorFlow() {
   // double-tap can't create two listings.
   const [posting, setPosting] = useState(false);
 
-  // Suggest pay when a preset is chosen.
+  const { granted: aiAllowed } = useAiConsent();
+
+  // Suggest pay when a preset is chosen (again if AI is allowed meanwhile).
   useEffect(() => {
     if (!preset) return;
     let active = true;
@@ -811,7 +815,7 @@ function SeniorFlow() {
       active = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [preset]);
+  }, [preset, aiAllowed]);
 
   const post = async () => {
     if (!preset || posting) return;
@@ -867,6 +871,7 @@ function SeniorFlow() {
 
   return (
     <SafeAreaView style={styles.safe}>
+      <AiConsentPrompt />
       <View style={styles.header}>
         <IconButton icon="close" onPress={() => navigation.goBack()} />
         <Text variant="headlineMd">Get simple help</Text>

@@ -171,6 +171,9 @@ function pushNotification(
   });
 }
 
+// Each mock account's answer to the AI notice (ai_consents in production).
+const aiConsents = new Map<string, boolean>();
+
 function requireJob(id: string): Job {
   const job = db.jobs.find((j) => j.id === id && !j.deletedAt);
   if (!job) throw new Error('Job not found');
@@ -889,6 +892,15 @@ export const mockBackend: DataBackend = {
   },
 
   // ── Blocking ──
+  async getAiConsent() {
+    return delay(aiConsents.has(sessionUser.id) ? aiConsents.get(sessionUser.id)! : null, 80);
+  },
+
+  async setAiConsent(granted) {
+    aiConsents.set(sessionUser.id, granted);
+    return delay(undefined, 80);
+  },
+
   async listBlockedUserIds() {
     return delay(Array.from(db.blocked));
   },

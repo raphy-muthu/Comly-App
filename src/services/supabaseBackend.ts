@@ -910,6 +910,22 @@ export const supabaseBackend: DataBackend = {
     return mapTicket(data);
   },
 
+  async getAiConsent() {
+    const me = await uid();
+    const { data, error } = await sb()
+      .from('ai_consents')
+      .select('granted')
+      .eq('user_id', me)
+      .maybeSingle();
+    if (error) throw error;
+    return data ? !!data.granted : null;
+  },
+
+  async setAiConsent(granted) {
+    const { error } = await sb().rpc('set_ai_consent', { p_granted: granted });
+    if (error) throw error;
+  },
+
   async listBlockedUserIds() {
     const me = await uid();
     const { data, error } = await sb()

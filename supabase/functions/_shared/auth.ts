@@ -14,7 +14,7 @@
 // The signature is already verified upstream, so decoding the payload here is
 // sufficient — we are reading claims, not establishing trust in them.
 
-function bearerToken(req: Request): string {
+export function bearerToken(req: Request): string {
   const auth = req.headers.get('Authorization') ?? '';
   return auth.replace(/^Bearer\s+/i, '').trim();
 }

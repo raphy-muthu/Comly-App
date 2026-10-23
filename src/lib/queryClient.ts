@@ -69,5 +69,6 @@ export const queryKeys = {
   mySupportTickets: ['support', 'mine'] as const,
   allSupportTickets: ['support', 'all'] as const,
   blockedUsers: ['blocked'] as const,
+  aiConsent: (userId: string) => ['aiConsent', userId] as const,
   impactStats: ['impact'] as const,
 };

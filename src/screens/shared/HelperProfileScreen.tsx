@@ -171,7 +171,21 @@ export function HelperProfileScreen() {
             </Text>
             {reviews && reviews.length > 0 ? (
               reviews.map((review) => (
-                <ReviewCard key={review.id} review={review} />
+                <ReviewCard
+                  key={review.id}
+                  review={review}
+                  // Anyone can flag a review except the person who wrote it.
+                  onReport={
+                    review.reviewerId === currentUserId
+                      ? undefined
+                      : () =>
+                          navigation.navigate('Report', {
+                            reportedUserId: review.reviewerId ?? undefined,
+                            jobId: review.jobId,
+                            content: { kind: 'review', id: review.id, text: review.comment },
+                          })
+                  }
+                />
               ))
             ) : (
               <Card padded>
@@ -206,7 +220,7 @@ export function HelperProfileScreen() {
   );
 }
 
-function ReviewCard({ review }: { review: Review }) {
+function ReviewCard({ review, onReport }: { review: Review; onReport?: () => void }) {
   const avg =
     Object.values(review.ratings).reduce((a, b) => a + b, 0) /
     Object.values(review.ratings).length;
@@ -238,6 +252,16 @@ function ReviewCard({ review }: { review: Review }) {
           </View>
         ))}
       </View>
+      {onReport && (
+        <Button
+          title="Report review"
+          variant="ghost"
+          size="sm"
+          icon="flag-outline"
+          onPress={onReport}
+          style={styles.reviewReport}
+        />
+      )}
     </Card>
   );
 }
@@ -282,6 +306,7 @@ const styles = StyleSheet.create({
   previewRow: { flexDirection: 'row', gap: spacing.base },
   previewText: { flex: 1 },
   reportBtn: { marginTop: spacing.md },
+  reviewReport: { alignSelf: 'flex-start', marginTop: spacing.xs },
   block: { marginTop: spacing.md },
   sectionTitle: { marginBottom: spacing.sm },
   repRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },

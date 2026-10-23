@@ -121,6 +121,13 @@ export function JobApplicationsScreen() {
             onViewProfile={() =>
               navigation.navigate('HelperProfile', { userId: app.helperId })
             }
+            onReport={() =>
+              navigation.navigate('Report', {
+                reportedUserId: app.helperId,
+                jobId: app.jobId,
+                content: { kind: 'application', id: app.id, text: app.message },
+              })
+            }
           />
         )}
       />
@@ -147,6 +154,7 @@ function ApplicationCard({
   onAccept,
   onDecline,
   onViewProfile,
+  onReport,
 }: {
   application: Application;
   jobDecided: boolean;
@@ -157,6 +165,7 @@ function ApplicationCard({
   onAccept: () => void;
   onDecline: () => void;
   onViewProfile: () => void;
+  onReport: () => void;
 }) {
   const { helper } = application;
   const statusChip = STATUS_CHIP[application.status];
@@ -213,11 +222,20 @@ function ApplicationCard({
           icon="person-circle-outline"
           onPress={onViewProfile}
         />
-        <BlockUserButton
-          userId={application.helperId}
-          name={helper.name}
-          jobId={application.jobId}
-        />
+        <View style={styles.cardLinksRight}>
+          <Button
+            title="Report"
+            variant="ghost"
+            size="sm"
+            icon="flag-outline"
+            onPress={onReport}
+          />
+          <BlockUserButton
+            userId={application.helperId}
+            name={helper.name}
+            jobId={application.jobId}
+          />
+        </View>
       </View>
 
       {showActions && (
@@ -255,6 +273,7 @@ const styles = StyleSheet.create({
   },
   headerSpacer: { width: 40 },
   cardLinks: { flexDirection: 'row', justifyContent: 'space-between', marginTop: spacing.sm },
+  cardLinksRight: { flexDirection: 'row' },
   subtitle: { paddingHorizontal: spacing.marginMobile, marginTop: spacing.base },
   sortNote: { paddingHorizontal: spacing.marginMobile, marginTop: 4 },
   priorityRow: { marginTop: 4 },

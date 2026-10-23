@@ -53,7 +53,7 @@ export interface LegalDocument {
  * and re-consent is driven by comparing these against `terms_version` /
  * `privacy_version` on the profile.
  */
-export const TERMS_VERSION = '2026-10-07';
+export const TERMS_VERSION = '2026-10-23';
 export const PRIVACY_VERSION = '2026-10-07';
 
 /**
@@ -85,6 +85,12 @@ export const PRIVACY_VERSION = '2026-10-07';
  *                        release of claims, indemnity, a one-year claim
  *                        deadline, and a new contracting party. Every one of
  *                        those changes a user's rights.
+ *   2026-10-23 terms   — §15 now opens with a no-tolerance rule for
+ *                        objectionable content and abusive users, with removal
+ *                        and termination as the consequence (App Store
+ *                        guideline 1.2 expects users to agree to exactly this).
+ *                        A new conduct obligation, so everyone re-accepts.
+ *                        Drafted 2026-10-23; awaiting counsel review.
  *
  * The 2026-09-07 privacy revision (documenting in-app account deletion) is
  * deliberately NOT a re-consent event: it grants a right rather than changing
@@ -92,7 +98,7 @@ export const PRIVACY_VERSION = '2026-10-07';
  * tracking are used, and disclosing the on-device sign-up lock): it describes
  * existing practice and adds no new recipient or use of data.
  */
-export const TERMS_RECONSENT_SINCE = '2026-10-02';
+export const TERMS_RECONSENT_SINCE = '2026-10-23';
 export const PRIVACY_RECONSENT_SINCE = '2026-09-20';
 
 /**
@@ -128,7 +134,7 @@ export const LEGAL_URLS = {
 
 export const TERMS_OF_SERVICE: LegalDocument = {
   title: 'Terms of Service',
-  lastUpdated: 'October 07, 2026',
+  lastUpdated: 'October 23, 2026',
   version: TERMS_VERSION,
   blocks: [
     { type: 'h2', text: `1. ABOUT THESE TERMS AND COMLY` },
@@ -480,7 +486,11 @@ export const TERMS_OF_SERVICE: LegalDocument = {
     { type: 'h2', text: `15. REPORTING, BLOCKING, AND MODERATION` },
     {
       type: 'p',
-      text: `Users may report job listings, profiles, reviews, unsafe behavior, inappropriate contact, scams, payment issues, no-shows, harassment, underage-safety concerns, dangerous tasks, or other violations through available reporting tools.`,
+      text: `Comly has no tolerance for objectionable content or abusive users. You may not post content that is offensive, hateful, harassing, threatening, sexually explicit, or otherwise objectionable, and you may not abuse, harass, threaten, or exploit other users. We may remove such content and suspend or terminate the accounts responsible, with or without notice. We aim to act on reports of objectionable content within 24 hours.`,
+    },
+    {
+      type: 'p',
+      text: `Users may report job listings, profiles, reviews, application messages, unsafe behavior, inappropriate contact, scams, payment issues, no-shows, harassment, underage-safety concerns, dangerous tasks, or other violations through available reporting tools.`,
     },
     {
       type: 'p',

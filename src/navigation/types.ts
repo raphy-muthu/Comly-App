@@ -2,6 +2,7 @@
  * Navigation param lists. Centralized so screens get typed route params and
  * navigation calls are checked.
  */
+import type { ReportedContent } from '@/lib/reportContent';
 
 import { NavigatorScreenParams } from '@react-navigation/native';
 
@@ -40,7 +41,8 @@ export type AppStackParamList = {
   MyListings: undefined;
   MyApplications: undefined;
   HelperProfile: { userId: string };
-  Report: { reportedUserId?: string; jobId?: string };
+  /** `content` names one review or application message being reported. */
+  Report: { reportedUserId?: string; jobId?: string; content?: ReportedContent };
   SafetyCenter: undefined;
   HelpSupport: undefined;
   EditProfile: undefined;

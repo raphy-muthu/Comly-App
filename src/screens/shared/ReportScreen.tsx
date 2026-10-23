@@ -1,6 +1,8 @@
 /**
- * Report — file a safety/quality report about a user or listing. Reachable from
- * job details, profiles, and the Safety Center. Reports get a mock AI risk
+ * Report — file a safety/quality report about a user, a listing, or one
+ * review or application message (`content`, quoted into the report so the
+ * moderator sees exactly what was flagged). Reachable from job details,
+ * profiles, reviews, applicant cards, and the Safety Center. Reports get a mock AI risk
  * triage and land in the admin console.
  */
 
@@ -24,6 +26,7 @@ import {
 import { useCreateReport } from '@/hooks';
 import { ReportCategory, REPORT_CATEGORIES } from '@/types/domain';
 import { AppStackParamList } from '@/navigation/types';
+import { quoteForReport, REPORTED_CONTENT_LABEL, reportDescription } from '@/lib/reportContent';
 
 type Nav = NativeStackNavigationProp<AppStackParamList>;
 type Rt = RouteProp<AppStackParamList, 'Report'>;
@@ -44,7 +47,7 @@ export function ReportScreen() {
     createReport.mutate(
       {
         category,
-        description: description.trim(),
+        description: reportDescription(description, params?.content),
         reportedUserId: params?.reportedUserId,
         jobId: params?.jobId,
       },
@@ -81,6 +84,17 @@ export function ReportScreen() {
             </Text>
           </View>
         </Card>
+
+        {params?.content && (
+          <Card padded style={styles.quoted}>
+            <Text variant="labelMd" color="textSecondary" style={styles.label}>
+              YOU'RE REPORTING THIS {REPORTED_CONTENT_LABEL[params.content.kind].toUpperCase()}
+            </Text>
+            <Text variant="bodyMd" color="textPrimary">
+              “{quoteForReport(params.content.text) || '(no text)'}”
+            </Text>
+          </Card>
+        )}
 
         <Text variant="labelMd" color="textSecondary" style={styles.label}>
           WHAT HAPPENED?
@@ -143,6 +157,7 @@ const styles = StyleSheet.create({
     borderColor: '#bbf7d0',
   },
   noticeRow: { flexDirection: 'row', gap: spacing.base },
+  quoted: { marginBottom: spacing.md },
   noticeText: { flex: 1 },
   label: { marginBottom: spacing.base },
   wrapRow: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: spacing.md },

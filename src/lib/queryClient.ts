@@ -7,7 +7,8 @@
  * failed feed/profile fetch would just render as silent empty UI.
  */
 
-import { QueryCache, QueryClient } from '@tanstack/react-query';
+import { MutationCache, QueryCache, QueryClient } from '@tanstack/react-query';
+import * as Sentry from '@sentry/react-native';
 import { globalToast } from '@/components/ui/Toast';
 
 let lastErrorAt = 0;
@@ -23,6 +24,17 @@ export const queryClient = new QueryClient({
       globalToast.current?.error(
         "Couldn't load the latest data. Pull to refresh to try again."
       );
+    },
+  }),
+  // Call sites toast mutation failures themselves; this only records them so
+  // a failure on a tester's phone (e.g. a post the database refused) shows up
+  // in Sentry with Postgres's code/details/hint instead of going unseen.
+  mutationCache: new MutationCache({
+    onError: (error) => {
+      const e = error as { message?: string; code?: string; details?: string; hint?: string };
+      Sentry.captureException(error, {
+        extra: { message: e?.message, code: e?.code, details: e?.details, hint: e?.hint },
+      });
     },
   }),
   defaultOptions: {

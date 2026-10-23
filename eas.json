@@ -20,14 +20,20 @@
       "android": {
         "buildType": "apk"
       },
-      "environment": "preview"
+      "environment": "preview",
+      "ios": {
+        "image": "macos-tahoe-26.4-xcode-26.4"
+      }
     },
     "production": {
       "autoIncrement": true,
       "env": {
         "EXPO_PUBLIC_USE_MOCKS": "false"
       },
-      "environment": "production"
+      "environment": "production",
+      "ios": {
+        "image": "macos-tahoe-26.4-xcode-26.4"
+      }
     }
   },
   "submit": {

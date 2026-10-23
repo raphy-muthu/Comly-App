@@ -15,6 +15,7 @@ import {
   Application,
   AppNotification,
   applyCategoryTierFloor,
+  BLOCK_REPORT_DESCRIPTION,
   compareApplications,
   compareFeedJobs,
   ImpactStats,
@@ -27,6 +28,7 @@ import {
   UserProfile,
   UserRef,
 } from '@/types/domain';
+import * as Sentry from '@sentry/react-native';
 import { getSupabase } from './supabaseClient';
 import {
   ApplyToJobInput,
@@ -438,11 +440,15 @@ export const supabaseBackend: DataBackend = {
   },
 
   async listApplicationsForJob(jobId) {
-    const { data, error } = await sb()
+    const me = await uid();
+    const blocked = await blockedInList(me);
+    let query = sb()
       .from('applications')
       .select(`*, helper:profiles!applications_helper_id_fkey(${PROFILE_REF})`)
-      .eq('job_id', jobId)
-      .order('created_at', { ascending: false });
+      .eq('job_id', jobId);
+    // An applicant I blocked disappears from my list, same as from my feed.
+    if (blocked) query = query.not('helper_id', 'in', blocked);
+    const { data, error } = await query.order('created_at', { ascending: false });
     if (error) throw error;
     return (data ?? []).map(mapApplication).sort(compareApplications);
   },
@@ -617,21 +623,25 @@ export const supabaseBackend: DataBackend = {
   },
 
   async listReviewsForUser(userId) {
-    const { data, error } = await sb()
-      .from('reviews')
-      .select('*')
-      .eq('reviewee_id', userId)
-      .order('created_at', { ascending: false });
+    const me = await uid();
+    const blocked = await blockedInList(me);
+    let query = sb().from('reviews').select('*').eq('reviewee_id', userId);
+    // Hide reviews written by people I blocked. A plain `not in` would also
+    // drop rows whose reviewer_id is null, so keep those explicitly.
+    if (blocked) query = query.or(`reviewer_id.is.null,reviewer_id.not.in.${blocked}`);
+    const { data, error } = await query.order('created_at', { ascending: false });
     if (error) throw error;
     return (data ?? []).map(mapReview);
   },
 
   async listReviewsForJob(jobId) {
-    const { data, error } = await sb()
-      .from('reviews')
-      .select('*')
-      .eq('job_id', jobId)
-      .order('created_at', { ascending: false });
+    const me = await uid();
+    const blocked = await blockedInList(me);
+    let query = sb().from('reviews').select('*').eq('job_id', jobId);
+    // Hide reviews written by people I blocked. A plain `not in` would also
+    // drop rows whose reviewer_id is null, so keep those explicitly.
+    if (blocked) query = query.or(`reviewer_id.is.null,reviewer_id.not.in.${blocked}`);
+    const { data, error } = await query.order('created_at', { ascending: false });
     if (error) throw error;
     return (data ?? []).map(mapReview);
   },
@@ -892,12 +902,26 @@ export const supabaseBackend: DataBackend = {
     return (data ?? []).map((r: any) => r.blocked_user_id);
   },
 
-  async blockUser(userId) {
+  async blockUser(userId, context) {
     const me = await uid();
     const { error } = await sb()
       .from('blocked_users')
       .insert({ user_id: me, blocked_user_id: userId });
-    if (error) throw error;
+    // Already blocked (primary key) is not a failure; the report still goes in.
+    if (error && error.code !== '23505') throw error;
+    // Blocking must also notify Comly (guideline 1.2). It's filed as an
+    // ordinary report so it lands in the same moderation queue as the rest.
+    const { error: reportError } = await sb().from('reports').insert({
+      reporter_id: me,
+      reported_user_id: userId,
+      job_id: context?.jobId ?? null,
+      category: 'other',
+      description: BLOCK_REPORT_DESCRIPTION,
+      status: 'open',
+    });
+    // The block itself already took effect, so don't tell the user it failed;
+    // surface the missed report to Sentry instead.
+    if (reportError) Sentry.captureException(reportError, { extra: { context: 'block report' } });
   },
 
   async unblockUser(userId) {

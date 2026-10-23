@@ -14,12 +14,13 @@
         "NSPhotoLibraryUsageDescription": "Comly uses your photo library so you can choose a profile photo.",
         "NSCameraUsageDescription": "Comly uses your camera only to take a profile photo, and only when you choose to.",
         "ITSAppUsesNonExemptEncryption": false
-      }
+      },
+      "buildNumber": "3"
     },
     "android": {
       "package": "com.comly.app",
       "adaptiveIcon": {
-        "backgroundColor": "#4c1d95",
+        "backgroundColor": "#ffffff",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -51,7 +52,7 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#4c1d95",
+          "backgroundColor": "#ffffff",
           "image": "./assets/splash-icon.png",
           "resizeMode": "contain",
           "imageWidth": 200
@@ -67,7 +68,8 @@
           "url": "https://sentry.io/"
         }
       ],
-      "./plugins/withPodsMinimumDeploymentTarget"
+      "./plugins/withPodsMinimumDeploymentTarget",
+      "./plugins/withSceneLifecycle"
     ],
     "extra": {
       "useMocks": false,

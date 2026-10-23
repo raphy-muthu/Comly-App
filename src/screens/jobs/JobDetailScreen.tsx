@@ -30,6 +30,7 @@ import { SafetyBadge, TrustBadge, EquipmentBadge, PremiumBadge } from '@/compone
 import { ContactCard } from '@/components/job/ContactCard';
 import { JobOwnerMenu } from '@/components/job/JobOwnerMenu';
 import { MapPreview } from '@/components/job/MapPreview';
+import { BlockUserButton } from '@/components/people/BlockUserButton';
 import {
   useConfirmJobCompletion,
   useDisputeJobCompletion,
@@ -383,18 +384,26 @@ export function JobDetailScreen() {
           )}
 
         {!isOwner && (
-          <Button
-            title="Report listing"
-            variant="ghost"
-            icon="flag-outline"
-            size="sm"
-            onPress={() =>
-              navigation.navigate('Report', {
-                jobId: job.id,
-                reportedUserId: job.customerId,
-              })
-            }
-          />
+          <>
+            <Button
+              title="Report listing"
+              variant="ghost"
+              icon="flag-outline"
+              size="sm"
+              onPress={() =>
+                navigation.navigate('Report', {
+                  jobId: job.id,
+                  reportedUserId: job.customerId,
+                })
+              }
+            />
+            <BlockUserButton
+              userId={job.customerId}
+              name={job.customer.name}
+              jobId={job.id}
+              onBlocked={() => navigation.goBack()}
+            />
+          </>
         )}
       </ScrollView>
 

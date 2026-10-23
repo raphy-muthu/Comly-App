@@ -22,6 +22,8 @@ module.exports = {
     '^expo-web-browser$': '<rootDir>/src/__tests__/stubs/expo-native.js',
     // supabaseClient.ts imports secureStorage.ts, which imports this.
     '^expo-secure-store$': '<rootDir>/src/__tests__/stubs/expo-secure-store.js',
+    // supabaseBackend.ts reports a failed block report to Sentry.
+    '^@sentry/react-native$': '<rootDir>/src/__tests__/stubs/sentry.js',
   },
   transform: {
     '^.+\\.[tj]sx?$': [

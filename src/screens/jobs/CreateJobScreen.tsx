@@ -28,6 +28,7 @@ import {
   useToast,
 } from '@/components/ui';
 import { SafetyBadge } from '@/components/trust';
+import { errorMessage } from '@/lib/errors';
 import { useCreateJob } from '@/hooks';
 import { ai, PaySuggestion, RealismResult, SafetyResult } from '@/services/ai';
 import {
@@ -298,7 +299,7 @@ function StandardFlow() {
           navigation.goBack();
         },
         onError: (err) =>
-          toast.error(err instanceof Error ? err.message : 'Could not post job.'),
+          toast.error(errorMessage(err, 'Could not post job.')),
       }
     );
   };
@@ -858,7 +859,7 @@ function SeniorFlow() {
         },
         onError: (err) => {
           setPosting(false);
-          toast.error(err instanceof Error ? err.message : 'Could not post.');
+          toast.error(errorMessage(err, 'Could not post.'));
         },
       }
     );

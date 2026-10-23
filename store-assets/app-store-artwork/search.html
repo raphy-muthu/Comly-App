@@ -1,0 +1,29 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link rel="stylesheet" href="common.css">
+<style>
+@font-face { font-family: NY; src: url(file:///System/Library/Fonts/NewYork.ttf); font-weight: 100 1000; }
+@font-face { font-family: SF; src: url(file:///System/Library/Fonts/SFNS.ttf); font-weight: 100 1000; }
+:root { --W: 3840px; --H: 2560px; }
+body { background: #ffffff; }
+.copy { position: absolute; left: 0; right: 0; top: 250px; text-align: center; color: #14121a; }
+h1 { font-family: NY, Georgia, serif; font-weight: 600; font-size: 290px; line-height: 1.02; letter-spacing: -.01em; }
+h1 span { color: #15803d; }
+p.sub { margin-top: 64px; font-family: SF, -apple-system, sans-serif; font-size: 96px; font-weight: 400; color: #55525f; }
+.phone { box-shadow: 0 0 0 calc(var(--pw) * .006) rgba(255,255,255,.14) inset, 0 calc(var(--pw) * .08) calc(var(--pw) * .16) rgba(20,18,26,.20), 0 calc(var(--pw) * .02) calc(var(--pw) * .04) rgba(20,18,26,.12); }
+.p1 { --pw: 720px; left: 1140px; top: 1120px; transform: rotate(-5deg); z-index: 2; }
+.p2 { --pw: 720px; left: 1980px; top: 1160px; transform: rotate(5deg); z-index: 3; }
+.chip { font-family: SF, -apple-system, sans-serif; font-weight: 600; font-size: 64px; z-index: 5; background: #fff; border: 3px solid rgba(20,18,26,.08); box-shadow: 0 24px 70px rgba(20,18,26,.14); }
+.c1 { left: 430px; top: 2110px; }
+.c2 { left: 2600px; top: 1900px; }
+</style></head>
+<body>
+<div class="copy">
+  <h1>Get help from<br><span>your neighbors.</span></h1>
+  <p class="sub">Every job is safety-checked before anyone sees it.</p>
+</div>
+<div class="phone p1"><img src="s01.png"></div>
+<div class="phone p2"><img src="s03.png"></div>
+<div class="chip c1"><i style="background:#f59e0b">!</i>Safety label on every job</div>
+<div class="chip c2"><i style="background:#16a34a">✓</i>Contact unlocks on accept</div>
+</body></html>

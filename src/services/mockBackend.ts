@@ -8,6 +8,7 @@
 
 import {
   ACTIVE_JOB_STATUSES,
+  BLOCK_REPORT_DESCRIPTION,
   Application,
   applyCategoryTierFloor,
   compareApplications,
@@ -314,7 +315,7 @@ export const mockBackend: DataBackend = {
   // ── Applications ──
   async listApplicationsForJob(jobId) {
     const apps = db.applications
-      .filter((a) => a.jobId === jobId)
+      .filter((a) => a.jobId === jobId && !db.blocked.has(a.helperId))
       // Accepted → Pro Helper priority → rating → completed jobs → earliest.
       .sort(compareApplications);
     return delay(apps);
@@ -580,13 +581,17 @@ export const mockBackend: DataBackend = {
 
   async listReviewsForUser(userId) {
     const list = db.reviews
-      .filter((r) => r.revieweeId === userId)
+      .filter((r) => r.revieweeId === userId && !(r.reviewerId && db.blocked.has(r.reviewerId)))
       .sort(newest);
     return delay(list);
   },
 
   async listReviewsForJob(jobId) {
-    return delay(db.reviews.filter((r) => r.jobId === jobId).sort(newest));
+    return delay(
+      db.reviews
+        .filter((r) => r.jobId === jobId && !(r.reviewerId && db.blocked.has(r.reviewerId)))
+        .sort(newest)
+    );
   },
 
   async createReview(input: CreateReviewInput) {
@@ -815,8 +820,21 @@ export const mockBackend: DataBackend = {
     return delay(Array.from(db.blocked));
   },
 
-  async blockUser(userId) {
+  async blockUser(userId, context) {
     db.blocked.add(userId);
+    // Mirrors the real backend: blocking also files a report for moderators.
+    db.reports.unshift({
+      id: uid('rep'),
+      reporterId: sessionUser.id,
+      reportedUserId: userId,
+      jobId: context?.jobId,
+      category: 'other',
+      description: BLOCK_REPORT_DESCRIPTION,
+      riskLevel: riskFor('other'),
+      aiSummary: summarizeReport('other'),
+      status: 'open',
+      createdAt: new Date().toISOString(),
+    });
     return delay(undefined, 120);
   },
 

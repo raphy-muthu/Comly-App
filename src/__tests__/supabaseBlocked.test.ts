@@ -28,6 +28,23 @@ function mockQuery(table: string) {
       rows = rows.filter((r) => !ids.includes(r[col]));
       return builder;
     },
+    // Only the shape listReviews* builds: "reviewer_id.is.null,reviewer_id.not.in.(a,b)".
+    or: (expr: string) => {
+      const m = expr.match(/^(\w+)\.is\.null,\1\.not\.in\.\((.*)\)$/);
+      if (!m) throw new Error(`fake doesn't support or(${expr})`);
+      const ids = m[2].split(',');
+      rows = rows.filter((r) => r[m[1]] == null || !ids.includes(r[m[1]]));
+      return builder;
+    },
+    insert: (row: Row) => {
+      const list = (mockTables[table] ??= []);
+      const dup =
+        table === 'blocked_users' &&
+        list.some((r) => r.user_id === row.user_id && r.blocked_user_id === row.blocked_user_id);
+      if (!dup) list.push(row);
+      const error = dup ? { code: '23505', message: 'duplicate key' } : null;
+      return Promise.resolve({ data: null, error });
+    },
     then: (resolve: any, reject: any) =>
       Promise.resolve({ data: rows, error: null }).then(resolve, reject),
   };
@@ -68,6 +85,16 @@ beforeEach(() => {
   mockTables.jobs = [job('j_ok', 'u_neighbor'), job('j_blocked', 'u_blocked'), job('j_mine', 'me')];
   mockTables.profiles = [helper('u_neighbor', 50), helper('u_blocked', 90), helper('me', 70)];
   mockTables.blocked_users = [{ user_id: 'me', blocked_user_id: 'u_blocked' }];
+  mockTables.reports = [];
+  mockTables.applications = [
+    { id: 'a_ok', job_id: 'j_mine', helper_id: 'u_neighbor', created_at: '2026-09-02T00:00:00Z' },
+    { id: 'a_blocked', job_id: 'j_mine', helper_id: 'u_blocked', created_at: '2026-09-02T00:00:00Z' },
+  ];
+  mockTables.reviews = [
+    { id: 'r_ok', reviewee_id: 'u_neighbor', reviewer_id: 'u_other', job_id: 'j_x', ratings: {} },
+    { id: 'r_blocked', reviewee_id: 'u_neighbor', reviewer_id: 'u_blocked', job_id: 'j_x', ratings: {} },
+    { id: 'r_anon', reviewee_id: 'u_neighbor', reviewer_id: null, job_id: 'j_x', ratings: {} },
+  ];
 });
 
 describe('blocked users against the real backend', () => {
@@ -87,5 +114,38 @@ describe('blocked users against the real backend', () => {
       'j_blocked',
       'j_ok',
     ]);
+  });
+
+  it('drops applicants I blocked from my job', async () => {
+    const ids = (await supabaseBackend.listApplicationsForJob('j_mine')).map((a) => a.id);
+    expect(ids).toEqual(['a_ok']);
+  });
+
+  it("hides reviews written by people I blocked, but keeps reviews with no reviewer", async () => {
+    const ids = (await supabaseBackend.listReviewsForUser('u_neighbor')).map((r) => r.id).sort();
+    expect(ids).toEqual(['r_anon', 'r_ok']);
+  });
+});
+
+describe('blocking someone (App Store guideline 1.2)', () => {
+  it('records the block and files a report for moderators', async () => {
+    await supabaseBackend.blockUser('u_neighbor', { jobId: 'j_ok' });
+    expect(mockTables.blocked_users).toContainEqual({ user_id: 'me', blocked_user_id: 'u_neighbor' });
+    expect(mockTables.reports).toEqual([
+      expect.objectContaining({
+        reporter_id: 'me',
+        reported_user_id: 'u_neighbor',
+        job_id: 'j_ok',
+        category: 'other',
+        status: 'open',
+      }),
+    ]);
+    // ...and their listing leaves my feed.
+    expect((await supabaseBackend.listFeedJobs()).map((j) => j.id)).toEqual([]);
+  });
+
+  it('treats blocking someone already blocked as success and still reports', async () => {
+    await expect(supabaseBackend.blockUser('u_blocked')).resolves.toBeUndefined();
+    expect(mockTables.reports).toHaveLength(1);
   });
 });

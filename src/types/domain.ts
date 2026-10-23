@@ -566,6 +566,10 @@ export const BADGES: Record<
 };
 
 // ── Reports ──────────────────────────────────────────────────────────────────
+/** Description on the report that blocking someone files automatically. */
+export const BLOCK_REPORT_DESCRIPTION =
+  'Automatic report: another user blocked this person. Review their recent listings, applications and reviews.';
+
 export type ReportCategory =
   | 'unsafe_behavior'
   | 'inappropriate_contact'

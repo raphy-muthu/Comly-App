@@ -1,0 +1,54 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link rel="stylesheet" href="common.css">
+<style>
+@font-face { font-family: NY; src: url(file:///System/Library/Fonts/NewYork.ttf); font-weight: 100 1000; }
+@font-face { font-family: SF; src: url(file:///System/Library/Fonts/SFNS.ttf); font-weight: 100 1000; }
+:root { --W: 3840px; --H: 1646px; }
+body { background: #ffffff; }
+.grid {
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,.045) 2px, transparent 2px),
+    linear-gradient(90deg, rgba(255,255,255,.045) 2px, transparent 2px);
+  background-size: 120px 120px;
+  -webkit-mask-image: radial-gradient(ellipse 70% 80% at 60% 45%, #000 20%, transparent 75%);
+}
+svg.net { position: absolute; inset: 0; }
+.copy { position: absolute; left: 700px; top: 430px; width: 1300px; color: #14121a; }
+.eyebrow {
+  display: inline-flex; align-items: center; gap: 22px;
+  font-size: 38px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase;
+  color: #c4b5fd;
+  padding: 18px 34px; border-radius: 999px;
+  border: 2px solid rgba(196,181,253,.35); background: rgba(255,255,255,.05);
+}
+.eyebrow b { width: 16px; height: 16px; border-radius: 50%; background: #4ade80; box-shadow: 0 0 24px #4ade80; }
+h1 { font-family: NY, Georgia, serif; font-weight: 600; font-size: 176px; line-height: 1.04; letter-spacing: -.01em; margin: 0 0 54px; }
+h1 span { color: #15803d; font-style: normal; }
+p.sub { font-family: SF, -apple-system, sans-serif; font-size: 54px; font-weight: 400; line-height: 1.4; color: #55525f; max-width: 1180px; letter-spacing: 0; }
+.stage { position: absolute; left: 2020px; top: 0; width: 1250px; height: 1646px; }
+.p1 { --pw: 580px; left: 330px; top: 170px; transform: rotate(-2deg); --glow: rgba(20,18,26,.10); z-index: 3; }
+.p2 { --pw: 470px; left: -10px; top: 360px; transform: rotate(-9deg); --glow: rgba(20,18,26,.08); z-index: 2; }
+.p3 { --pw: 470px; left: 790px; top: 320px; transform: rotate(7deg); --glow: rgba(20,18,26,.08); z-index: 2; }
+.chip { font-family: SF, -apple-system, sans-serif; font-weight: 600; font-size: 40px; z-index: 5; background: #fff; border: 2px solid rgba(20,18,26,.08); box-shadow: 0 18px 50px rgba(20,18,26,.14); }
+.c1 { left: -170px; top: 1170px; }
+.c2 { left: 770px; top: 150px; }
+.c3 { left: 330px; top: 1120px; }
+.phone { box-shadow: 0 0 0 calc(var(--pw) * .006) rgba(255,255,255,.14) inset, 0 calc(var(--pw) * .08) calc(var(--pw) * .16) rgba(20,18,26,.20), 0 calc(var(--pw) * .02) calc(var(--pw) * .04) rgba(20,18,26,.12); }
+</style></head>
+<body>
+
+<div class="copy">
+  <h1>Help is right<br><span>next door.</span></h1>
+  <p class="sub">Post a job in a minute. Pick a trusted neighbor. Every job is checked before anyone sees it.</p>
+</div>
+
+<div class="stage">
+  <div class="phone p2"><img src="s06.png"></div>
+  <div class="phone p3"><img src="s03.png"></div>
+  <div class="phone p1"><img src="s01.png"></div>
+  <div class="chip c1"><i style="background:#f59e0b">!</i>Safety label on every job</div>
+  <div class="chip c2"><i style="background:#16a34a">✓</i>Contact unlocks on accept</div>
+</div>
+</body></html>

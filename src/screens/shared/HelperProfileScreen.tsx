@@ -27,6 +27,7 @@ import {
   VerificationList,
   YouthSkillsCard,
 } from '@/components/trust';
+import { BlockUserButton } from '@/components/people/BlockUserButton';
 import { useProfile, useUserReviews } from '@/hooks';
 import { useAuthStore } from '@/stores/authStore';
 import { NO_SHOW_POLICY, Review, ReviewCategory } from '@/types/domain';
@@ -182,16 +183,22 @@ export function HelperProfileScreen() {
           </View>
 
           {!isSelf && (
-            <Button
-              title="Report this profile"
-              variant="ghost"
-              size="sm"
-              icon="flag-outline"
-              onPress={() =>
-                navigation.navigate('Report', { reportedUserId: params.userId })
-              }
-              style={styles.reportBtn}
-            />
+            <View style={styles.reportBtn}>
+              <Button
+                title="Report this profile"
+                variant="ghost"
+                size="sm"
+                icon="flag-outline"
+                onPress={() =>
+                  navigation.navigate('Report', { reportedUserId: params.userId })
+                }
+              />
+              <BlockUserButton
+                userId={params.userId}
+                name={profile.name}
+                onBlocked={() => navigation.goBack()}
+              />
+            </View>
           )}
         </ScrollView>
       )}

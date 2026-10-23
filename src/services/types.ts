@@ -191,7 +191,12 @@ export interface DataBackend {
 
   // ── Blocking ──
   listBlockedUserIds(): Promise<string[]>;
-  blockUser(userId: string): Promise<void>;
+  /**
+   * Blocks a user and files a report about them, so blocking also notifies
+   * Comly's moderators (App Store guideline 1.2). `jobId` ties the report to
+   * the listing the block came from.
+   */
+  blockUser(userId: string, context?: { jobId?: string }): Promise<void>;
   unblockUser(userId: string): Promise<void>;
 
   // ── Community impact ──

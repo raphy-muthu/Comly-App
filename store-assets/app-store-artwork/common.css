@@ -1,0 +1,47 @@
+@font-face { font-family: PJ; font-weight: 800; src: url(../../node_modules/@expo-google-fonts/plus-jakarta-sans/800ExtraBold/PlusJakartaSans_800ExtraBold.ttf); }
+@font-face { font-family: PJ; font-weight: 600; src: url(../../node_modules/@expo-google-fonts/plus-jakarta-sans/600SemiBold/PlusJakartaSans_600SemiBold.ttf); }
+@font-face { font-family: PJ; font-weight: 500; src: url(../../node_modules/@expo-google-fonts/plus-jakarta-sans/500Medium/PlusJakartaSans_500Medium.ttf); }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: var(--W); height: var(--H); overflow: hidden; }
+body { font-family: PJ, sans-serif; -webkit-font-smoothing: antialiased; position: relative; }
+
+/* iPhone frame around a real 1320×2868 screenshot */
+.phone {
+  position: absolute;
+  width: var(--pw);
+  aspect-ratio: 1320 / 2868;
+  border-radius: calc(var(--pw) * .15);
+  padding: calc(var(--pw) * .028);
+  background: linear-gradient(145deg, #2a2733, #0b0a10 40%, #1b1922);
+  box-shadow:
+    0 0 0 calc(var(--pw) * .006) rgba(255,255,255,.14) inset,
+    0 calc(var(--pw) * .12) calc(var(--pw) * .3) rgba(0,0,0,.45),
+    0 0 calc(var(--pw) * .45) var(--glow, rgba(124,58,237,.35));
+}
+.phone img {
+  display: block; width: 100%; height: 100%;
+  border-radius: calc(var(--pw) * .125);
+  object-fit: cover;
+}
+.phone::after { /* glass sheen */
+  content: ""; position: absolute; inset: calc(var(--pw) * .028);
+  border-radius: calc(var(--pw) * .125);
+  background: linear-gradient(115deg, rgba(255,255,255,.16) 0%, rgba(255,255,255,0) 32%);
+  pointer-events: none;
+}
+
+.chip {
+  position: absolute;
+  display: flex; align-items: center; gap: .55em;
+  padding: .7em 1.1em .7em .8em;
+  border-radius: 999px;
+  font-weight: 600;
+  white-space: nowrap;
+  background: rgba(255,255,255,.92);
+  color: #17151d;
+  box-shadow: 0 .6em 2em rgba(0,0,0,.28);
+}
+.chip i {
+  width: 1.6em; height: 1.6em; border-radius: 50%;
+  display: grid; place-items: center; font-style: normal; color: #fff; font-size: .9em;
+}

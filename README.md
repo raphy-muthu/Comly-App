@@ -6,7 +6,7 @@ Built with React Native + Expo, TypeScript, React Navigation, React Query, Zusta
 
 ---
 
-## ✨ Runs out of the box (mock mode)
+## Runs out of the box (mock mode)
 
 The app ships in **mock mode** — it runs end-to-end on seeded demo data with **no accounts or API keys required**. Just install and start:
 
@@ -98,7 +98,7 @@ comly/
 
 ---
 
-## 🔌 Connecting real services
+## Connecting real services
 
 See [DEPLOYMENT.md](./DEPLOYMENT.md) for full steps. In short:
 
@@ -118,17 +118,4 @@ npm run ios        # open iOS simulator
 npm run android    # open Android emulator
 npx tsc --noEmit   # type-check
 npx expo export --platform ios   # produce a production JS bundle (CI check)
-```
-
----
-
-## What you'll need before going to production
-
-- A Supabase project (free tier is fine to start)
-- A Gemini API key (for AI features)
-- A Google Maps API key (for the location preview)
-- An Expo account (for EAS builds & push)
-- Apple Developer + Google Play accounts (for store submission)
-- Replace the placeholder bundle id `com.comly.app` in `app.json`
-
-The app runs fully without any of these in mock mode.
+``

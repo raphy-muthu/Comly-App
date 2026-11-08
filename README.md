@@ -118,4 +118,3 @@ npm run ios        # open iOS simulator
 npm run android    # open Android emulator
 npx tsc --noEmit   # type-check
 npx expo export --platform ios   # produce a production JS bundle (CI check)
-``

@@ -1,38 +1,57 @@
-# Comly
+# Comly — Neighborhood Help
 
-A neighborhood services marketplace that connects residents who need help with trusted local helpers (primarily teens and young adults). Comly is a **matchmaking platform** — customers post jobs, helpers apply, and the two connect. **Payment is arranged off-platform**, so there is no in-app payment, escrow, or billing. Comly Plus and Pro Helper exist as *visibility* tiers only — server-granted flags that change sort order and add a badge, with no purchase flow attached (see [OPEN_ITEMS.md](OPEN_ITEMS.md)).
+**A safety-first marketplace for neighborhood jobs.** Neighbors post small paid tasks (snow shoveling, tutoring, dog walking, tech help) and local helpers, including teens 13 and older, apply. Comly is a **matchmaker**: it connects people but never handles payment, takes no cut, and employs no one.
 
-Built with React Native + Expo, TypeScript, React Navigation, React Query, Zustand, and Supabase. AI features (job assistant, safety review) run as Supabase Edge Functions backed by Gemini; recommendations use a deterministic scoring function, no model call.
+- **iOS:** live on the [App Store](https://apps.apple.com/us/app/comly-neighborhood-help/id6824781133) (version 1.0, released November 5, 2026; United States only).
+- **Android:** the same codebase builds for Android; not yet published on Google Play.
+- **Website, Terms and Privacy Policy:** [comly.app](https://comly.app) (served from the separate `comly-legal` repository).
+
+Built by Raphael Muthu and Marcel Afsar. Proprietary — see [LICENSE](LICENSE).
 
 ---
 
-## Runs out of the box (mock mode)
+## What makes it different
 
-The app ships in **mock mode** — it runs end-to-end on seeded demo data with **no accounts or API keys required**. Just install and start:
+Most gig apps are 18+. Comly is designed so a teenager can use it safely, which means safety is enforced by the database, not just the app:
 
-```bash
-npm install
-npm start          # then press i (iOS), a (Android), or scan the QR in Expo Go
-```
-
-Mock mode is controlled by `EXPO_PUBLIC_USE_MOCKS=true` in `.env` (already set). Every service (data, auth, AI) has a mock implementation seeded from `src/lib/mockData.ts`. Flip to real services when you're ready (see [Connecting real services](#-connecting-real-services)).
+- **Six safety tiers on every job,** set before anyone can see it: Teen Safe, Caution, Adult Supervision, 16+ Only, 18+ Only, and Not Allowed.
+- **A keyword safety floor in the database** (e.g. *ladder* → 18+, *mowing* → 16+, *roofing* → not allowed) that can only make a tier stricter, so neither a misleading description nor the AI can lower it.
+- **Age-matched applications:** the database refuses applications a helper is too young for. Jobs needing adult supervision, including all babysitting, require a parent or guardian's approval by email.
+- **Contact details stay private** until a poster accepts a specific helper, and there is no way to message someone out of the blue.
+- **Under-13s cannot sign up.** A neutral age gate follows the FTC's COPPA guidance, backed by a database check and a 24-hour on-device lockout after a refused sign-up.
 
 ---
 
 ## Features
 
-- **Onboarding & Auth** — splash, welcome carousel, email/Google/Apple/phone sign-in (mocked; OAuth path documented for production), with a "I need help / I want to help" role picker. Users can hold both roles and switch anytime.
-- **Customer flow** — dashboard, AI-assisted job creation (preset + custom categories, date/time pickers, duration presets, equipment, community tags → AI preview with fair-pay guidance and safety check → review), full listing management (edit / pause / mark filled / cancel / soft delete), applicant review with **working accept/decline**, and contact unlock after acceptance.
-- **Senior Help Mode** — a simplified large-type posting flow with task preset cards and an optional private family contact.
-- **Helper flow** — opportunity dashboard with reputation stats, searchable feed with safety/equipment labels and community-tag filters, AI-assisted apply flow with **teen age-gating** (minors cannot apply to 18+/blocked jobs).
-- **Teen Safety System** — 5-tier safety labels (Teen Safe / Caution / Adult Supervision / 18+ Only / Not Allowed) on every job, AI safety classification at posting, parent-approval gating, and equipment badges before applying.
-- **Trust & Youth Skills** — verification badges (email, phone, photo, school email, parent approval — no government ID), earned profile badges, reputation scoring, 4-category reviews, "Skills Built Through Comly," and a shareable AI experience summary.
-- **Safety & Support** — in-app reporting with AI risk triage, Safety Center (tips, report history, block list), Help & Support tickets, and a minimal admin console (reports + tickets moderation).
-- **Community Impact** — a public impact dashboard (jobs completed, seniors/families helped, teen-safe tasks, trust score — deliberately non-monetary) plus an About page with the community mission.
-- **Listing integrity** — 3 active-listing limit, 5-per-hour rate limit, soft deletes, database as the single source of truth.
-- **AI** — fair-pay suggestions with low-pay warnings, description polishing, safety review, resume summaries (mock locally; Gemini via edge functions in production).
+**For people who need help (customers)**
+- Post a job in under a minute: category, schedule, duration, equipment, community tags.
+- With the user's permission, AI suggests fair pay, polishes the description, reviews safety, and checks that pay and time estimates are realistic, with minimum-wage guidance.
+- Manage listings: edit, pause, mark filled, cancel, delete (soft). Limits: 3 active listings and 5 new listings per hour.
+- Compare applicants by rating, reviews and verification; accept or decline; invite recommended helpers.
+- **Simple Mode** for seniors: large buttons, preset tasks, and an optional family contact.
 
-> Messaging and in-app payments are intentionally out of scope: Comly is a matchmaking platform, and neighbors coordinate pay off-app (contact unlocks after acceptance). The database includes `conversations`/`messages` tables for a future chat feature, but no chat UI is built.
+**For helpers**
+- Browse and filter open jobs; ineligible jobs are labeled "You can't apply" with the reason.
+- Apply with a short message (AI can draft one, with permission).
+- Build a profile: reviews, reputation score, badges, and "Skills Built Through Comly."
+
+**Finishing a job**
+- Mutual completion: either side can start it (the poster marks it complete, or the helper taps **I'm done**), and the other side confirms or says it isn't finished. Reviews open only after both agree.
+- No-show reports are reviewed by an admin before a strike counts; three confirmed strikes suspend an account.
+
+**Trust, safety and moderation**
+- Report listings, profiles, individual reviews, and application messages.
+- Block anyone: their jobs, applications and reviews disappear instantly, and a report goes to moderators.
+- Offensive language is refused in job posts, applications, reviews and profiles (enforced in the database; reports are exempt so abuse can be quoted).
+- Explicit permission before any text is sent to AI, enforced in the app and in the server functions.
+- Verification badges (email verified, phone and photo added, school email verified, parent approval; no government ID), a Safety Center, Help & Support tickets, and an in-app admin console for moderation.
+- In-app account deletion, plus instructions for deleting by email at [comly.app/delete-account](https://comly.app/delete-account).
+
+**Also**
+- Alerts that open the related job, applicant list or profile.
+- A community impact page (jobs completed, seniors and families helped, teen-safe tasks done).
+- A rating prompt after a user posts a review (from version 1.0.1).
 
 ---
 
@@ -40,15 +59,52 @@ Mock mode is controlled by `EXPO_PUBLIC_USE_MOCKS=true` in `.env` (already set).
 
 | Area | Choice |
 |---|---|
-| Framework | Expo (React Native), TypeScript |
+| App | React Native 0.85 + Expo SDK 56, TypeScript |
 | Navigation | React Navigation (native stack + bottom tabs) |
-| Server state | TanStack React Query |
-| Client state | Zustand |
-| Backend | Supabase (Auth, Postgres, Storage, Realtime, Edge Functions) |
-| AI | Gemini (via Edge Functions) |
-| Maps | Google Maps (location preview) |
-| Notifications | Expo Push Notifications |
+| State | TanStack React Query (server), Zustand (client) |
+| Backend | Supabase: Postgres with row-level security and triggers, Auth, Storage, Edge Functions (Deno, TypeScript) |
+| AI | Google Gemini, called only from Edge Functions |
+| Email | Resend (parent-approval emails) |
+| Maps | `react-native-maps`: Apple Maps on iOS, Google Maps on Android |
+| Monitoring | Sentry (release builds only) |
 | Fonts | Plus Jakarta Sans |
+| Tests | Jest (279 tests) + an in-memory Postgres harness for migrations |
+
+---
+
+## Running it
+
+```bash
+npm install
+npm start          # press i (iOS) or a (Android); needs a development build, not Expo Go
+```
+
+**Mock mode (no accounts or keys).** Set `EXPO_PUBLIC_USE_MOCKS=true` in `.env`. Every service (data, auth, AI) then runs on seeded demo data from `src/lib/mockData.ts`, and any email and password signs in. If real mode is requested but Supabase isn't configured, the app logs a warning and falls back to mock data.
+
+**Real backend.** Copy `.env.example` to `.env` and fill in:
+
+```bash
+EXPO_PUBLIC_USE_MOCKS=false
+EXPO_PUBLIC_SUPABASE_URL=...
+EXPO_PUBLIC_SUPABASE_ANON_KEY=...
+EXPO_PUBLIC_GOOGLE_MAPS_API_KEY=...   # Android maps
+EXPO_PUBLIC_SENTRY_DSN=...
+```
+
+The Gemini and Resend keys and the Supabase service-role key live only as Edge Function secrets, never in the app. Full setup, deployment and store submission steps are in [DEPLOYMENT.md](DEPLOYMENT.md).
+
+---
+
+## Scripts
+
+```bash
+npm start            # Expo dev server
+npm run ios          # build and run on the iOS simulator
+npm run android      # build and run on an Android emulator
+npm test             # Jest
+npm run typecheck    # tsc --noEmit
+npm run legal:html   # regenerate web/legal/ from src/legal/content.ts
+```
 
 ---
 
@@ -56,65 +112,52 @@ Mock mode is controlled by `EXPO_PUBLIC_USE_MOCKS=true` in `.env` (already set).
 
 ```
 comly/
-├── App.tsx                  # Providers (SafeArea, React Query) + fonts
-├── app.json                 # Expo config (bundle id: com.comly.app)
-├── .env / .env.example      # Environment (mock toggle + keys)
+├── App.tsx                 # Providers, fonts, Sentry
+├── app.json / app.config.js# Expo config (bundle id com.comly.app)
+├── plugins/                # Expo config plugins: iOS 27 UIScene lifecycle, pod deployment targets
 ├── src/
-│   ├── theme/               # "Organic Vitality" design tokens
-│   ├── components/
-│   │   ├── ui/              # Button, Card, Chip, Input, Text, …
-│   │   ├── trust/           # TrustBadge, SafetyBadge, ScoreRing, Verification
-│   │   ├── job/             # JobCard, JobListItem
-│   │   └── people/          # HelperRow
-│   ├── screens/
-│   │   ├── onboarding/      # Splash, Welcome
-│   │   ├── auth/            # SignUp, Login, PhoneVerify
-│   │   ├── customer/        # Dashboard, MyJobs
-│   │   ├── helper/          # Dashboard, JobFeed
-│   │   ├── jobs/            # CreateJob, JobDetail, Applications, ApplyToJob
-│   │   ├── shared/          # Profile, HelperProfile, Alerts
-│   │   ├── HomeScreen.tsx   # role-aware tab wrappers
-│   │   └── JobsScreen.tsx
-│   ├── navigation/          # Root / Public / App stacks + tabs
-│   ├── services/            # backend abstraction (mock + supabase), ai, push
-│   ├── hooks/               # React Query hooks
-│   ├── stores/              # Zustand (auth + active role)
-│   ├── lib/                 # mock data, formatters, query client
-│   ├── config/              # env access
-│   └── types/               # domain + database types
-└── supabase/
-    ├── migrations/          # 0001_init.sql, 0002_rls.sql
-    ├── functions/           # ai-job-assistant, ai-safety-review, ai-recommendations, push-dispatch
-    └── seed.sql             # local dev seed
+│   ├── screens/            # onboarding, auth, customer, helper, jobs, shared, admin, legal
+│   ├── components/         # ui, job, people, trust, ai, legal
+│   ├── services/           # DataBackend interface + mock and Supabase implementations, AI, auth, push
+│   ├── hooks/              # React Query hooks
+│   ├── navigation/         # stacks + tabs, deep links
+│   ├── legal/              # Terms and Privacy Policy (single source for app and website)
+│   ├── lib/                # content filter, error handling, query client, wage guidance, …
+│   ├── stores/  types/  theme/  config/
+│   └── __tests__/
+├── supabase/
+│   ├── migrations/         # 0001–0035: schema, RLS, safety rules, workflows
+│   ├── functions/          # ai-job-assistant, ai-safety-review, parent-consent, delete-account, …
+│   └── seed.sql            # local development seed
+├── web/legal/              # generated Terms/Privacy pages
+├── store-assets/           # listing copy, Play data-safety answers, screenshots, artwork, video graphics
+└── docs/legal/             # Word copy of the Terms
 ```
 
 ---
 
 ## Architecture notes
 
-- **Backend abstraction.** Screens never call Supabase directly. They use React Query hooks → `services/index.ts`, which resolves to either `mockBackend` or `supabaseBackend` based on config. Both implement the same `DataBackend` interface (`services/types.ts`), so the UI is identical in either mode.
-- **Mock toggle.** `EXPO_PUBLIC_USE_MOCKS` (with `expo.extra.useMocks` as fallback) decides the backend. If real mode is requested but credentials are missing, the app logs a warning and safely falls back to mock data.
-- **Server secrets stay server-side.** The Gemini key and Supabase service-role key live only as Supabase Edge Function secrets — never in the client bundle.
+- **One backend interface, two implementations.** Screens use React Query hooks, which call `services/index.ts`. That resolves to `mockBackend` or `supabaseBackend`; both implement `DataBackend` (`services/types.ts`), so the UI is identical in either mode.
+- **Rules live in the database.** Safety tiers, age eligibility, contact unlocking, completion, listing limits and the content filter are enforced with row-level security, triggers and `SECURITY DEFINER` functions, so they hold even if someone bypasses the app.
+- **AI is optional and fail-safe.** Every AI call runs through an Edge Function, only with the user's recorded permission. Responses are validated, and any failure falls back to on-device rules, so posting and applying never depend on the AI.
+- **Native settings are code.** `ios/` and `android/` are generated by `expo prebuild` and not committed; native changes go in `app.json` or `plugins/`.
 
 ---
 
-## Connecting real services
+## Known limitations
 
-See [DEPLOYMENT.md](./DEPLOYMENT.md) for full steps. In short:
+- **No real location yet.** Jobs carry a free-text neighborhood but no coordinates, so distances show as 0.0 mi and the feed lists every open job.
+- **No push notifications or realtime updates.** Alerts appear when the app is opened or refreshed. The push code exists but isn't connected.
+- **Lists load in full,** without pagination (the feed, notifications, reviews).
+- **Moderation is manual,** through the in-app admin console.
+- **English only,** for the safety keywords and the content filter.
+- **Comly Plus and Pro Helper** are visibility flags (sort order and a badge) granted on the server, with no purchase flow. See [OPEN_ITEMS.md](OPEN_ITEMS.md).
 
-1. **Supabase** — create a project, run the SQL in `supabase/migrations/`, then set `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` in `.env`.
-2. **Gemini** — `supabase secrets set GEMINI_API_KEY=...` and deploy the edge functions.
-3. **Google Maps** — set `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY`.
-4. Set `EXPO_PUBLIC_USE_MOCKS=false` and restart.
-5. Regenerate DB types: `npx supabase gen types typescript --linked > src/types/database.ts`.
+Abuse scenarios and the protections for each are in [SAFETY_AND_ETHICS.md](SAFETY_AND_ETHICS.md).
 
 ---
 
-## Scripts
+## Contact
 
-```bash
-npm start          # Expo dev server
-npm run ios        # open iOS simulator
-npm run android    # open Android emulator
-npx tsc --noEmit   # type-check
-npx expo export --platform ios   # produce a production JS bundle (CI check)
+comlyapp@protonmail.com · [comly.app/support](https://comly.app/support)

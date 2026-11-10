@@ -22,7 +22,7 @@ Most local job apps are 18+. Comly is designed so a teenager can use it safely, 
 
 ---
 
-## Features
+## Key Features
 
 **For people who need help (customers)**
 - Post a job in under a minute: category, schedule, duration, equipment, community tags.

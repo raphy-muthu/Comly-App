@@ -10,15 +10,15 @@ Built by Raphael Muthu and Marcel Afsar. Proprietary — see [LICENSE](LICENSE).
 
 ---
 
-## What makes it different
+## What makes Comly different
 
-Most gig apps are 18+. Comly is designed so a teenager can use it safely, which means safety is enforced by the database, not just the app:
+Most local job apps are 18+. Comly is designed so a teenager can use it safely, meaning safety is enforced by the database, not just the app:
 
 - **Six safety tiers on every job,** set before anyone can see it: Teen Safe, Caution, Adult Supervision, 16+ Only, 18+ Only, and Not Allowed.
 - **A keyword safety floor in the database** (e.g. *ladder* → 18+, *mowing* → 16+, *roofing* → not allowed) that can only make a tier stricter, so neither a misleading description nor the AI can lower it.
-- **Age-matched applications:** the database refuses applications a helper is too young for. Jobs needing adult supervision, including all babysitting, require a parent or guardian's approval by email.
+- **Age matched applications:** the database refuses applications a helper is too young for. Jobs needing adult supervision, including all babysitting, require a parent or guardian's approval by email.
 - **Contact details stay private** until a poster accepts a specific helper, and there is no way to message someone out of the blue.
-- **Under-13s cannot sign up.** A neutral age gate follows the FTC's COPPA guidance, backed by a database check and a 24-hour on-device lockout after a refused sign-up.
+- **Under 13s cannot sign up.** A neutral age gate follows the FTC's COPPA guidance, backed by a database check and a 24-hour on-device lockout after a refused sign-up.
 
 ---
 
